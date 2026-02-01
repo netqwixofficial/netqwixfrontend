@@ -320,7 +320,7 @@ const OneOnOneCall = ({
         socket.off(EVENTS.TOGGLE_DRAWING_MODE, handleToggleDrawingMode);
       }
     };
-  }, [socket, accountType, fromUser?._id, toUser?._id]);
+  }, [socket, accountType, fromUser?._id, toUser?._id, setSelectedUser, setIsAnnotating]);
 
   const emitVideoSelectEvent = (type, id) => {
     if (socket && fromUser?._id && toUser?._id) {
