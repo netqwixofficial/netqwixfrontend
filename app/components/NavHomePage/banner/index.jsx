@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Utils } from "../../../../utils/utils";
 import { topNavbarOptions } from "../../../common/constants";
 import { useAppDispatch } from "../../../store";
@@ -14,6 +15,35 @@ const OnlineUserCard = ({ trainer }) => {
             selectedOnlineUser: trainer
         }))
     }
+
+    useEffect(() => {
+        // Add CSS animation for glowing effect
+        const style = document.createElement('style');
+        style.id = 'instant-lesson-glow-animation';
+        style.textContent = `
+            @keyframes slowGlow {
+                0%, 100% {
+                    box-shadow: 0 0 10px rgba(255, 0, 0, 0.5),
+                                0 0 20px rgba(255, 0, 0, 0.3),
+                                0 0 30px rgba(255, 0, 0, 0.2);
+                }
+                50% {
+                    box-shadow: 0 0 20px rgba(255, 0, 0, 0.8),
+                                0 0 40px rgba(255, 0, 0, 0.6),
+                                0 0 60px rgba(255, 0, 0, 0.4);
+                }
+            }
+        `;
+        if (!document.getElementById('instant-lesson-glow-animation')) {
+            document.head.appendChild(style);
+        }
+        return () => {
+            const existingStyle = document.getElementById('instant-lesson-glow-animation');
+            if (existingStyle) {
+                document.head.removeChild(existingStyle);
+            }
+        };
+    }, []);
 
     return (<>
         <div className="trainer-card" style={{
@@ -104,16 +134,15 @@ const OnlineUserCard = ({ trainer }) => {
                 }}>Price: ${trainer?.extraInfo?.hourly_rate || 0}</h4>
                 <div 
                     onClick={handleTraineInstantLesson} 
-                    className="instant"
+                    className="instant instant-glow"
                     style={{
                         marginTop: width600 ? "8px" : "10px",
-                        background: "#ff6b6b",
+                        background: "#ff0000",
                         border: "none",
                         borderRadius: "6px",
                         padding: width600 ? "10px 12px" : "12px 16px",
                         cursor: "pointer",
                         transition: "all 0.3s ease",
-                        boxShadow: "0 2px 6px rgba(249, 0, 0, 0.4)",
                         width: "100%",
                         maxWidth: "100%",
                         touchAction: "manipulation",
@@ -121,24 +150,24 @@ const OnlineUserCard = ({ trainer }) => {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        flexShrink: 0
+                        flexShrink: 0,
+                        position: "relative",
+                        animation: "slowGlow 3s ease-in-out infinite"
                     }}
                     onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#ff5252";
+                        e.currentTarget.style.background = "#dc2626";
                         e.currentTarget.style.transform = "scale(1.02)";
-                        e.currentTarget.style.boxShadow = "0 4px 8px rgba(249, 0, 0, 0.6)";
                     }}
                     onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "#ff6b6b";
+                        e.currentTarget.style.background = "#ff0000";
                         e.currentTarget.style.transform = "scale(1)";
-                        e.currentTarget.style.boxShadow = "0 2px 6px rgba(249, 0, 0, 0.4)";
                     }}
                     onTouchStart={(e) => {
-                        e.currentTarget.style.background = "#ff5252";
+                        e.currentTarget.style.background = "#dc2626";
                         e.currentTarget.style.transform = "scale(0.98)";
                     }}
                     onTouchEnd={(e) => {
-                        e.currentTarget.style.background = "#ff6b6b";
+                        e.currentTarget.style.background = "#ff0000";
                         e.currentTarget.style.transform = "scale(1)";
                     }}
                 >

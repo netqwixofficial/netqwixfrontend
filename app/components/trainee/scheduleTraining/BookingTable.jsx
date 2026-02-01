@@ -94,6 +94,35 @@ const BookingTable = ({
   };
 
   useEffect(() => {
+    // Add CSS animation for glowing effect
+    const style = document.createElement('style');
+    style.id = 'book-instant-glow-animation';
+    style.textContent = `
+      @keyframes slowGlow {
+        0%, 100% {
+          box-shadow: 0 0 10px rgba(255, 0, 0, 0.5),
+                      0 0 20px rgba(255, 0, 0, 0.3),
+                      0 0 30px rgba(255, 0, 0, 0.2);
+        }
+        50% {
+          box-shadow: 0 0 20px rgba(255, 0, 0, 0.8),
+                      0 0 40px rgba(255, 0, 0, 0.6),
+                      0 0 60px rgba(255, 0, 0, 0.4);
+        }
+      }
+    `;
+    if (!document.getElementById('book-instant-glow-animation')) {
+      document.head.appendChild(style);
+    }
+    return () => {
+      const existingStyle = document.getElementById('book-instant-glow-animation');
+      if (existingStyle) {
+        document.head.removeChild(existingStyle);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const todaySDate = Utils.getDateInFormatIOS(new Date());
     const { weekDates, weekDateFormatted } =
       Utils.getNext7WorkingDays(todaySDate);
@@ -674,25 +703,27 @@ const BookingTable = ({
               {" "}
               {/* Banner right styles */}
               <button
+                className="book-instant-glow"
                 style={{
-                  backgroundColor: "#ff6b6b",
+                  backgroundColor: "#ff0000",
                   color: "#fff",
                   padding: "0.7rem 1rem",
                   borderRadius: "5px",
                   margin: "5px auto",
                   width: "100%",
                   fontSize: "1rem",
-                  border: "1px solid #ff6b6b",
+                  border: "none",
                   transition: "all 0.3s ease",
-                  boxShadow: "0 2px 6px rgba(249, 0, 0, 0.4)"
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  position: "relative",
+                  animation: "slowGlow 3s ease-in-out infinite"
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "#ff5252";
-                  e.currentTarget.style.boxShadow = "0 4px 8px rgba(249, 0, 0, 0.6)";
+                  e.currentTarget.style.backgroundColor = "#dc2626";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "#ff6b6b";
-                  e.currentTarget.style.boxShadow = "0 2px 6px rgba(249, 0, 0, 0.4)";
+                  e.currentTarget.style.backgroundColor = "#ff0000";
                 }}
                 onClick={() => {
                   setIsInstantLessonModalOpen(true);
