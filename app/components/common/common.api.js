@@ -114,23 +114,27 @@ export const getScheduledMeetingDetails = async (payload) => {
     if (payload?.status === "upcoming") {
       // For "upcoming", include meetings that are:
       // 1. Still booked/confirmed (not completed), OR
-      // 2. Have a future start_time (even if marked as completed due to ratings)
+      // 2. Have a future start_time (even if marked as completed due to ratings), OR
+      // 3. Are currently active (start_time <= now < end_time)
       filteredData = filteredData.filter((item) => {
         const isBookedOrConfirmed = item.status === "booked" || item.status === "confirmed";
         
-        // Also include meetings with future start times (even if they have ratings)
-        let isFutureMeeting = false;
+        // Check if meeting is in the future or currently active
+        let isFutureOrActiveMeeting = false;
         if (item.start_time) {
           try {
             const startTime = new Date(item.start_time);
             const now = new Date();
-            isFutureMeeting = startTime > now;
+            const endTime = item.end_time ? new Date(item.end_time) : null;
+            
+            // Include if: start time is in the future OR (start time has passed AND end time hasn't passed)
+            isFutureOrActiveMeeting = startTime > now || (startTime <= now && endTime && endTime > now);
           } catch (e) {
-            console.warn("Error checking start_time for upcoming filter:", item._id, e);
+            console.warn("Error checking start_time/end_time for upcoming filter:", item._id, e);
           }
         }
         
-        return isBookedOrConfirmed || isFutureMeeting;
+        return isBookedOrConfirmed || isFutureOrActiveMeeting;
       });
     } else if (payload?.status === "canceled") {
       filteredData = filteredData.filter((item) => item.status === "canceled");
