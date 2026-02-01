@@ -1274,12 +1274,6 @@ const ClipModeCall = ({
     }
   }
 
-  socket.on(EVENTS.ON_VIDEO_SELECT, ({ id, type }) => {
-    if (type === "swap" && accountType === AccountType.TRAINEE) {
-      setSelectedUser(id);
-    }
-  });
-
   const emitVideoSelectEvent = (type, id) => {
     socket.emit(EVENTS.ON_VIDEO_SELECT, {
       userInfo: { from_user: fromUser._id, to_user: toUser._id },
@@ -1398,6 +1392,25 @@ const ClipModeCall = ({
       socket.off(EVENTS.ON_CLEAR_CANVAS, handleClearCanvasSocket);
     };
   }, [socket, videoRef, videoRef2, accountType, isLock]);
+
+  // Handle video select events (for swapping videos)
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleVideoSelect = ({ id, type }) => {
+      if (type === "swap" && accountType === AccountType.TRAINEE) {
+        setSelectedUser(id);
+      }
+    };
+
+    socket.on(EVENTS.ON_VIDEO_SELECT, handleVideoSelect);
+
+    return () => {
+      if (socket) {
+        socket.off(EVENTS.ON_VIDEO_SELECT, handleVideoSelect);
+      }
+    };
+  }, [socket, accountType, setSelectedUser]);
 
   // Play/pause video
   const togglePlayPause = () => {
@@ -1614,10 +1627,11 @@ const ClipModeCall = ({
     }
   };
 
-  socket.on(
-    EVENTS.EMIT_DRAWING_CORDS,
-    ({ strikes, canvasSize, canvasIndex }) => {
-       
+  // Handle drawing coordinates from socket
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleDrawingCoords = ({ strikes, canvasSize, canvasIndex }) => {
       const canvas =
         canvasIndex === 1 ? canvasRef?.current : canvasRef2?.current;
       const context = canvas?.getContext("2d");
@@ -1632,8 +1646,16 @@ const ClipModeCall = ({
         context.clearRect(0, 0, canvas.width, canvas.height);
         context.drawImage(image, 0, 0, width * scaleX, height * scaleY);
       };
-    }
-  );
+    };
+
+    socket.on(EVENTS.EMIT_DRAWING_CORDS, handleDrawingCoords);
+
+    return () => {
+      if (socket) {
+        socket.off(EVENTS.EMIT_DRAWING_CORDS, handleDrawingCoords);
+      }
+    };
+  }, [socket, canvasRef, canvasRef2]);
 
   const sendEmitUndoEvent = useCallback((canvasIndex) => {
     _debounce(() => sendDrawEvent(canvasIndex), 500)();
