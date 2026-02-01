@@ -82,13 +82,13 @@ export const UserBox = ({
 };
 
 function useClickObserver(callback) {
-  const [dragStartPos, setDragStartPos] = React.useState(new Point());
+  const dragStartPosRef = React.useRef(new Point());
   const onStart = (_, data) => {
-    setDragStartPos(new Point(data.x, data.y));
+    dragStartPosRef.current = new Point(data.x, data.y);
   };
   const onStop = (_, data) => {
     const dragStopPoint = new Point(data.x, data.y);
-    if (Point.dist(dragStartPos, dragStopPoint) < 5) {
+    if (Point.dist(dragStartPosRef.current, dragStopPoint) < 5) {
       callback();
     }
   };
@@ -130,10 +130,10 @@ export const UserBoxMini = ({
   );
 
   useEffect(() => {
-    if (videoRef?.current) {
+    if (videoRef?.current && stream) {
       videoRef.current.srcObject = stream;
     }
-  }, [videoRef, stream, isStreamOff]);
+  }, [videoRef, stream, isStreamOff, isHidden]);
 
   const handleBoxClick = () => {
     if (onClick && id && !isDragging) {
