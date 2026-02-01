@@ -80,6 +80,8 @@ const VideoCallUI = ({
 
   const socket = useContext(SocketContext);
   const peerRef = useRef(null);
+  const activeCallRef = useRef(null); // Track active call to prevent duplicates
+  const isConnectingRef = useRef(false); // Prevent multiple simultaneous connection attempts
   const localVideoRef = useRef(null);
   const canvasRef = useRef(null);
   const canvasRef2 = useRef(null);
@@ -360,14 +362,29 @@ const VideoCallUI = ({
 
   // Define cleanupFunction early (needed by cutCall)
   function handlePeerDisconnect() {
-    if (!(peerRef && peerRef.current)) return;
-    //NOTE -  manually close the peer connections
-    for (let conns in peerRef.current.connections) {
-      peerRef.current.connections[conns].forEach((conn, index, array) => {
-        conn.peerConnection.close();
-        //NOTE - close it using peerjs methods
-        if (conn.close) conn.close();
-      });
+    try {
+      // Clean up active call
+      if (activeCallRef.current?.call) {
+        try {
+          activeCallRef.current.call.close();
+        } catch (error) {
+          console.error('[VideoCall] Error closing call in handlePeerDisconnect:', error);
+        }
+        activeCallRef.current = null;
+      }
+      isConnectingRef.current = false;
+
+      if (!(peerRef && peerRef.current)) return;
+      //NOTE -  manually close the peer connections
+      for (let conns in peerRef.current.connections) {
+        peerRef.current.connections[conns].forEach((conn, index, array) => {
+          conn.peerConnection.close();
+          //NOTE - close it using peerjs methods
+          if (conn.close) conn.close();
+        });
+      }
+    } catch (error) {
+      console.error('[VideoCall] Error in handlePeerDisconnect:', error);
     }
   }
 
@@ -422,14 +439,33 @@ const VideoCallUI = ({
       peerRef.current.destroy();
       peerRef.current = null;
     }
+
+    // Reset connection state
+    activeCallRef.current = null;
+    isConnectingRef.current = false;
   }, [localStream, remoteStream, micStream, userAlreadyInCall]);
 
   // Define cutCall early using useCallback so it can be used in useEffect hooks
   const cutCall = useCallback((manually) => {
-    if (!userAlreadyInCall && socket) {
-      socket.emit(EVENTS.VIDEO_CALL.ON_CLOSE, {
-        userInfo: { from_user: fromUser._id, to_user: toUser._id }
-      });
+    try {
+      // Clean up active call
+      if (activeCallRef.current?.call) {
+        try {
+          activeCallRef.current.call.close();
+        } catch (error) {
+          console.error('[VideoCall] Error closing call:', error);
+        }
+        activeCallRef.current = null;
+      }
+      isConnectingRef.current = false;
+
+      if (!userAlreadyInCall && socket) {
+        socket.emit(EVENTS.VIDEO_CALL.ON_CLOSE, {
+          userInfo: { from_user: fromUser._id, to_user: toUser._id }
+        });
+      }
+    } catch (error) {
+      console.error('[VideoCall] Error in cutCall:', error);
     }
 
     // Show session ended modal if not already shown
@@ -1070,22 +1106,61 @@ const VideoCallUI = ({
 
 
       peer.on("call", (call) => {
-        call.answer(stream);
-        call.on("stream", (remoteStream) => {
-          setIsTraineeJoined(true);
-          // Check if both users are now joined (local user + remote user)
-          // For trainer: they joined when handleStartCall ran, trainee joins here
-          // For trainee: they joined when handleStartCall ran, trainer joins here
-          if (accountType === AccountType.TRAINER) {
-            // Trainer is already in call, trainee just joined
-            setBothUsersJoined(true);
-          } else {
-            // Trainee is already in call, trainer just joined
-            setBothUsersJoined(true);
+        try {
+          // Track incoming call
+          if (activeCallRef.current?.call && activeCallRef.current.call !== call) {
+            // Close previous call if exists
+            try {
+              activeCallRef.current.call.close();
+            } catch (error) {
+              console.error('[VideoCall] Error closing previous call:', error);
+            }
           }
-          setDisplayMsg({ show: false, msg: "" });
-          setRemoteStream(remoteStream);
-        });
+
+          activeCallRef.current = { call, peer: call.peer };
+          isConnectingRef.current = false;
+
+          call.answer(stream);
+          
+          call.on("error", (error) => {
+            console.error('[VideoCall] Incoming call error:', error);
+            isConnectingRef.current = false;
+            if (activeCallRef.current?.call === call) {
+              activeCallRef.current = null;
+            }
+          });
+
+          call.on("stream", (remoteStream) => {
+            try {
+              setIsTraineeJoined(true);
+              // Check if both users are now joined (local user + remote user)
+              // For trainer: they joined when handleStartCall ran, trainee joins here
+              // For trainee: they joined when handleStartCall ran, trainer joins here
+              if (accountType === AccountType.TRAINER) {
+                // Trainer is already in call, trainee just joined
+                setBothUsersJoined(true);
+              } else {
+                // Trainee is already in call, trainer just joined
+                setBothUsersJoined(true);
+              }
+              setDisplayMsg({ show: false, msg: "" });
+              setRemoteStream(remoteStream);
+            } catch (error) {
+              console.error('[VideoCall] Error handling incoming stream:', error);
+            }
+          });
+
+          call.on("close", () => {
+            console.log('[VideoCall] Incoming call closed');
+            isConnectingRef.current = false;
+            if (activeCallRef.current?.call === call) {
+              activeCallRef.current = null;
+            }
+          });
+        } catch (error) {
+          console.error('[VideoCall] Error handling incoming call:', error);
+          isConnectingRef.current = false;
+        }
       });
     } catch (err) {
        
@@ -1106,26 +1181,104 @@ const VideoCallUI = ({
 
   }, [remoteStream]);
 
-  const connectToPeer = (peer, peerId) => {
-    if (!(localVideoRef && localVideoRef?.current)) return;
-    const call = peer.call(peerId, localVideoRef?.current?.srcObject);
-    call?.on("stream", (remoteStream) => {
-      //  
-      setDisplayMsg({ show: false, msg: "" });
-      if (timeoutId) {
-        clearTimeout(timeoutId);
+  const connectToPeer = useCallback((peer, peerId) => {
+    try {
+      // Prevent duplicate connection attempts
+      if (isConnectingRef.current) {
+        console.log('[VideoCall] Connection already in progress, skipping duplicate call');
+        return;
       }
-      setIsTraineeJoined(true);
-      // Both users are now connected (local user + remote user)
-      setBothUsersJoined(true);
-       
-      if (remoteVideoRef?.current) {
-        remoteVideoRef.current.srcObject = remoteStream;
+
+      // Check if we already have an active call to this peer
+      if (activeCallRef.current && activeCallRef.current.peer === peerId) {
+        console.log('[VideoCall] Active call already exists for peer:', peerId);
+        return;
       }
-      setRemoteStream(remoteStream);
-      accountType === AccountType.TRAINEE ? setIsModelOpen(true) : null;
-    });
-  };
+
+      if (!(localVideoRef && localVideoRef?.current)) {
+        console.error('[VideoCall] Local video ref not available');
+        return;
+      }
+
+      if (!peer || !peerId) {
+        console.error('[VideoCall] Invalid peer or peerId', { peer, peerId });
+        return;
+      }
+
+      // Check if peer is still open/connected
+      if (peer.destroyed || peer.disconnected) {
+        console.error('[VideoCall] Peer is destroyed or disconnected');
+        return;
+      }
+
+      isConnectingRef.current = true;
+
+      const call = peer.call(peerId, localVideoRef?.current?.srcObject);
+      
+      if (!call) {
+        console.error('[VideoCall] Failed to create call');
+        isConnectingRef.current = false;
+        return;
+      }
+
+      // Store active call reference
+      activeCallRef.current = { call, peer: peerId };
+
+      // Handle call errors
+      call.on("error", (error) => {
+        console.error('[VideoCall] Call error:', error);
+        isConnectingRef.current = false;
+        activeCallRef.current = null;
+        // Don't show error to user if it's just a connection retry
+        if (error.type !== 'peer-unavailable' && error.type !== 'network') {
+          setDisplayMsg({ 
+            show: true, 
+            msg: "Connection error. Please try again." 
+          });
+        }
+      });
+
+      // Handle successful stream
+      call.on("stream", (remoteStream) => {
+        try {
+          setDisplayMsg({ show: false, msg: "" });
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+          setIsTraineeJoined(true);
+          setBothUsersJoined(true);
+          
+          if (remoteVideoRef?.current) {
+            remoteVideoRef.current.srcObject = remoteStream;
+          }
+          setRemoteStream(remoteStream);
+          accountType === AccountType.TRAINEE ? setIsModelOpen(true) : null;
+          isConnectingRef.current = false;
+        } catch (error) {
+          console.error('[VideoCall] Error handling remote stream:', error);
+          isConnectingRef.current = false;
+        }
+      });
+
+      // Handle call close
+      call.on("close", () => {
+        console.log('[VideoCall] Call closed');
+        isConnectingRef.current = false;
+        if (activeCallRef.current?.peer === peerId) {
+          activeCallRef.current = null;
+        }
+      });
+
+    } catch (error) {
+      console.error('[VideoCall] Error in connectToPeer:', error);
+      isConnectingRef.current = false;
+      activeCallRef.current = null;
+      setDisplayMsg({ 
+        show: true, 
+        msg: "Failed to connect. Please try again." 
+      });
+    }
+  }, [accountType, setIsModelOpen]);
   
   // Start lesson countdown based on backend timer info (authoritative)
   const startLessonTimer = useCallback(
@@ -1221,12 +1374,37 @@ const VideoCallUI = ({
     if (!socket) return;
 
     const handleCallJoin = ({ userInfo }) => {
-      const { to_user, from_user, peerId } = userInfo;
-      if (!(peerRef && peerRef.current)) return;
-      // Use peerId if provided (for unique device connections), otherwise fallback to from_user
-      // This allows same user to join from multiple devices
-      const targetPeerId = peerId || from_user;
-      connectToPeer(peerRef.current, targetPeerId);
+      try {
+        const { to_user, from_user, peerId } = userInfo || {};
+        
+        // Validate userInfo
+        if (!userInfo || (!from_user && !peerId)) {
+          console.error('[VideoCall] Invalid userInfo in ON_CALL_JOIN:', userInfo);
+          return;
+        }
+
+        if (!(peerRef && peerRef.current)) {
+          console.error('[VideoCall] Peer ref not available');
+          return;
+        }
+
+        // Use peerId if provided (for unique device connections), otherwise fallback to from_user
+        // This allows same user to join from multiple devices
+        const targetPeerId = peerId || from_user;
+        
+        // Only connect if we're not already connected to this peer
+        if (activeCallRef.current?.peer !== targetPeerId) {
+          connectToPeer(peerRef.current, targetPeerId);
+        } else {
+          console.log('[VideoCall] Already connected to peer:', targetPeerId);
+        }
+      } catch (error) {
+        console.error('[VideoCall] Error in handleCallJoin:', error);
+        setDisplayMsg({ 
+          show: true, 
+          msg: "Error connecting to call. Please try again." 
+        });
+      }
     };
 
     const handleOffer = (offer) => {
@@ -1262,12 +1440,16 @@ const VideoCallUI = ({
 
     // Cleanup: Remove all listeners when component unmounts or dependencies change
     return () => {
-      socket.off("ON_CALL_JOIN", handleCallJoin);
-      socket.off(EVENTS.VIDEO_CALL.ON_OFFER, handleOffer);
-      socket.off(EVENTS.VIDEO_CALL.ON_ANSWER, handleAnswer);
-      socket.off(EVENTS.VIDEO_CALL.ON_ICE_CANDIDATE, handleIceCandidate);
-      socket.off(EVENTS.VIDEO_CALL.STOP_FEED, handleStopFeed);
-      socket.off(EVENTS.VIDEO_CALL.ON_CLOSE, handleCallClose);
+      if (socket) {
+        socket.off("ON_CALL_JOIN", handleCallJoin);
+        socket.off(EVENTS.VIDEO_CALL.ON_OFFER, handleOffer);
+        socket.off(EVENTS.VIDEO_CALL.ON_ANSWER, handleAnswer);
+        socket.off(EVENTS.VIDEO_CALL.ON_ICE_CANDIDATE, handleIceCandidate);
+        socket.off(EVENTS.VIDEO_CALL.STOP_FEED, handleStopFeed);
+        socket.off(EVENTS.VIDEO_CALL.ON_CLOSE, handleCallClose);
+      }
+      // Reset connection state on cleanup
+      isConnectingRef.current = false;
     };
   }, [socket, toUser, connectToPeer]);
 

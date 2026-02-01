@@ -20,12 +20,28 @@ class ErrorBoundary extends React.Component {
     console.error('Component stack:', errorInfo?.componentStack);
     console.error('Error info:', errorInfo);
     
+    // Filter out common non-critical errors that shouldn't trigger the error boundary
+    const errorMessage = error?.message || '';
+    const isNonCriticalError = 
+      errorMessage.includes('ResizeObserver') ||
+      errorMessage.includes('Non-Error promise rejection') ||
+      errorMessage.includes('socket.io') ||
+      errorMessage.includes('WebRTC') ||
+      errorMessage.includes('peer') ||
+      errorMessage.includes('MediaStream');
+    
+    // Only show error boundary for critical errors
+    if (isNonCriticalError) {
+      console.warn('Non-critical error caught, not showing error boundary:', errorMessage);
+      return;
+    }
+    
     this.setState({
       error,
       errorInfo,
     });
 
-    // Show user-friendly error message
+    // Show user-friendly error message only for critical errors
     toast.error('An unexpected error occurred. Please refresh the page and try again.', {
       autoClose: 5000,
     });
