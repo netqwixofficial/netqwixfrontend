@@ -120,6 +120,91 @@ const MyClips = ({ activeCenterContainerTab, trainee_id }) => {
     }
   }, [isOpenPlayVideo]);
 
+  // Animate title if it's too long - sliding animation
+  useEffect(() => {
+    if (!isOpenPlayVideo || !selectedClip) {
+      // Clean up animation when modal closes
+      const existingStyle = document.getElementById('clip-title-animation');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+      return;
+    }
+
+    // Small delay to ensure DOM is ready
+    const timeoutId = setTimeout(() => {
+      const titleElement = document.getElementById('clip-title');
+      if (!titleElement) return;
+
+      const container = titleElement.parentElement;
+      if (!container) return;
+
+      // Reset any existing animation
+      titleElement.style.animation = 'none';
+      titleElement.style.transform = 'translateX(0)';
+      
+      // Force reflow to get accurate measurements
+      void titleElement.offsetWidth;
+
+      // Check if title is wider than container
+      const titleWidth = titleElement.scrollWidth;
+      const containerWidth = container.offsetWidth;
+
+      if (titleWidth > containerWidth) {
+        // Title is too long, add sliding animation
+        const scrollDistance = titleWidth - containerWidth;
+        const scrollDuration = Math.max(3, scrollDistance / 50); // Minimum 3 seconds for scrolling
+        const pauseDuration = 3; // 3 seconds pause at the end
+        const totalDuration = scrollDuration + pauseDuration + scrollDuration; // Scroll right, pause, scroll back
+        
+        // Create keyframes animation
+        const style = document.createElement('style');
+        style.id = 'clip-title-animation';
+        style.textContent = `
+          @keyframes slideTitle {
+            0% {
+              transform: translateX(0);
+            }
+            ${(scrollDuration / totalDuration * 100)}% {
+              transform: translateX(-${scrollDistance}px);
+            }
+            ${((scrollDuration + pauseDuration) / totalDuration * 100)}% {
+              transform: translateX(-${scrollDistance}px);
+            }
+            100% {
+              transform: translateX(0);
+            }
+          }
+          #clip-title {
+            animation: slideTitle ${totalDuration}s linear infinite;
+          }
+        `;
+        
+        // Remove existing animation style if present
+        const existingStyle = document.getElementById('clip-title-animation');
+        if (existingStyle) {
+          existingStyle.remove();
+        }
+        
+        document.head.appendChild(style);
+      } else {
+        // Title fits, remove animation if exists
+        const existingStyle = document.getElementById('clip-title-animation');
+        if (existingStyle) {
+          existingStyle.remove();
+        }
+      }
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      const styleToRemove = document.getElementById('clip-title-animation');
+      if (styleToRemove) {
+        styleToRemove.remove();
+      }
+    };
+  }, [isOpenPlayVideo, selectedClip]);
+
   // Keyboard navigation for video slider (Esc / ← / →)
   useEffect(() => {
     if (!isOpenPlayVideo) return;
@@ -359,55 +444,50 @@ const MyClips = ({ activeCenterContainerTab, trainee_id }) => {
                   style={{
                     display: "flex",
                     flexWrap: "wrap",
-                    width: width500 ? "100%" : "",
+                    width: "100%",
                     alignItems: "center",
-                    justifyContent: "center",
-                    gap: "5px",
+                    justifyContent: "flex-start",
+                    margin: "0 -4px"
                   }}
                 >
                   {cl?.clips?.map((clp, index) => (
                     <div
                       key={index}
-                      className={`col-6 col-sm-4 p-1 video-container text-wrap`}
+                      className="col-4 p-1 video-container"
                       style={{
                         borderRadius: 5,
+                        width: "33.333%",
+                        flex: "0 0 33.333%",
+                        maxWidth: "33.333%",
+                        boxSizing: "border-box",
+                        padding: "4px"
                       }}
-                   
                     >
                       <div
                         style={{
                           margin: "auto",
                           textAlign: "center",
-                          width:"fit-content"
+                          width: "100%"
                         }}
                         className="hover-video"
                       >
-                        <h5
-                          class="d-block text-truncate"
-                          style={{
-                            textAlign: "center",
-                            paddingBottom: "4px",
-                            paddingTop: "2px",
-                          }}
-                        >
-                          {clp?.title.length > MY_CLIPS_LABEL_LIMIT ? `${clp.title.slice(0, MY_CLIPS_LABEL_LIMIT)}...` : clp.title}
-                        </h5>
                         <Tooltip
                           title={clp?.title}
                           position="bottom"
                           trigger="mouseenter"
                         >
-                          <div style={{position:"relative"}}>
+                          <div style={{position:"relative", width: "100%"}}>
                             <video
                               id="Home-page-vid"
                               poster={Utils?.generateThumbnailURL(clp)}
                               style={{
                                 position: "relative",
                                 aspectRatio:"1/1",
-                                width: "100% !important",
+                                width: "100%",
                                 border: "4px solid #b4bbd1",
                                 borderRadius: "5px",
                                 objectFit: "cover",
+                                cursor: "pointer"
                               }}
                               onClick={() => {
                                 openClipInModal(ind, index, clp);
@@ -477,7 +557,7 @@ const MyClips = ({ activeCenterContainerTab, trainee_id }) => {
                   </button>
                 </div>
 
-                {/* Title at top center */}
+                {/* Title at top center with sliding animation if too long */}
                 {selectedClip && (
                   <div
                     style={{
@@ -485,24 +565,39 @@ const MyClips = ({ activeCenterContainerTab, trainee_id }) => {
                       alignItems: "center",
                       justifyContent: "center",
                       marginBottom: "20px",
-                      paddingTop: "10px"
+                      paddingTop: "10px",
+                      width: "100%",
+                      maxWidth: "90%",
+                      overflow: "hidden",
+                      margin: "0 auto 20px auto"
                     }}
                   >
-                    <h4
+                    <div
                       style={{
-                        margin: 0,
-                        fontSize: "18px",
-                        fontWeight: 600,
-                        color: "#fff",
-                        textAlign: "center",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        position: "relative",
+                        width: "100%",
+                        maxWidth: "100%",
                         overflow: "hidden",
-                        maxWidth: "80%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center"
                       }}
                     >
-                      {selectedClip.title}
-                    </h4>
+                      <h4
+                        id="clip-title"
+                        style={{
+                          margin: 0,
+                          fontSize: "18px",
+                          fontWeight: 600,
+                          color: "#fff",
+                          textAlign: "center",
+                          whiteSpace: "nowrap",
+                          display: "inline-block"
+                        }}
+                      >
+                        {selectedClip.title}
+                      </h4>
+                    </div>
                   </div>
                 )}
 
