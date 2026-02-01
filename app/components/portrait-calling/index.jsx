@@ -1183,15 +1183,23 @@ const VideoCallUI = ({
 
   const connectToPeer = useCallback((peer, peerId) => {
     try {
-      // Prevent duplicate connection attempts
-      if (isConnectingRef.current) {
-        console.log('[VideoCall] Connection already in progress, skipping duplicate call');
-        return;
+      // Check if we already have an active call to this peer - allow reconnection if call is closed
+      if (activeCallRef.current && activeCallRef.current.peer === peerId) {
+        // Check if the call is still active
+        if (activeCallRef.current.call && !activeCallRef.current.call.peerConnection) {
+          // Call exists but connection is closed, allow reconnection
+          console.log('[VideoCall] Previous call closed, allowing reconnection to peer:', peerId);
+          activeCallRef.current = null;
+        } else if (activeCallRef.current.call && activeCallRef.current.call.open) {
+          // Call is still active, skip duplicate
+          console.log('[VideoCall] Active call already exists for peer:', peerId);
+          return;
+        }
       }
 
-      // Check if we already have an active call to this peer
-      if (activeCallRef.current && activeCallRef.current.peer === peerId) {
-        console.log('[VideoCall] Active call already exists for peer:', peerId);
+      // Only prevent if we're actively connecting to the SAME peer
+      if (isConnectingRef.current && activeCallRef.current?.peer === peerId) {
+        console.log('[VideoCall] Connection already in progress to this peer, skipping duplicate call');
         return;
       }
 
@@ -1208,6 +1216,12 @@ const VideoCallUI = ({
       // Check if peer is still open/connected
       if (peer.destroyed || peer.disconnected) {
         console.error('[VideoCall] Peer is destroyed or disconnected');
+        return;
+      }
+
+      // Check if we have a valid stream
+      if (!localVideoRef.current.srcObject) {
+        console.error('[VideoCall] Local video stream not available');
         return;
       }
 
@@ -1228,9 +1242,12 @@ const VideoCallUI = ({
       call.on("error", (error) => {
         console.error('[VideoCall] Call error:', error);
         isConnectingRef.current = false;
-        activeCallRef.current = null;
-        // Don't show error to user if it's just a connection retry
-        if (error.type !== 'peer-unavailable' && error.type !== 'network') {
+        // Only clear activeCallRef if this is the current call
+        if (activeCallRef.current?.call === call) {
+          activeCallRef.current = null;
+        }
+        // Don't show error to user for common connection issues
+        if (error.type !== 'peer-unavailable' && error.type !== 'network' && error.type !== 'browser-incompatible') {
           setDisplayMsg({ 
             show: true, 
             msg: "Connection error. Please try again." 
@@ -1264,7 +1281,7 @@ const VideoCallUI = ({
       call.on("close", () => {
         console.log('[VideoCall] Call closed');
         isConnectingRef.current = false;
-        if (activeCallRef.current?.peer === peerId) {
+        if (activeCallRef.current?.call === call) {
           activeCallRef.current = null;
         }
       });
@@ -1272,7 +1289,7 @@ const VideoCallUI = ({
     } catch (error) {
       console.error('[VideoCall] Error in connectToPeer:', error);
       isConnectingRef.current = false;
-      activeCallRef.current = null;
+      // Don't clear activeCallRef on error - let it be cleared by call.close or explicit cleanup
       setDisplayMsg({ 
         show: true, 
         msg: "Failed to connect. Please try again." 
@@ -1377,9 +1394,9 @@ const VideoCallUI = ({
       try {
         const { to_user, from_user, peerId } = userInfo || {};
         
-        // Validate userInfo
-        if (!userInfo || (!from_user && !peerId)) {
-          console.error('[VideoCall] Invalid userInfo in ON_CALL_JOIN:', userInfo);
+        // Validate userInfo - must have either from_user or peerId
+        if (!userInfo) {
+          console.error('[VideoCall] Missing userInfo in ON_CALL_JOIN');
           return;
         }
 
@@ -1392,12 +1409,19 @@ const VideoCallUI = ({
         // This allows same user to join from multiple devices
         const targetPeerId = peerId || from_user;
         
-        // Only connect if we're not already connected to this peer
-        if (activeCallRef.current?.peer !== targetPeerId) {
-          connectToPeer(peerRef.current, targetPeerId);
-        } else {
-          console.log('[VideoCall] Already connected to peer:', targetPeerId);
+        if (!targetPeerId) {
+          console.error('[VideoCall] No valid peerId or from_user in userInfo:', userInfo);
+          return;
         }
+
+        // Don't connect to ourselves
+        if (targetPeerId === peerRef.current.id) {
+          console.log('[VideoCall] Ignoring self-connection attempt');
+          return;
+        }
+        
+        // Always attempt connection - connectToPeer will handle duplicate prevention
+        connectToPeer(peerRef.current, targetPeerId);
       } catch (error) {
         console.error('[VideoCall] Error in handleCallJoin:', error);
         setDisplayMsg({ 
