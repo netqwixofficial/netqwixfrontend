@@ -1183,7 +1183,7 @@ const VideoCallUI = ({
 
   const connectToPeer = useCallback((peer, peerId) => {
     try {
-      // Check if we already have an active call to this peer
+      // Check if we already have an active call to this SPECIFIC peer
       if (activeCallRef.current && activeCallRef.current.peer === peerId) {
         const existingCall = activeCallRef.current.call;
         // Check if the call is still active by checking peerConnection state
@@ -1199,7 +1199,7 @@ const VideoCallUI = ({
             }
             activeCallRef.current = null;
           } else if (connectionState === 'connected' || connectionState === 'connecting') {
-            // Call is still active or connecting, skip duplicate
+            // Call is still active or connecting to THIS peer, skip duplicate
             console.log('[VideoCall] Active call already exists for peer:', peerId, 'state:', connectionState);
             return;
           }
@@ -1207,6 +1207,16 @@ const VideoCallUI = ({
           // Call exists but no peerConnection yet (might be initializing), allow it to proceed
           console.log('[VideoCall] Call exists but no peerConnection yet, allowing connection attempt');
         }
+      } else if (activeCallRef.current && activeCallRef.current.peer !== peerId) {
+        // We have an active call to a DIFFERENT peer - this is allowed (multiple participants)
+        // PeerJS supports one call per peer instance, but we can handle multiple participants
+        // by allowing the connection to proceed (the previous call will be replaced)
+        console.log('[VideoCall] Active call exists to different peer, allowing new connection', {
+          existingPeer: activeCallRef.current.peer,
+          newPeer: peerId
+        });
+        // Note: PeerJS typically supports one call at a time, so this will replace the previous call
+        // If you need true multi-party, you'd need multiple peer instances
       }
 
       // Only prevent if we're actively connecting to the SAME peer AND we have an active call

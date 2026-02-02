@@ -79,6 +79,7 @@ const VideoContainer = ({
   isLock,
   index,
   videoRef,
+  videoRef2,
   isPlaying,
   setIsPlaying,
   isSingle,
@@ -88,7 +89,8 @@ const VideoContainer = ({
   sendDrawEvent,
   undoDrawing,
   isLandscape,
-  videoContainerRef
+  videoContainerRef,
+  lockPoint = 0
 }) => {
   // const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [isVideoLoading, setIsVideoLoading] = useState(true);
@@ -2765,6 +2767,8 @@ const ClipModeCall = ({
               undoDrawing={undoDrawing}
               isLandscape={isLandscape}
               videoContainerRef={videoContainerRef}
+              lockPoint={lockPoint}
+              videoRef2={videoRef2}
             />
             <VideoContainer
               drawingMode={drawingMode}
@@ -2772,6 +2776,7 @@ const ClipModeCall = ({
               index={2}
               canvasRef={canvasRef2}
               videoRef={videoRef2}
+              videoRef2={videoRef}
               clip={selectedClips[1]}
               isPlaying={isLock ? isPlayingBoth : isPlaying2}
               setIsPlaying={isLock ? setIsPlayingBoth : setIsPlaying2}
@@ -2793,6 +2798,7 @@ const ClipModeCall = ({
               undoDrawing={undoDrawing}
               isLandscape={isLandscape}
               videoContainerRef={videoContainerRef2}
+              lockPoint={lockPoint}
 
             />
 
@@ -2845,6 +2851,8 @@ const ClipModeCall = ({
             undoDrawing={undoDrawing}
             isLandscape={isLandscape}
             videoContainerRef={videoContainerRef}
+            lockPoint={lockPoint}
+            videoRef2={null}
           />
         )}
         {!isMaximized && (
