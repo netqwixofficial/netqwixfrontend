@@ -115,6 +115,13 @@ export const UserBoxMini = ({
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
+
+  const handleBoxClick = useCallback(() => {
+    if (onClick && id && !isDragging) {
+      onClick(id);
+    }
+  }, [onClick, id, isDragging]);
+
   const clickObserver = useClickObserver(handleBoxClick);
 
   const setVideoRef = useCallback(
@@ -134,12 +141,6 @@ export const UserBoxMini = ({
       videoRef.current.srcObject = stream;
     }
   }, [videoRef, stream, isStreamOff, isHidden]);
-
-  const handleBoxClick = () => {
-    if (onClick && id && !isDragging) {
-      onClick(id);
-    }
-  };
 
   const handleDrag = (e, data) => {
     setIsDragging(true);
@@ -289,13 +290,14 @@ export const VideoMiniBox = ({ onClick, id, clips, bottom, onHide, onRestore, is
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
-  const clickObserver = useClickObserver(handleBoxClick);
 
-  const handleBoxClick = () => {
+  const handleBoxClick = useCallback(() => {
     if (onClick && !isDragging) {
       onClick(id);
     }
-  };
+  }, [onClick, id, isDragging]);
+
+  const clickObserver = useClickObserver(handleBoxClick);
 
   const handleDrag = (e, data) => {
     setIsDragging(true);
