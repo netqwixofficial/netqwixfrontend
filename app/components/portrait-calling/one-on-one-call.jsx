@@ -333,12 +333,21 @@ const OneOnOneCall = ({
   };
 
   return (
-    <>
+    <div style={{ 
+      display: "flex", 
+      flexDirection: "column", 
+      height: "100%", 
+      maxHeight: "100%", 
+      overflow: "hidden",
+      width: "100%",
+      boxSizing: "border-box"
+    }}>
       <div 
         className="d-flex w-100 justify-content-end mr-3 mr-md-5"
         style={{
-          padding: "8px 15px 4px",
+          padding: "6px 12px 4px",
           flexShrink: 0,
+          boxSizing: "border-box",
         }}
       >
         {timeRemaining && (
@@ -349,7 +358,15 @@ const OneOnOneCall = ({
         )}
       </div>
 
-      <div className="video-section one-on-one-layout" style={{ position: "relative", flex: 1, minHeight: 0, overflow: "hidden" }}>
+      <div className="video-section one-on-one-layout" style={{ 
+        position: "relative", 
+        flex: 1, 
+        minHeight: 0, 
+        maxHeight: "100%",
+        overflow: "hidden",
+        boxSizing: "border-box",
+        padding: "0 8px"
+      }}>
         <div className="one-on-one-layout__primary">
         <UserBox
           id={toUser._id}
@@ -573,7 +590,7 @@ const OneOnOneCall = ({
           </>
         )}
       </div>
-    </>
+    </div>
   );
 };
 

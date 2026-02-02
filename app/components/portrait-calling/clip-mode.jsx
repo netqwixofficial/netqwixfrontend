@@ -883,25 +883,52 @@ const VideoContainer = ({
   }, [clip?._id, index, accountType, videoRef]);
 
   // Calculate responsive height based on device and state
-  // Account for: time remaining (~60px), action buttons (~80px), controls (~70px), padding (~20px)
+  // Account for: time remaining (~50px), action buttons (~70px), controls (~60px), padding (~20px)
   const getVideoContainerHeight = () => {
+    const isMobile = window.innerWidth <= 576;
+    const isTablet = window.innerWidth > 576 && window.innerWidth <= 1024;
+    
     if (isSingle) {
       // Single clip mode - takes more space
       if (isMaximized) {
         // Maximized: use most of viewport, leave minimal space for controls
-        return "calc(100vh - 150px)"; // time + buttons + controls + padding
+        if (isMobile) {
+          return "calc(100vh - 140px)"; // Reduced for mobile
+        } else if (isTablet) {
+          return "calc(100vh - 150px)";
+        } else {
+          return "calc(100vh - 160px)";
+        }
       } else {
         // Normal: use good portion of viewport
-        return "calc(100vh - 180px)"; // time + buttons + controls + padding + extra space
+        if (isMobile) {
+          return "calc(100vh - 160px)"; // Reduced for mobile
+        } else if (isTablet) {
+          return "calc(100vh - 170px)";
+        } else {
+          return "calc(100vh - 180px)";
+        }
       }
     } else {
       // Dual clip mode - splits viewport
       if (isMaximized) {
         // Maximized: split viewport in half with minimal gap
-        return isLock ? "calc(50vh - 85px)" : "calc(50vh - 90px)"; // half viewport minus controls/buttons
+        if (isMobile) {
+          return isLock ? "calc(50vh - 75px)" : "calc(50vh - 80px)";
+        } else if (isTablet) {
+          return isLock ? "calc(50vh - 80px)" : "calc(50vh - 85px)";
+        } else {
+          return isLock ? "calc(50vh - 85px)" : "calc(50vh - 90px)";
+        }
       } else {
         // Normal: smaller split with more space for other elements
-        return isLock ? "calc(50vh - 100px)" : "calc(50vh - 110px)"; // half viewport minus controls/buttons/padding
+        if (isMobile) {
+          return isLock ? "calc(50vh - 85px)" : "calc(50vh - 90px)";
+        } else if (isTablet) {
+          return isLock ? "calc(50vh - 90px)" : "calc(50vh - 95px)";
+        } else {
+          return isLock ? "calc(50vh - 100px)" : "calc(50vh - 110px)";
+        }
       }
     }
   };
@@ -2328,12 +2355,21 @@ const ClipModeCall = ({
    
 
   return (
-    <>
+    <div style={{ 
+      display: "flex", 
+      flexDirection: "column", 
+      height: "100%", 
+      maxHeight: "100%", 
+      overflow: "hidden",
+      width: "100%",
+      boxSizing: "border-box"
+    }}>
       <div
         className="d-flex w-100 justify-content-end"
         style={{
-          padding: "8px 15px 4px",
+          padding: "6px 12px 4px",
           flexShrink: 0,
+          boxSizing: "border-box",
         }}
       >
         {timeRemaining && (
@@ -2345,7 +2381,7 @@ const ClipModeCall = ({
       </div>
 
       <div
-        className={`d-flex  pl-2 pr-2 ${accountType === AccountType.TRAINER && !selectedUser
+        className={`d-flex pl-2 pr-2 ${accountType === AccountType.TRAINER && !selectedUser
           ? "justify-content-between align-items-center"
           : "justify-content-end align-items-center"
           } ${isMaximized ? "" : "w-100"}`}
@@ -2355,12 +2391,13 @@ const ClipModeCall = ({
             : "transparent",
           backdropFilter: accountType === AccountType.TRAINER && !selectedUser ? "blur(10px)" : "none",
           borderRadius: accountType === AccountType.TRAINER && !selectedUser ? "15px" : "0",
-          padding: accountType === AccountType.TRAINER && !selectedUser ? "8px 15px" : "0",
+          padding: accountType === AccountType.TRAINER && !selectedUser ? "6px 12px" : "0",
           boxShadow: accountType === AccountType.TRAINER && !selectedUser 
             ? "0 2px 10px rgba(0, 0, 0, 0.1)" 
             : "none",
-          marginBottom: "8px",
+          marginBottom: "6px",
           flexShrink: 0,
+          boxSizing: "border-box",
         }}
       >
         {accountType === AccountType.TRAINER && !selectedUser && (
@@ -2618,10 +2655,13 @@ const ClipModeCall = ({
         style={{
           flex: 1,
           minHeight: 0,
+          maxHeight: "100%",
           overflow: "hidden",
           width: "100%",
           display: "flex",
           flexDirection: "column",
+          boxSizing: "border-box",
+          padding: "0 8px",
         }}
       >
         <div
@@ -2992,7 +3032,7 @@ const ClipModeCall = ({
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 };
 

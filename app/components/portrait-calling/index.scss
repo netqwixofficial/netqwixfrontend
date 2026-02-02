@@ -7,8 +7,13 @@
   height: 100vh;
   max-height: 100vh;
   overflow: hidden;
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .time-container {
@@ -24,13 +29,15 @@
   display: flex;
   position: relative;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
   margin: 0;
   flex: 1;
   min-height: 0;
+  max-height: 100%;
   overflow: hidden;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .profile-box {
@@ -40,12 +47,11 @@
   justify-content: center;
   background-color: #000;
   border-radius: 10px;
-  padding: 10px;
+  padding: 8px;
   height: 100%;
   max-height: 100%;
   width: 100%;
-  /* margin: 10px 0px; */
-
+  box-sizing: border-box;
   border-radius: 20px;
   border: 2px solid rgba(255, 255, 255, 0.7);
   position: relative;
@@ -229,14 +235,34 @@
     align-items: stretch;
   }
 
+  .video-call-container {
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
+  }
+
+  .video-section {
+    gap: 6px;
+    padding: 0 4px;
+  }
+
   .profile-box {
     width: 100%;
-    height: 38dvh;
+    height: 100%;
+    max-height: 100%;
+    padding: 6px;
   }
 
   .profile-box.mini {
-    width: 90px;
-    height: 135px;
+    width: 80px;
+    height: 120px;
+    right: 5px;
+  }
+
+  .profile-box.mini-landscape {
+    width: 120px;
+    height: 120px;
+    right: 5px;
   }
 }
 
@@ -297,61 +323,63 @@
   // Base styles for all containers
   flex: 1;
   min-height: 0;
+  max-height: 100%;
+  box-sizing: border-box;
   
   // Single clip mode - takes more space
-  // Account for: time (60px) + buttons (80px) + controls (70px) + padding (30px) = 240px
+  // Account for: time (50px) + buttons (70px) + controls (60px) + padding (20px) = 200px
   &.video-container-single {
     // Mobile devices (phones)
     @media (max-width: 576px) {
-      height: calc(100vh - 240px) !important;
-      min-height: 50vh !important;
-      max-height: calc(100vh - 240px) !important;
+      height: calc(100vh - 200px) !important;
+      min-height: 40vh !important;
+      max-height: calc(100vh - 200px) !important;
     }
     
     // Tablet devices
     @media (min-width: 577px) and (max-width: 1024px) {
-      height: calc(100vh - 220px) !important;
-      min-height: 55vh !important;
-      max-height: calc(100vh - 220px) !important;
+      height: calc(100vh - 210px) !important;
+      min-height: 50vh !important;
+      max-height: calc(100vh - 210px) !important;
     }
     
     // Desktop devices
     @media (min-width: 1025px) {
       height: calc(100vh - 200px) !important;
-      min-height: 60vh !important;
+      min-height: 55vh !important;
       max-height: calc(100vh - 200px) !important;
     }
     
     // Maximized single clip
     &.video-container-maximized {
       @media (max-width: 576px) {
-        height: calc(100vh - 200px) !important;
-        min-height: 60vh !important;
-        max-height: calc(100vh - 200px) !important;
+        height: calc(100vh - 160px) !important;
+        min-height: 50vh !important;
+        max-height: calc(100vh - 160px) !important;
       }
       
       @media (min-width: 577px) and (max-width: 1024px) {
-        height: calc(100vh - 180px) !important;
-        min-height: 65vh !important;
-        max-height: calc(100vh - 180px) !important;
+        height: calc(100vh - 170px) !important;
+        min-height: 60vh !important;
+        max-height: calc(100vh - 170px) !important;
       }
       
       @media (min-width: 1025px) {
         height: calc(100vh - 160px) !important;
-        min-height: 70vh !important;
+        min-height: 65vh !important;
         max-height: calc(100vh - 160px) !important;
       }
     }
   }
   
   // Dual clip mode - splits space
-  // Account for: time (60px) + buttons (80px) + controls (70px) + padding (20px) = 230px
+  // Account for: time (50px) + buttons (70px) + controls (60px) + padding (15px) = 195px
   &.video-container-dual {
     // Mobile devices (phones)
     @media (max-width: 576px) {
-      height: calc(50vh - 115px) !important;
-      min-height: 35vh !important;
-      max-height: calc(50vh - 115px) !important;
+      height: calc(50vh - 100px) !important;
+      min-height: 30vh !important;
+      max-height: calc(50vh - 100px) !important;
     }
     
     // Tablet devices
