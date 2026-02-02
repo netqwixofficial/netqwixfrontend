@@ -64,8 +64,8 @@ const CustomVideoControls = ({
   return (
     <div
       style={{
-        position: "relative",
-        bottom: "0px",
+        position: "absolute",
+        bottom: "10px",
         left: "50%",
         transform: "translateX(-50%)",
         display: "flex",
@@ -73,9 +73,11 @@ const CustomVideoControls = ({
         alignItems: "Center",
         justifyContent: "center",
         gap: "5px",
-        width: "100%",
-        padding: "10px 15px",
+        width: "95%",
+        maxWidth: "600px",
+        padding: "8px 12px",
         zIndex: 100,
+        pointerEvents: "auto",
       }}
       className="hide-in-screenshot"
     >

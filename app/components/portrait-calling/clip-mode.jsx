@@ -881,25 +881,25 @@ const VideoContainer = ({
   }, [clip?._id, index, accountType, videoRef]);
 
   // Calculate responsive height based on device and state
-  // Note: CSS media queries will override these values for better responsiveness
+  // Account for: time remaining (~60px), action buttons (~80px), controls (~70px), padding (~20px)
   const getVideoContainerHeight = () => {
     if (isSingle) {
       // Single clip mode - takes more space
       if (isMaximized) {
         // Maximized: use most of viewport, leave minimal space for controls
-        return "calc(100vh - 60px)";
+        return "calc(100vh - 150px)"; // time + buttons + controls + padding
       } else {
         // Normal: use good portion of viewport
-        return "calc(100vh - 100px)";
+        return "calc(100vh - 180px)"; // time + buttons + controls + padding + extra space
       }
     } else {
       // Dual clip mode - splits viewport
       if (isMaximized) {
         // Maximized: split viewport in half with minimal gap
-        return isLock ? "calc(50vh - 10px)" : "calc(50vh - 12px)";
+        return isLock ? "calc(50vh - 85px)" : "calc(50vh - 90px)"; // half viewport minus controls/buttons
       } else {
         // Normal: smaller split with more space for other elements
-        return isLock ? "calc(50vh - 30px)" : "calc(50vh - 40px)";
+        return isLock ? "calc(50vh - 100px)" : "calc(50vh - 110px)"; // half viewport minus controls/buttons/padding
       }
     }
   };
@@ -915,12 +915,14 @@ const VideoContainer = ({
           height: getVideoContainerHeight(),
           width: "100%",
           maxWidth: "100%",
+          maxHeight: "100%",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
           background: "#000",
           position: "relative",
-          minHeight: isSingle ? (isMaximized ? "70vh" : "60vh") : (isMaximized ? "35vh" : "30vh"),
+          minHeight: 0,
+          overflow: "hidden",
         }}
       >
         {isVideoLoading && (
@@ -1171,19 +1173,27 @@ const VideoContainer = ({
             </div>
           </div>
         )}
+        {!isLock && (
+          <CustomVideoControls
+            handleSeek={handleSeek}
+            isFullscreen={isFullscreen}
+            isPlaying={isPlaying}
+            toggleFullscreen={toggleFullscreen}
+            togglePlayPause={togglePlayPause}
+            videoRef={videoRef}
+            setIsPlaying={setIsPlaying}
+            setCurrentTime={setCurrentTime}
+            isLock={isLock}
+            lockPoint={lockPoint}
+            videoRef2={null}
+            handleSeekMouseDown={() => {}}
+            handleSeekMouseUp={() => {}}
+            volume={1}
+            changeVolume={() => {}}
+            currentTime={currentTime}
+          />
+        )}
       </div>
-      {!isLock && (
-        <CustomVideoControls
-          handleSeek={handleSeek}
-          isFullscreen={isFullscreen}
-          isPlaying={isPlaying}
-          toggleFullscreen={toggleFullscreen}
-          togglePlayPause={togglePlayPause}
-          videoRef={videoRef}
-          setIsPlaying={setIsPlaying}
-          setCurrentTime={setCurrentTime}
-        />
-      )}
     </>
   );
 };
@@ -2317,11 +2327,25 @@ const ClipModeCall = ({
 
   return (
     <>
+      <div
+        className="d-flex w-100 justify-content-end"
+        style={{
+          padding: "8px 15px 4px",
+          flexShrink: 0,
+        }}
+      >
+        {timeRemaining && (
+          <TimeRemaining
+            timeRemaining={timeRemaining}
+            bothUsersJoined={bothUsersJoined}
+          />
+        )}
+      </div>
 
       <div
         className={`d-flex  pl-2 pr-2 ${accountType === AccountType.TRAINER && !selectedUser
-          ? "mt-2 mb-2 justify-content-between align-items-center"
-          : "mt-2 mb-2  justify-content-end align-items-center"
+          ? "justify-content-between align-items-center"
+          : "justify-content-end align-items-center"
           } ${isMaximized ? "" : "w-100"}`}
         style={{
           background: accountType === AccountType.TRAINER && !selectedUser 
@@ -2329,11 +2353,12 @@ const ClipModeCall = ({
             : "transparent",
           backdropFilter: accountType === AccountType.TRAINER && !selectedUser ? "blur(10px)" : "none",
           borderRadius: accountType === AccountType.TRAINER && !selectedUser ? "15px" : "0",
-          padding: accountType === AccountType.TRAINER && !selectedUser ? "10px 15px" : "0",
+          padding: accountType === AccountType.TRAINER && !selectedUser ? "8px 15px" : "0",
           boxShadow: accountType === AccountType.TRAINER && !selectedUser 
             ? "0 2px 10px rgba(0, 0, 0, 0.1)" 
             : "none",
-          marginBottom: "10px",
+          marginBottom: "8px",
+          flexShrink: 0,
         }}
       >
         {accountType === AccountType.TRAINER && !selectedUser && (
@@ -2584,18 +2609,27 @@ const ClipModeCall = ({
           </div>
         )}
 
-        {drawingMode && accountType === AccountType.TRAINER  ? (
-          <></>
-        ) : (
-          timeRemaining &&  <TimeRemaining timeRemaining={timeRemaining} bothUsersJoined={bothUsersJoined} />
-        )}
       </div>
+      
       <div
+        className="video-section"
         style={{
-          display: selectedUser ? "block" : "none",
-          position: "relative",
+          flex: 1,
+          minHeight: 0,
+          overflow: "hidden",
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
+        <div
+          style={{
+            display: selectedUser ? "block" : "none",
+            position: "relative",
+            flex: 1,
+            minHeight: 0,
+          }}
+        >
         <UserBox
           id={fromUser._id}
           onClick={handleUserClick}
@@ -2664,10 +2698,15 @@ const ClipModeCall = ({
           onRestore={handleRestoreVideo}
           isHidden={hiddenVideos.clips}
         />
+        </div>
       </div>
       <div
         style={{
-          display: selectedUser ? "none" : "block",
+          display: selectedUser ? "none" : "flex",
+          flexDirection: "column",
+          flex: 1,
+          minHeight: 0,
+          overflow: "hidden",
           position: "relative",
         }}
         id="clip-container"
@@ -2698,7 +2737,7 @@ const ClipModeCall = ({
           &copy; NetQwix.com
         </h4>
         {selectedClips.length > 1 ? (
-          <>
+          <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, gap: "8px" }}>
             <VideoContainer
               drawingMode={drawingMode}
               isLock={isLock}
@@ -2761,8 +2800,6 @@ const ClipModeCall = ({
               <CustomVideoControls
                 handleSeek={handleSeek}
                 isPlaying={isPlayingBoth}
-                // toggleFullscreen={toggleFullscreen}
-                // toggleMute={toggleMute}
                 togglePlayPause={togglePlayPause}
                 videoRef={videoRef}
                 videoRef2={videoRef2}
@@ -2770,9 +2807,16 @@ const ClipModeCall = ({
                 isLock={isLock}
                 setCurrentTime={setCurrentTime}
                 lockPoint={lockPoint}
+                handleSeekMouseDown={() => {}}
+                handleSeekMouseUp={() => {}}
+                volume={1}
+                changeVolume={() => {}}
+                currentTime={videoRef?.current?.currentTime || 0}
+                isFullscreen={false}
+                toggleFullscreen={() => {}}
               />
             )}
-          </>
+          </div>
         ) : (
           <VideoContainer
             index={1}

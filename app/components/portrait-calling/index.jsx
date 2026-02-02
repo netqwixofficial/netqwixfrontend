@@ -1648,6 +1648,14 @@ const VideoCallUI = ({
         alignItems: isMaximized ? "normal" : "center",
         margin: isLandscape ? "auto" : "none",
         width: isLandscape ? "50%" : "100%",
+        height: "100vh",
+        maxHeight: "100vh",
+        overflow: "hidden",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
       }}
     >
       {displayMsg?.show && displayMsg?.msg && (
@@ -1708,7 +1716,8 @@ const VideoCallUI = ({
         />
       )}
       {!isMaximized && (
-        <ActionButtons
+        <div style={{ flexShrink: 0, width: "100%", padding: "8px 15px" }}>
+          <ActionButtons
           setSelectedUser={setSelectedUser}
           isShowVideos={isShowVideos}
           setIsShowVideos={setIsShowVideos}
@@ -1735,6 +1744,7 @@ const VideoCallUI = ({
           videoRef={videoRef}
           videoRef2={videoRef2}
         />
+        </div>
       )}
 
       <Modal

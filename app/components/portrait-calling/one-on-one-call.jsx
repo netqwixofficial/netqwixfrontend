@@ -335,9 +335,10 @@ const OneOnOneCall = ({
   return (
     <>
       <div 
-        className="d-flex w-100 justify-content-end mr-3 mr-md-5 mt-2 mb-2"
+        className="d-flex w-100 justify-content-end mr-3 mr-md-5"
         style={{
-          padding: "0 15px",
+          padding: "8px 15px 4px",
+          flexShrink: 0,
         }}
       >
         {timeRemaining && (
@@ -348,7 +349,7 @@ const OneOnOneCall = ({
         )}
       </div>
 
-      <div className="video-section one-on-one-layout" style={{ position: "relative" }}>
+      <div className="video-section one-on-one-layout" style={{ position: "relative", flex: 1, minHeight: 0, overflow: "hidden" }}>
         <div className="one-on-one-layout__primary">
         <UserBox
           id={toUser._id}
