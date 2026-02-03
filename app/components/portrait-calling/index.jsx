@@ -1655,17 +1655,7 @@ const VideoCallUI = ({
     <div
       className="video-call-container"
       style={{
-        alignItems: isMaximized ? "normal" : "center",
-        margin: isLandscape ? "auto" : "none",
-        width: isLandscape ? "50%" : "100%",
-        height: "100vh",
-        maxHeight: "100vh",
-        overflow: "hidden",
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        alignItems: isMaximized ? "flex-start" : "center",
       }}
     >
       {displayMsg?.show && displayMsg?.msg && (

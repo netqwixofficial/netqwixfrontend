@@ -2351,9 +2351,6 @@ const ClipModeCall = ({
   function resetInitialPinnedUser() { }
   const isSingle = selectedClips?.length === 1;
 
-
-   
-
   return (
     <div style={{ 
       display: "flex", 
