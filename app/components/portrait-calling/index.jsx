@@ -1716,7 +1716,13 @@ const VideoCallUI = ({
         />
       )}
       {!isMaximized && (
-        <div style={{ flexShrink: 0, width: "100%", padding: "8px 15px" }}>
+        <div style={{ 
+          flexShrink: 0, 
+          width: "100%", 
+          padding: typeof window !== 'undefined' && window.innerWidth <= 768 
+            ? "8px 15px 80px 15px" // Extra bottom padding on mobile for browser UI
+            : "8px 15px"
+        }}>
           <ActionButtons
           setSelectedUser={setSelectedUser}
           isShowVideos={isShowVideos}

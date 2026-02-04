@@ -61,11 +61,14 @@ const CustomVideoControls = ({
   //   };
 
    
+  // Detect mobile device
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+  
   return (
     <div
       style={{
         position: "absolute",
-        bottom: "10px",
+        bottom: isMobile ? "70px" : "10px", // Higher on mobile to account for browser UI
         left: "50%",
         transform: "translateX(-50%)",
         display: "flex",
@@ -75,7 +78,7 @@ const CustomVideoControls = ({
         gap: "5px",
         width: "95%",
         maxWidth: "600px",
-        padding: "8px 12px",
+        padding: isMobile ? "6px 10px" : "8px 12px",
         zIndex: 100,
         pointerEvents: "auto",
       }}
@@ -96,10 +99,10 @@ const CustomVideoControls = ({
               alignItems: "center",
               backgroundColor: "rgba(0, 0, 0, 0.85)",
               backdropFilter: "blur(10px)",
-              padding: "12px 20px",
+              padding: isMobile ? "8px 16px" : "12px 20px",
               width: "100%",
               maxWidth: "95%",
-              gap: "15px",
+              gap: isMobile ? "10px" : "15px",
               borderRadius: "50px",
               boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
               border: "1px solid rgba(255, 255, 255, 0.1)",
@@ -113,15 +116,16 @@ const CustomVideoControls = ({
                 border: "1px solid rgba(255, 255, 255, 0.2)",
                 borderRadius: "50%",
                 color: "white",
-                fontSize: "18px",
+                fontSize: "14px",
                 cursor: accountType === AccountType.TRAINEE ? "not-allowed" : "pointer",
-                width: "40px",
-                height: "40px",
+                width: "32px",
+                height: "32px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 transition: "all 0.3s ease",
                 opacity: accountType === AccountType.TRAINEE ? 0.5 : 1,
+                flexShrink: 0,
               }}
               disabled={accountType === AccountType.TRAINEE}
               onMouseEnter={(e) => {
@@ -135,7 +139,7 @@ const CustomVideoControls = ({
                 e.currentTarget.style.transform = "scale(1)";
               }}
             >
-              {isPlaying ? <FaPause /> : <FaPlay />}
+              {isPlaying ? <FaPause size={14} /> : <FaPlay size={14} />}
             </button>
 
             {/* Volume Control */}

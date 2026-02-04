@@ -229,17 +229,16 @@
 @media (max-width: 767px) {
   .video-call-container {
     align-items: stretch;
-  }
-
-  .video-call-container {
     height: 100vh;
     max-height: 100vh;
     overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom, 0px); // Account for mobile browser UI
   }
 
   .video-section {
     gap: 6px;
     padding: 0 4px;
+    padding-bottom: env(safe-area-inset-bottom, 0px); // Account for mobile browser UI
   }
 
   .profile-box {
@@ -259,6 +258,17 @@
     width: 120px;
     height: 120px;
     right: 5px;
+  }
+
+  // Custom video controls container - move up on mobile to account for browser UI
+  // Target the container div that wraps CustomVideoControls
+  .video-container-clip .hide-in-screenshot[style*="position: absolute"] {
+    bottom: 70px !important; // Account for mobile browser UI (~60px) + small buffer
+  }
+  
+  // Also ensure action buttons have proper spacing
+  .action-buttons {
+    margin-bottom: 0;
   }
 }
 

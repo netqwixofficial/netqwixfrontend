@@ -252,7 +252,7 @@ const TimeRemaining = ({ timeRemaining, bothUsersJoined = false }) => {
         <div
           style={{
             position: "fixed",
-            bottom: "20px",
+            bottom: typeof window !== 'undefined' && window.innerWidth <= 768 ? "90px" : "20px", // Higher on mobile for browser UI
             left: "50%",
             transform: "translateX(-50%)",
             backgroundColor: "#1e88e5",
@@ -265,6 +265,7 @@ const TimeRemaining = ({ timeRemaining, bothUsersJoined = false }) => {
             gap: "10px",
             zIndex: 2000,
             fontSize: "14px",
+            maxWidth: "90%",
           }}
         >
           <span>Only 5 minutes left in this session.</span>
@@ -290,7 +291,7 @@ const TimeRemaining = ({ timeRemaining, bothUsersJoined = false }) => {
         <div
           style={{
             position: "fixed",
-            bottom: "60px",
+            bottom: typeof window !== 'undefined' && window.innerWidth <= 768 ? "130px" : "60px", // Higher on mobile for browser UI
             left: "50%",
             transform: "translateX(-50%)",
             backgroundColor: "#f44336",
@@ -303,6 +304,7 @@ const TimeRemaining = ({ timeRemaining, bothUsersJoined = false }) => {
             gap: "10px",
             zIndex: 2000,
             fontSize: "14px",
+            maxWidth: "90%",
           }}
         >
           <span>Session ending in about 30 seconds.</span>
