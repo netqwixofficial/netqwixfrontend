@@ -2652,7 +2652,7 @@ const ClipModeCall = ({
         style={{
           flex: 1,
           minHeight: 0,
-          maxHeight: "100%",
+          maxHeight: "1%",
           overflow: "hidden",
           width: "100%",
           display: "flex",

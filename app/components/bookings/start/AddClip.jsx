@@ -325,6 +325,11 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                               opacity: isDisabled ? 0.5 : 1,
                               transition: "all 0.3s ease"
                             }}
+                            onClick={() => {
+                              if (!isDisabled) {
+                                handleClipSelection(clip);
+                              }
+                            }}
                           >
                             {/* Clip Title */}
                             <Tooltip
@@ -360,12 +365,6 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                                   borderRadius: "8px",
                                   objectFit: "cover",
                                   pointerEvents: isDisabled ? "none" : "auto"
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (!isDisabled) {
-                                    openClipInModal(clip);
-                                  }
                                 }}
                               >
                                 <source src={Utils?.generateVideoURL(clip)} type="video/mp4" />
@@ -564,7 +563,6 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                   <video
                     key={selectedVideo}
                     style={videoDimensions}
-                    autoPlay
                     controls
                     onLoadedData={handleVideoLoad}
                   >
