@@ -63,6 +63,7 @@ import RecentUsers from "../recent-users";
 import { set } from "lodash";
 import TraineeRatings from "./ratings/trainee";
 import UserInfoCard from "../cards/user-card";
+import CircleLoader from "../../common/CircleLoader";
 const { isMobileFriendly, isSidebarToggleEnabled } = bookingsAction;
 
 const Bookings = ({ accountType = null }) => {
@@ -1411,9 +1412,10 @@ const Bookings = ({ accountType = null }) => {
                     style={{
                       display: "flex",
                       justifyContent: "center",
+                      padding: "24px 0",
                     }}
                   >
-                    <Spinner color="primary" className="spinner"></Spinner>
+                    <CircleLoader size={28} />
                   </div>
                 </>
               ) : scheduledMeetingDetails.length ? (

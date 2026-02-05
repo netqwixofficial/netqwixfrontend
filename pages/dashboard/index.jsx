@@ -168,11 +168,13 @@ import { EVENTS } from "../../helpers/events";
 import { useWindowDimensions } from "../../app/hook/useWindowDimensions";
 import NotificationPopup from "../../app/components/notification-popup";
 import { getMeAsync } from "../../app/components/auth/auth.slice";
+import CircleLoader from "../../app/common/CircleLoader";
 
 
 const Dashboard = () => {
   const dispatch = useAppDispatch();
   const { sidebarActiveTab, topNavbarActiveTab, userInfo } = useAppSelector(authState);
+  const { status: masterStatus } = useAppSelector(masterState);
   const [accountType, setAccountType] = useState("");
   const [openCloseToggleSideNav, setOpenCloseToggleSideNav] = useState(true);
   const [isBookExpertLoading, setIsBookExpertLoading] = useState(true);
@@ -334,6 +336,9 @@ const Dashboard = () => {
 
   const width1000 = useMediaQuery(1000);
 
+  const isInitialDashboardLoading =
+    masterStatus === "pending" || masterStatus === "idle";
+
   return (
     <Fragment>
       {/* Socket is already provided at app level via SocketProvider in _app.jsx */}
@@ -351,7 +356,20 @@ const Dashboard = () => {
         }}
       >
         <LeftSide setOpenCloseToggleSideNav={setOpenCloseToggleSideNav} openCloseToggleSideNav={openCloseToggleSideNav}/>
-        {getActiveTabs()}
+        {isInitialDashboardLoading ? (
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <CircleLoader size={40} />
+          </div>
+        ) : (
+          getActiveTabs()
+        )}
       </div>
       <NotificationPopup/>
     </Fragment>

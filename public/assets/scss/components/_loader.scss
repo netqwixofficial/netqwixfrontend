@@ -28,6 +28,40 @@
     color: $gray;
   }
 }
+
+// Circular brand loader (used globally and inside components)
+.nq-circle-loader {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(farthest-side, #ff4b4b 94%, #0000) top/8px 8px no-repeat,
+    conic-gradient(#0000 30%, #ff4b4b);
+  -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0);
+  animation: nq-circle-rotate 1s infinite linear;
+}
+
+.nq-circle-loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.nq-circle-loader-message {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #444;
+}
+
+@keyframes nq-circle-rotate {
+  100% {
+    transform: rotate(1turn);
+  }
+}
 @keyframes imggrow {
   0% {
     transform: scale(1);

@@ -5,6 +5,7 @@ import axios from "axios";
 import Link from "next/link";
 import { Eye, EyeOff, AlertCircle } from "react-feather";
 import { googleOAuthLink, routingPaths } from "../../../app/common/constants";
+import CircleLoader from "../../../app/common/CircleLoader";
 import { useAppDispatch, useAppSelector } from "../../../app/store";
 import {
   authAction,
@@ -215,23 +216,39 @@ const Auth_SignIn = ({isRedirect = true}) => {
                     )}
                     
                     <div className="form-group">
-                      <div className="buttons" style={{ display: "flex", justifyContent: "center", width: "100%" }}>
-                        <div
+                      <div
+                        className="buttons"
+                        style={{
+                          display: "flex",
+                          justifyContent: "center",
+                          width: "100%",
+                        }}
+                      >
+                        <button
+                          type="button"
                           className="btn btn-primary button-effect"
-                          onClick={() => Login()}
-                          disabled={status === 'loading'}
+                          onClick={Login}
+                          disabled={status === "loading"}
                           style={{
                             width: "100%",
                             maxWidth: "400px",
                             padding: "12px 24px",
                             fontSize: "16px",
                             fontWeight: "500",
-                            opacity: status === 'loading' ? 0.6 : 1,
-                            cursor: status === 'loading' ? 'not-allowed' : 'pointer',
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "8px",
+                            opacity: status === "loading" ? 0.8 : 1,
+                            cursor:
+                              status === "loading" ? "not-allowed" : "pointer",
                           }}
                         >
-                          {status === 'loading' ? 'Logging in...' : 'Login'}
-                        </div>
+                          {status === "loading" && <CircleLoader size={22} />}
+                          <span>
+                            {status === "loading" ? "Logging in..." : "Login"}
+                          </span>
+                        </button>
                       </div>
                     </div>
                   </form>
