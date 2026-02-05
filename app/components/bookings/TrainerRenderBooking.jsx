@@ -15,6 +15,7 @@ import { SocketContext } from "../socket";
 import { EVENTS } from "../../../helpers/events";
 import { NotificationType, notificiationTitles } from "../../../utils/constant";
 import { formatUtcDateTime } from "../../../utils/dateTime";
+import { DateTime } from "luxon";
 
 const TrainerRenderBooking = ({
   _id,
@@ -57,8 +58,13 @@ const TrainerRenderBooking = ({
   const { dateLabel, timeLabel } = formatUtcDateTime(bookingInfo.start_time);
   const { timeLabel: endTimeLabel } = formatUtcDateTime(bookingInfo.end_time);
 
-  const isCurrentTimeAfterEndTime =
-    new Date(bookingInfo.end_time).getTime() < Date.now();
+  // Calculate if current time is within the session time frame (UTC-aware)
+  const currentTime = DateTime.now();
+  const startTime = DateTime.fromISO(bookingInfo.start_time, { zone: "utc" });
+  const endTime = DateTime.fromISO(bookingInfo.end_time, { zone: "utc" });
+  const isWithinTimeFrame = currentTime >= startTime && currentTime <= endTime;
+
+  const isCurrentTimeAfterEndTime = currentTime > endTime;
 
   const isCompleted =
     has24HoursPassedSinceBooking || bookingInfo?.ratings?.trainee;

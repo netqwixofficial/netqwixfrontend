@@ -140,7 +140,7 @@ const LandingHeader = (masterRecords) => {
                   marginLeft: "5px",
                   alignItems: "center",
                   fontSize: isMobileScreen?"10px":"14px",
-                  color: "white",
+                  color: "white !important",
                   cursor: "pointer",
                 }}
                 onClick={() => router.push(routingPaths.signIn)}
