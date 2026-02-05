@@ -21,8 +21,6 @@ const initialState = {
   isUserLoggedIn: false,
   authToken: "",
   userInfo: {},
-  // Indicates that we've finished initial auth/session check on app load
-  authResolved: false,
   showGoogleRegistrationForm: {
     isFromGoogle: false,
     email: null,
@@ -207,10 +205,6 @@ export const authSlice = createSlice({
     updateOnlineUsers: (state, action) => {
       state.onlineUsers = action.payload;
     },
-    // Explicitly mark auth as resolved (used when there is no token)
-    setAuthResolved: (state, action) => {
-      state.authResolved = action.payload;
-    },
   },
   extraReducers: (builder) => {
     builder
@@ -230,14 +224,10 @@ export const authSlice = createSlice({
       })
       .addCase(getMeAsync.fulfilled, (state, action) => {
         state.userInfo = action.payload.userInfo;
-        state.isUserLoggedIn = true;
         state.status = "fulfilled";
-        state.authResolved = true;
       })
       .addCase(getMeAsync.rejected, (state) => {
         state.status = "rejected";
-        state.isUserLoggedIn = false;
-        state.authResolved = true;
       })
       .addCase(loginAsync.pending, (state) => {
         state.authToken = "";
@@ -249,7 +239,6 @@ export const authSlice = createSlice({
       .addCase(loginAsync.fulfilled, (state, action) => {
         state.status = "fulfilled";
         state.isUserLoggedIn = true;
-        state.authResolved = true;
         if (action.payload) {
           state.authToken = action.payload.result.data.access_token;
           setupLogin(action);
@@ -278,7 +267,6 @@ export const authSlice = createSlice({
             state.showGoogleRegistrationForm.email = action.payload.data.email;
           } else {
             state.isUserLoggedIn = true;
-            state.authResolved = true;
             // user can do login
             setupLogin(action);
           }
