@@ -2647,98 +2647,102 @@ const ClipModeCall = ({
 
       </div>
       
-      <div
-        className="video-section video-section-clip-mode"
-        style={{
-          flex: 1,
-          minHeight: 0,
-          maxHeight: "none", // No max-height constraint for clip mode
-          overflow: "hidden",
-          width: "100%",
-          display: "flex",
-          flexDirection: "column",
-          boxSizing: "border-box",
-          padding: "0 8px",
-        }}
-      >
+      {/* Show top user video section only when a user is selected.
+          This prevents an empty block of space above the clips when nothing is selected. */}
+      {selectedUser && (
         <div
+          className="video-section video-section-clip-mode"
           style={{
-            display: selectedUser ? "block" : "none",
-            position: "relative",
             flex: 1,
             minHeight: 0,
+            maxHeight: "none", // No max-height constraint for clip mode
+            overflow: "hidden",
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            boxSizing: "border-box",
+            padding: "0 8px",
           }}
         >
-        <UserBox
-          id={fromUser._id}
-          onClick={handleUserClick}
-          selectedUser={selectedUser}
-          selected={selectedUser === fromUser._id}
-          notSelected={selectedUser}
-          videoRef={remoteVideoRef}
-          user={toUser}
-          stream={remoteStream}
-          isStreamOff={isRemoteStreamOff}
-          isLandscape={isLandscape}
-        />
+          <div
+            style={{
+              position: "relative",
+              flex: 1,
+              minHeight: 0,
+            }}
+          >
+            <UserBox
+              id={fromUser._id}
+              onClick={handleUserClick}
+              selectedUser={selectedUser}
+              selected={selectedUser === fromUser._id}
+              notSelected={selectedUser}
+              videoRef={remoteVideoRef}
+              user={toUser}
+              stream={remoteStream}
+              isStreamOff={isRemoteStreamOff}
+              isLandscape={isLandscape}
+            />
 
-        <UserBox
-          id={toUser._id}
-          onClick={handleUserClick}
-          selectedUser={selectedUser}
-          selected={selectedUser === toUser._id}
-          notSelected={selectedUser}
-          videoRef={localVideoRef}
-          user={fromUser}
-          stream={localStream}
-          isStreamOff={isLocalStreamOff}
-          isLandscape={isLandscape}
-          muted={true}
-        />
-        {selectedUser === toUser._id ? (
-          <UserBoxMini
-            id={fromUser._id}
-            onClick={handleUserClick}
-            selected={false}
-            videoRef={remoteVideoRef}
-            stream={remoteStream}
-            user={toUser}
-            bottom={300}
-            isStreamOff={isRemoteStreamOff}
-            videoType="student"
-            onHide={handleHideVideo}
-            onRestore={handleRestoreVideo}
-            isHidden={hiddenVideos.student}
-          />
-        ) : (
-          <UserBoxMini
-            id={toUser._id}
-            onClick={handleUserClick}
-            selected={false}
-            videoRef={localVideoRef}
-            stream={localStream}
-            user={fromUser}
-            bottom={300}
-            isStreamOff={isLocalStreamOff}
-            muted={true}
-            videoType="teacher"
-            onHide={handleHideVideo}
-            onRestore={handleRestoreVideo}
-            isHidden={hiddenVideos.teacher}
-          />
-        )}
+            <UserBox
+              id={toUser._id}
+              onClick={handleUserClick}
+              selectedUser={selectedUser}
+              selected={selectedUser === toUser._id}
+              notSelected={selectedUser}
+              videoRef={localVideoRef}
+              user={fromUser}
+              stream={localStream}
+              isStreamOff={isLocalStreamOff}
+              isLandscape={isLandscape}
+              muted={true}
+            />
 
-        <VideoMiniBox
-          clips={selectedClips}
-          id={null}
-          bottom={60}
-          onClick={handleUserClick}
-          onHide={handleHideVideo}
-          onRestore={handleRestoreVideo}
-          isHidden={hiddenVideos.clips}
-        />
+            {selectedUser === toUser._id ? (
+              <UserBoxMini
+                id={fromUser._id}
+                onClick={handleUserClick}
+                selected={false}
+                videoRef={remoteVideoRef}
+                stream={remoteStream}
+                user={toUser}
+                bottom={300}
+                isStreamOff={isRemoteStreamOff}
+                videoType="student"
+                onHide={handleHideVideo}
+                onRestore={handleRestoreVideo}
+                isHidden={hiddenVideos.student}
+              />
+            ) : (
+              <UserBoxMini
+                id={toUser._id}
+                onClick={handleUserClick}
+                selected={false}
+                videoRef={localVideoRef}
+                stream={localStream}
+                user={fromUser}
+                bottom={300}
+                isStreamOff={isLocalStreamOff}
+                muted={true}
+                videoType="teacher"
+                onHide={handleHideVideo}
+                onRestore={handleRestoreVideo}
+                isHidden={hiddenVideos.teacher}
+              />
+            )}
+
+            <VideoMiniBox
+              clips={selectedClips}
+              id={null}
+              bottom={60}
+              onClick={handleUserClick}
+              onHide={handleHideVideo}
+              onRestore={handleRestoreVideo}
+              isHidden={hiddenVideos.clips}
+            />
+          </div>
         </div>
-      </div>
+      )}
       <div
         style={{
           display: selectedUser ? "none" : "flex",

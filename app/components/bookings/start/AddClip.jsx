@@ -206,86 +206,118 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
         overflowHidden 
         className="clip-selection-modal"
         element={
-          <div className='d-flex flex-column' style={{ 
-            width: '100%', 
-            height: '100%', 
-            padding: '20px',
-            backgroundColor: '#fff',
-            borderRadius: '8px'
-          }}>
-            {/* Header */}
-            <div className='d-flex justify-content-between align-items-center mb-4'>
-              <h2 className="mb-0" style={{ fontSize: isMobileScreen ? "18px" : "24px", fontWeight: "600" }}>
-                Add 2 clips
-              </h2>
-              <div
-                className="icon-btn btn-sm btn-outline-light close-apps pointer"
-                onClick={handleClose}
-                style={{ marginLeft: "auto" }}
-              >
-                <X />
-              </div>
-            </div>
-
-            {/* Share Button - Moved to top */}
-            {clips?.length && (
-              <div className="d-flex justify-content-center w-100 mb-3">
-                <Button
-                  color="success"
-                  onClick={handleShare}
-                  disabled={selectedClipsCopy.length === 0}
+          <div
+            className="d-flex flex-column"
+            style={{
+              width: "100%",
+              height: "100%",
+              padding: "20px",
+              backgroundColor: "#fff",
+              borderRadius: "8px",
+              overflowY: "auto",
+            }}
+          >
+            {/* Header + Share + Selected Clips (Sticky at top) */}
+            <div
+              style={{
+                position: "sticky",
+                top: 0,
+                zIndex: 10,
+                backgroundColor: "#fff",
+                paddingBottom: "10px",
+              }}
+            >
+              {/* Header */}
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h2
+                  className="mb-0"
                   style={{
-                    minWidth: "120px",
-                    padding: "10px 30px",
-                    fontSize: "16px",
-                    fontWeight: "600"
+                    fontSize: isMobileScreen ? "18px" : "24px",
+                    fontWeight: "600",
                   }}
                 >
-                  Share {selectedClipsCopy.length > 0 && `(${selectedClipsCopy.length})`}
-                </Button>
-              </div>
-            )}
-
-            {/* Selected Clips Counter */}
-            {selectedClipsCopy.length > 0 && (
-              <div className="mb-3" style={{ padding: "10px", backgroundColor: "#f0f0f0", borderRadius: "8px" }}>
-                <h5 className="mb-2" style={{ fontSize: "14px", fontWeight: "600" }}>
-                  Selected Clips ({selectedClipsCopy.length}/2)
-                </h5>
-                <div className="d-flex flex-wrap gap-2">
-                  {selectedClipsCopy.map((clip) => (
-                    <div
-                      key={clip._id}
-                      style={{
-                        padding: "8px 12px",
-                        backgroundColor: "#28a745",
-                        color: "white",
-                        borderRadius: "6px",
-                        fontSize: "12px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px"
-                      }}
-                    >
-                      <span>{clip.title || "Untitled"}</span>
-                      <X 
-                        size={14} 
-                        style={{ cursor: "pointer" }}
-                        onClick={() => handleClipSelection(clip)}
-                      />
-                    </div>
-                  ))}
+                  Add 2 clips
+                </h2>
+                <div
+                  className="icon-btn btn-sm btn-outline-light close-apps pointer"
+                  onClick={handleClose}
+                  style={{ marginLeft: "auto" }}
+                >
+                  <X />
                 </div>
               </div>
-            )}
 
-            {/* Clips Grid */}
-            <div 
+              {/* Share Button */}
+              {clips?.length && (
+                <div className="d-flex justify-content-center w-100 mb-2">
+                  <Button
+                    color="success"
+                    onClick={handleShare}
+                    disabled={selectedClipsCopy.length === 0}
+                    style={{
+                      minWidth: "120px",
+                      padding: "10px 30px",
+                      fontSize: "16px",
+                      fontWeight: "600",
+                    }}
+                  >
+                    Share
+                    {selectedClipsCopy.length > 0 &&
+                      ` (${selectedClipsCopy.length})`}
+                  </Button>
+                </div>
+              )}
+
+              {/* Selected Clips Counter */}
+              {selectedClipsCopy.length > 0 && (
+                <div
+                  className="mb-2"
+                  style={{
+                    padding: "10px",
+                    backgroundColor: "#f0f0f0",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <h5
+                    className="mb-2"
+                    style={{ fontSize: "14px", fontWeight: "600" }}
+                  >
+                    Selected Clips ({selectedClipsCopy.length}/2)
+                  </h5>
+                  <div className="d-flex flex-wrap gap-2">
+                    {selectedClipsCopy.map((clip) => (
+                      <div
+                        key={clip._id}
+                        style={{
+                          padding: "8px 12px",
+                          backgroundColor: "#28a745",
+                          color: "white",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <span>{clip.title || "Untitled"}</span>
+                        <X
+                          size={14}
+                          style={{ cursor: "pointer" }}
+                          onClick={() => handleClipSelection(clip)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Clips Grid (scrolls under sticky header) */}
+            <div
               className="media-gallery portfolio-section grid-portfolio"
               style={{
                 flex: 1,
-                overflowY: "auto",
-                padding: "10px 0"
+                padding: "10px 0",
               }}
             >
               {clips?.length ? (
