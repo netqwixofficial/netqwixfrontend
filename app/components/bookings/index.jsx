@@ -64,6 +64,7 @@ import { set } from "lodash";
 import TraineeRatings from "./ratings/trainee";
 import UserInfoCard from "../cards/user-card";
 import CircleLoader from "../../common/CircleLoader";
+import BookingCardSkeleton from "../common/BookingCardSkeleton";
 const { isMobileFriendly, isSidebarToggleEnabled } = bookingsAction;
 
 const Bookings = ({ accountType = null }) => {
@@ -177,15 +178,19 @@ const Bookings = ({ accountType = null }) => {
     hasInitialFetchRef.current = true;
     
     // Fetch data if no recent cached data exists or tab changed
+    // Force refresh on initial mount or tab change to ensure fresh data
     if (currentAccountType === AccountType.TRAINER) {
       if (tabBook) {
         const payload = {
           status: tabBook,
+          forceRefresh: !hasInitialFetchRef.current, // Force refresh on first load
         };
         dispatch(getScheduledMeetingDetailsAsync(payload));
       }
     } else {
-      dispatch(getScheduledMeetingDetailsAsync());
+      dispatch(getScheduledMeetingDetailsAsync({ 
+        forceRefresh: !hasInitialFetchRef.current // Force refresh on first load
+      }));
     }
   }, [tabBook, currentAccountType, dispatch, scheduledMeetingDetails, lastFetchedTimestamp, cachedTabBook]);
 
@@ -197,16 +202,17 @@ const Bookings = ({ accountType = null }) => {
     // Listen for new booking notifications to silently refresh
     const handleBookingUpdate = () => {
       // Silently refresh without showing loading state
+      // Force refresh to bypass cache and get latest data
       if (currentAccountType === AccountType.TRAINER) {
         if (tabBook) {
           const payload = {
             status: tabBook,
+            forceRefresh: true,
           };
-          // Force refresh by bypassing cache
           dispatch(getScheduledMeetingDetailsAsync(payload));
         }
       } else {
-        dispatch(getScheduledMeetingDetailsAsync());
+        dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
       }
     };
 
@@ -249,9 +255,27 @@ const Bookings = ({ accountType = null }) => {
           ? { status: tabBook, updatePayload }
           : { updatePayload }),
       };
-      dispatch(updateBookedSessionScheduledMeetingAsync(payload));
+      // Update booking status and then refresh data
+      dispatch(updateBookedSessionScheduledMeetingAsync(payload))
+        .unwrap()
+        .then(() => {
+          // After successful update, refresh bookings to get latest status
+          // Force refresh to ensure we get the updated status from API
+          if (currentAccountType === AccountType.TRAINER) {
+            if (tabBook) {
+              dispatch(getScheduledMeetingDetailsAsync({ status: tabBook, forceRefresh: true }));
+            }
+          } else {
+            dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
+          }
+          // Also refresh upcoming sessions to ensure consistency
+          dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming", forceRefresh: true }));
+        })
+        .catch((error) => {
+          console.error("[Bookings] Error updating booking status:", error);
+        });
     }
-  }, [bookedSession, accountType]);
+  }, [bookedSession, currentAccountType, tabBook, dispatch]);
 
   const addTraineeClipInBookedSession = async () => {
     const payload = {
@@ -1393,7 +1417,17 @@ const Bookings = ({ accountType = null }) => {
                   <h3 className="mt-2 p-3 mb-2 bg-primary text-white rounded">
                     Bookings
                   </h3>
-                  {Bookings()}
+                  {isMeetingLoading && !scheduledMeetingDetails.length ? (
+                    <>
+                      {Array(3).fill(0).map((_, index) => (
+                        <BookingCardSkeleton key={`booking-skeleton-${index}`} />
+                      ))}
+                    </>
+                  ) : scheduledMeetingDetails.length ? (
+                    Bookings()
+                  ) : (
+                    <p style={{ textAlign: "center", padding: "20px" }}>No Booking Available</p>
+                  )}
                 </div>
 
                 {/* <h2 className="d-flex justify-content-center p-5">Bookings</h2>
@@ -1408,22 +1442,14 @@ const Bookings = ({ accountType = null }) => {
               </h3>
               {isMeetingLoading && !scheduledMeetingDetails.length ? (
                 <>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      padding: "24px 0",
-                    }}
-                  >
-                    <CircleLoader size={28} />
-                  </div>
+                  {Array(3).fill(0).map((_, index) => (
+                    <BookingCardSkeleton key={`booking-skeleton-${index}`} />
+                  ))}
                 </>
               ) : scheduledMeetingDetails.length ? (
                 Bookings()
               ) : (
-                <>
-                  <p style={{ textAlign: "center" }}>No Booking Available</p>
-                </>
+                <p style={{ textAlign: "center", padding: "20px" }}>No Booking Available</p>
               )}
             </React.Fragment>
           )}

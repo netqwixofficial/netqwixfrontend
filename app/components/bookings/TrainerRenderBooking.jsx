@@ -54,6 +54,11 @@ const TrainerRenderBooking = ({
   const { accountType } = useAppSelector(authState);
   const dispatch = useAppDispatch();
 
+  // Always use the latest status from Redux state, not just the prop
+  // This ensures UI updates immediately after API refresh
+  const latestBooking = scheduledMeetingDetails?.[booking_index];
+  const currentStatus = latestBooking?.status || status;
+
   const currentTime = DateTime.now(); // Use UTC to avoid timezone mismatch
 
   // Parse the start_time and end_time in UTC
@@ -82,10 +87,10 @@ const TrainerRenderBooking = ({
     !isUpcomingSession &&
     !isCurrentDateBefore &&
     !isStartButtonEnabled &&
-    status !== BookedSession.booked &&
+    currentStatus !== BookedSession.booked &&
     !isCompleted;
 
-  const updateBookedStatusApi = (_id, booked_status) => {
+  const updateBookedStatusApi = async (_id, booked_status) => {
     if (_id) {
       const updatePayload = {
         id: _id,
@@ -96,7 +101,21 @@ const TrainerRenderBooking = ({
           ? { status: tabBook, updatePayload }
           : { updatePayload }),
       };
-      dispatch(updateBookedSessionScheduledMeetingAsync(payload));
+      try {
+        // Wait for the update to complete
+        await dispatch(updateBookedSessionScheduledMeetingAsync(payload)).unwrap();
+        // After successful update, refresh the bookings to get latest status
+        // Force refresh to ensure we get the updated status from API
+        if (accountType === AccountType?.TRAINER) {
+          await dispatch(getScheduledMeetingDetailsAsync({ status: tabBook, forceRefresh: true }));
+        } else {
+          await dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
+        }
+        // Also refresh upcoming sessions specifically
+        await dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming", forceRefresh: true }));
+      } catch (error) {
+        console.error("[TrainerRenderBooking] Error updating booking status:", error);
+      }
     }
   };
 
@@ -111,7 +130,7 @@ const TrainerRenderBooking = ({
   
   return (
     <React.Fragment>
-      {ratings && status !== BookedSession.canceled && isMeetingDone && (
+      {ratings && currentStatus !== BookedSession.canceled && isMeetingDone && (
         <h3 className="mt-1">Completed</h3>
       )}
       <span>
@@ -131,23 +150,23 @@ const TrainerRenderBooking = ({
         to view.
       </span>
       <br />
-      {status === BookedSession.canceled && isMeetingDone && (
+      {currentStatus === BookedSession.canceled && isMeetingDone && (
         <button
           className="btn btn-danger button-effect btn-sm ml-2 my-1"
           type="button"
           style={{
             cursor:
-              status === BookedSession.canceled ? "not-allowed" : "pointer",
+              currentStatus === BookedSession.canceled ? "not-allowed" : "pointer",
           }}
-          disabled={status === BookedSession.canceled}
+          disabled={currentStatus === BookedSession.canceled}
         >
-          {status === BookedSession.canceled
+          {currentStatus === BookedSession.canceled
             ? BookedSession.canceled
             : "Cancel"}
         </button>
       )}
       {!ratings &&
-      (isCurrentTimeAfterEndTime ||isMeetingDone)&& status === BookedSession.completed ? (
+      (isCurrentTimeAfterEndTime ||isMeetingDone)&& currentStatus === BookedSession.completed ? (
         <button
           className={`btn btn-success button-effect btn-sm mr-2 my-1`}
           type="button"
@@ -166,14 +185,14 @@ const TrainerRenderBooking = ({
         <React.Fragment>
           {!isMeetingDone && (
             <React.Fragment>
-              {status !== BookedSession.canceled && (
+              {currentStatus !== BookedSession.canceled && (
                 <button
                   className={`btn btn-primary button-effect btn-sm mr-2 btn_cancel my-1`}
                   type="button"
                   style={{
-                    cursor: status === BookedSession.confirmed && "not-allowed",
+                    cursor: currentStatus === BookedSession.confirmed && "not-allowed",
                   }}
-                  disabled={status === BookedSession.confirmed}
+                  disabled={currentStatus === BookedSession.confirmed}
                   onClick={() => {
                     setBookedSession({
                       ...bookedSession,
@@ -192,12 +211,12 @@ const TrainerRenderBooking = ({
                     });
                   }}
                 >
-                  {status === BookedSession.confirmed
+                  {currentStatus === BookedSession.confirmed
                     ? BookedSession.confirmed
                     : BookedSession.confirm}
                 </button>
               )}
-              {status === BookedSession.confirmed && (
+              {currentStatus === BookedSession.confirmed && (
                 <button
                   className={`btn btn-primary button-effect btn-sm mr-2 btn_cancel my-1`}
                   type="button"
@@ -257,18 +276,18 @@ const TrainerRenderBooking = ({
                 type="button"
                 style={{
                   cursor:
-                    status === BookedSession.canceled 
+                    currentStatus === BookedSession.canceled 
                       ? "not-allowed"
                       : "pointer",
                 }}
                 disabled={
-                  status === BookedSession.canceled
+                  currentStatus === BookedSession.canceled
                 }
                 onClick={() => {
                   if (
                    
-                    status === BookedSession?.booked ||
-                      status === BookedSession?.confirmed
+                    currentStatus === BookedSession?.booked ||
+                      currentStatus === BookedSession?.confirmed
                   ) {
                     setBookedSession({
                       ...bookedSession,
@@ -288,7 +307,7 @@ const TrainerRenderBooking = ({
                   }
                 }}
               >
-                {status === BookedSession.canceled
+                {currentStatus === BookedSession.canceled
                   ? BookedSession.canceled
                   : "Cancel"}
               </button>

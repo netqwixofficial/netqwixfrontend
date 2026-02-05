@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useLayoutEffect } from "react";
+import React, { useEffect, useState, useLayoutEffect, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "../../store";
 import {
   addTraineeClipInBookedSessionAsync,
@@ -36,6 +36,7 @@ import { useMediaQuery } from "usehooks-ts";
 import TraineeRatings from "./ratings/trainee";
 import { DateTime } from "luxon";
 import { Spinner } from "reactstrap";
+import BookingCardSkeleton from "../common/BookingCardSkeleton";
 
 export var meetingRoom = () => <></>;
 
@@ -115,12 +116,20 @@ const BookingList = ({ activeCenterContainerTab, activeTabs }) => {
   //   isOpenModal: false,
   // });
 
+  // Track if we've fetched for this tab to prevent duplicate calls
+  const lastFetchedTabRef = useRef(null);
+
   useEffect(() => {
     if (activeCenterContainerTab === "upcomingLesson" && activeTabs) {
-      const payload = {
-        status: activeTabs,
-      };
-      dispatch(getScheduledMeetingDetailsAsync(payload));
+      // Only fetch if tab changed or first time
+      if (lastFetchedTabRef.current !== activeTabs) {
+        lastFetchedTabRef.current = activeTabs;
+        const payload = {
+          status: activeTabs,
+          forceRefresh: true, // Force refresh to ensure fresh data
+        };
+        dispatch(getScheduledMeetingDetailsAsync(payload));
+      }
     }
   }, [activeTabs, activeCenterContainerTab, dispatch]);
 
@@ -567,15 +576,11 @@ const BookingList = ({ activeCenterContainerTab, activeTabs }) => {
   return (
     <div>
       {isMeetingLoading ? (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            marginTop: "40px",
-          }}
-        >
-          <Spinner color="primary" className="spinner" />
-        </div>
+        <>
+          {Array(3).fill(0).map((_, index) => (
+            <BookingCardSkeleton key={`booking-list-skeleton-${index}`} />
+          ))}
+        </>
       ) : !filteredMeetings.length ? (
         // Show a message when there are no sessions for current filter
         <div

@@ -1,4 +1,4 @@
-import React, { useContext, useLayoutEffect } from "react";
+import React, { useContext, useLayoutEffect, useRef } from "react";
 import { useState, useEffect } from "react";
 import { Nav, NavItem, NavLink, TabContent, TabPane } from "reactstrap";
 import { bookingButton, not_data_for_booking } from "../../common/constants";
@@ -22,11 +22,12 @@ import { notificiationTitles } from "../../../utils/constant";
 import { EVENTS } from "../../../helpers/events";
 import { SocketContext } from "../socket";
 import { DateTime } from "luxon";
+import BookingCardSkeleton from "../common/BookingCardSkeleton";
 
 const UpcomingSession = ({ accountType = null }) => {
   const dispatch = useAppDispatch();
   const [activeTabs, setActiveTab] = useState(bookingButton[0]);
-  const { scheduledMeetingDetails } = useAppSelector(bookingsState);
+  const { scheduledMeetingDetails, isMeetingLoading } = useAppSelector(bookingsState);
   const { userInfo } = useAppSelector(authState);
   const { newBookingData } = useAppSelector(traineeState);
   const { removeNewBookingData } = traineeAction;
@@ -56,45 +57,83 @@ const UpcomingSession = ({ accountType = null }) => {
     }
   }, [newBookingData]);
 
+  // Track if initial fetch has been done to prevent duplicate calls
+  const hasInitialFetchRef = useRef(false);
+
+  // Initial fetch on mount - always fetch upcoming sessions on first load
+  useEffect(() => {
+    if (!hasInitialFetchRef.current) {
+      hasInitialFetchRef.current = true;
+      // Always fetch upcoming sessions on initial mount, force refresh
+      dispatch(
+        getScheduledMeetingDetailsAsync({
+          status: "upcoming",
+          forceRefresh: true,
+        })
+      );
+    }
+  }, [dispatch]);
+
   const handleChangeBookingTab = async (tab) => {
     if (activeTabs !== tab) {
       setActiveTab(tab);
-      dispatch(getScheduledMeetingDetailsAsync({ status: tab }));
+      // Always fetch when tab changes, force refresh to bypass cache
+      dispatch(getScheduledMeetingDetailsAsync({ status: tab, forceRefresh: true }));
     }
   };
 
+  // Fetch upcoming sessions when new booking is created
   useEffect(() => {
-    dispatch(
-      getScheduledMeetingDetailsAsync({
-        status: "upcoming",
-      })
-    );
-  }, [newBookingData]);
+    if (newBookingData?._id) {
+      // Force refresh upcoming sessions when new booking is created
+      dispatch(
+        getScheduledMeetingDetailsAsync({
+          status: "upcoming",
+          forceRefresh: true,
+        })
+      );
+    }
+  }, [newBookingData, dispatch]);
 
   /**
    * Keep upcoming sessions in sync in real-time.
-   * Whenever a booking is created or its status is updated via socket events,
-   * we silently refetch the scheduled meetings for the currently active tab.
-   * This avoids the need for a manual page refresh while preserving existing behaviour.
+   * Listen to push notifications for booking-related events and refresh data.
    */
   useEffect(() => {
     if (!socket) return;
 
     const handleBookingUpdate = () => {
       // Refetch data for the currently selected tab (upcoming / completed / cancelled, etc.)
+      // Force refresh by bypassing cache
       dispatch(
         getScheduledMeetingDetailsAsync({
           status: activeTabs,
+          forceRefresh: true,
         })
       );
     };
 
-    // Removed BOOKING_CREATED listener - reverted timezone changes
-    // socket.on(EVENTS.BOOKING.CREATED, handleBookingUpdate);
-    // socket.on(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
+    // Listen for push notifications that indicate booking updates
+    const handleNotification = (notification) => {
+      // Only refresh if it's a booking-related notification
+      if (
+        notification.title === notificiationTitles.newBookingRequest ||
+        notification.title === notificiationTitles.sessionStrated ||
+        notification.title === notificiationTitles.sessionConfirmation
+      ) {
+        // Small delay to ensure backend has processed the booking
+        setTimeout(() => {
+          handleBookingUpdate();
+        }, 500);
+      }
+    };
+
+    socket.on(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
 
     return () => {
-      // Cleanup removed
+      if (socket) {
+        socket.off(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
+      }
     };
   }, [socket, dispatch, activeTabs]);
 

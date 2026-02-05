@@ -64,6 +64,12 @@ const TraineeRenderBooking = ({
   const { clips } = useAppSelector(commonState);
   const dispatch = useAppDispatch();
   const { removeNewBookingData } = traineeAction;
+  
+  // Always use the latest status from Redux state, not just the prop
+  // This ensures UI updates immediately after API refresh
+  const latestBooking = scheduledMeetingDetails?.[booking_index];
+  const currentStatus = latestBooking?.status || status;
+  
   const isCompleted =
     has24HoursPassedSinceBooking || bookingInfo?.ratings?.trainee;
 
@@ -91,7 +97,7 @@ const TraineeRenderBooking = ({
     !isUpcomingSession &&
     !isCurrentDateBefore &&
     !isStartButtonEnabled &&
-    status !== BookedSession.booked &&
+    currentStatus !== BookedSession.booked &&
     Utils.compairDateGraterOrNot(start_time) &&
     !isCompleted;
 
@@ -100,7 +106,7 @@ const TraineeRenderBooking = ({
 
   };
 
-  const updateBookedStatusApi = (_id, booked_status) => {
+  const updateBookedStatusApi = async (_id, booked_status) => {
     if (_id) {
       const updatePayload = {
         id: _id,
@@ -111,8 +117,17 @@ const TraineeRenderBooking = ({
           ? { status: tabBook, updatePayload }
           : { updatePayload }),
       };
-      dispatch(updateBookedSessionScheduledMeetingAsync(payload));
-      dispatch(getScheduledMeetingDetailsAsync());
+      try {
+        // Wait for the update to complete
+        await dispatch(updateBookedSessionScheduledMeetingAsync(payload)).unwrap();
+        // After successful update, refresh the bookings to get latest status
+        // Force refresh to ensure we get the updated status from API
+        await dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
+        // Also refresh upcoming sessions specifically
+        await dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming", forceRefresh: true }));
+      } catch (error) {
+        console.error("[TraineeRenderBooking] Error updating booking status:", error);
+      }
     }
   };
 
@@ -122,7 +137,7 @@ const TraineeRenderBooking = ({
 
   const isMeetingCanceled = () => {
     return (
-      status === BookedSession.canceled || activeTabs === BookedSession.canceled
+      currentStatus === BookedSession.canceled || activeTabs === BookedSession.canceled
     );
   };
 
@@ -130,11 +145,11 @@ const TraineeRenderBooking = ({
 
   return (
     <React.Fragment>
-      {status !== BookedSession.canceled &&
+      {currentStatus !== BookedSession.canceled &&
         activeTabs !== BookedSession.canceled &&
         isMeetingDone && ratings && <h3 className="mt-1">Completed</h3>}
       {!ratings &&
-           (isCurrentTimeAfterEndTime ||isMeetingDone)&& status === BookedSession.completed ?  (
+           (isCurrentTimeAfterEndTime ||isMeetingDone)&& currentStatus === BookedSession.completed ?  (
         <button
           className={`btn btn-success button-effect btn-sm mr-2 my-1`}
           type="button"
@@ -160,7 +175,7 @@ const TraineeRenderBooking = ({
         <React.Fragment>
           {!isMeetingDone && (
             <React.Fragment>
-              {status !== BookedSession.canceled && (
+              {currentStatus !== BookedSession.canceled && (
                 <React.Fragment>
                   <button
                     className={`btn btn-success button-effect btn-sm ${isMobileScreen?"mr-1": "mr-2"} btn_cancel my-1 `}
@@ -175,7 +190,7 @@ const TraineeRenderBooking = ({
                   >
                     Add Clip
                   </button>
-                  {status === BookedSession.booked ? (
+                  {currentStatus === BookedSession.booked ? (
                     <button
                     className={`btn btn-dark button-effect btn-sm ${isMobileScreen?"mr-1": "mr-2"} btn_cancel my-1 `}
                     
@@ -183,10 +198,10 @@ const TraineeRenderBooking = ({
                     
                       style={{
                         cursor:
-                          status === BookedSession.booked && "not-allowed",
+                          currentStatus === BookedSession.booked && "not-allowed",
                           paddingLeft:isMobileScreen?"5px":"auto",paddingRight:isMobileScreen?"5px":"auto"
                       }}
-                      disabled={status === BookedSession.booked}
+                      disabled={currentStatus === BookedSession.booked}
                     >
                       {BookedSession.booked}
                     </button>
@@ -197,10 +212,10 @@ const TraineeRenderBooking = ({
                       type="button"
                       style={{
                         cursor:
-                          status === BookedSession.confirmed && "not-allowed",
+                          currentStatus === BookedSession.confirmed && "not-allowed",
                           paddingLeft:isMobileScreen?"5px":"auto",paddingRight:isMobileScreen?"5px":"auto"
                       }}
-                      disabled={status === BookedSession.confirmed}
+                      disabled={currentStatus === BookedSession.confirmed}
                     >
                       {BookedSession.confirmed}
                     </button>
@@ -221,7 +236,7 @@ const TraineeRenderBooking = ({
                   />}
                 </React.Fragment>
               )}
-              {status === BookedSession.confirmed && (
+              {currentStatus === BookedSession.confirmed && (
                 <button
                 className={`btn btn-primary button-effect btn-sm ${isMobileScreen?"mr-1": "mr-2"} btn_cancel my-1 `}
 
@@ -283,19 +298,19 @@ const TraineeRenderBooking = ({
                 type="button"
                 style={{
                   cursor:
-                    status === BookedSession.canceled || isStartButtonEnabled
+                    currentStatus === BookedSession.canceled || isStartButtonEnabled
                       ? "not-allowed"
                       : "pointer",
                       paddingLeft:isMobileScreen?"5px":"auto",paddingRight:isMobileScreen?"5px":"auto"
                 }}
                 disabled={
-                  status === BookedSession.canceled || isStartButtonEnabled
+                  currentStatus === BookedSession.canceled || isStartButtonEnabled
                 }
                 onClick={() => {
                   if (
                     !isStartButtonEnabled &&
-                    (status === BookedSession?.booked ||
-                      status === BookedSession?.confirmed)
+                    (currentStatus === BookedSession?.booked ||
+                      currentStatus === BookedSession?.confirmed)
                   ) {
                     setBookedSession({
                       ...bookedSession,
@@ -315,7 +330,7 @@ const TraineeRenderBooking = ({
                   }
                 }}
               >
-                {status === BookedSession.canceled
+                {currentStatus === BookedSession.canceled
                   ? BookedSession.canceled
                   : "Cancel"}
               </button>
@@ -327,7 +342,7 @@ const TraineeRenderBooking = ({
               type="button"
               style={{
                 cursor:
-                  status === BookedSession.canceled ? "not-allowed" : "pointer",
+                  currentStatus === BookedSession.canceled ? "not-allowed" : "pointer",
                   paddingLeft:isMobileScreen?"5px":"auto",paddingRight:isMobileScreen?"5px":"auto"
               }}
               disabled={isMeetingCanceled()}

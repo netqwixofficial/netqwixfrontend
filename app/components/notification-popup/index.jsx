@@ -44,7 +44,7 @@ const NotificationPopup = () => {
   const [lastNotificationId, setLastNotificationId] = useState(null);
   const autoCloseTimerRef = useRef(null);
   const countdownTimerRef = useRef(null);
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(30);
 
   useEffect(() => {
     if (!socket) {
@@ -82,7 +82,7 @@ const NotificationPopup = () => {
         clearInterval(countdownTimerRef.current);
         countdownTimerRef.current = null;
       }
-      setCountdown(10);
+      setCountdown(30);
     };
   }, [userInfo?._id]);
 
@@ -226,7 +226,7 @@ const NotificationPopup = () => {
       SetIsOpen(true);
       setHasShownPopup(true);
       setLastNotificationId(notification._id);
-      setCountdown(10);
+      setCountdown(30);
       
       // Clear any existing timers
       if (autoCloseTimerRef.current) {
@@ -250,15 +250,15 @@ const NotificationPopup = () => {
         });
       }, 1000);
       
-      // Auto-close after 10 seconds
+      // Auto-close after 30 seconds
       autoCloseTimerRef.current = setTimeout(() => {
         SetIsOpen(false);
-        setCountdown(10);
+        setCountdown(30);
         if (countdownTimerRef.current) {
           clearInterval(countdownTimerRef.current);
           countdownTimerRef.current = null;
         }
-      }, 10000);
+      }, 30000);
     }
   };
 
@@ -271,7 +271,7 @@ const NotificationPopup = () => {
       clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = null;
     }
-    setCountdown(10);
+    setCountdown(30);
     SetIsOpen((prev) => !prev);
   };
 

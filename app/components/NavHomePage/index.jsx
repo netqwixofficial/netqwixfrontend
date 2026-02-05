@@ -38,6 +38,9 @@ import { EVENTS } from "../../../helpers/events";
 import { SocketContext } from "../socket";
 import { Star } from "react-feather";
 import ImageSkeleton from "../common/ImageSkeleton";
+import { notificiationTitles } from "../../../utils/constant";
+import TrainerCardSkeleton from "../common/TrainerCardSkeleton";
+import ActiveSessionSkeleton from "../common/ActiveSessionSkeleton";
 const NavHomePage = () => {
   const [progress, setProgress] = useState(0);
   const width2000 = useMediaQuery(2000);
@@ -56,9 +59,10 @@ const NavHomePage = () => {
   const [bIndex, setBIndex] = useState(0);
   const [tabBook, setTabBook] = useState(bookingButton[0]);
   const { removeNewBookingData } = traineeAction;
-  const { isLoading, configs, startMeeting } = useAppSelector(bookingsState);
+  const { isLoading, configs, startMeeting, isMeetingLoading } = useAppSelector(bookingsState);
   const { accountType, onlineUsers } = useAppSelector(authState);
   const [activeTrainer, setActiveTrainer] = useState([]);
+  const [isLoadingTrainers, setIsLoadingTrainers] = useState(true);
   const [friendRequests, setFriendRequests] = useState([]);
   const [filteredSessions, setFilteredSessions] = useState([]);
   const [activeCenterTab, setActiveCenterTab] = useState("myClips");
@@ -110,10 +114,17 @@ const NavHomePage = () => {
   };
 
   const getAllLatestActiveTrainer = async () => {
-    const response = await fetchAllLatestOnlineUsers();
+    try {
+      setIsLoadingTrainers(true);
+      const response = await fetchAllLatestOnlineUsers();
 
-    if (response.code === 200) {
-      setActiveTrainer(response.result);
+      if (response.code === 200) {
+        setActiveTrainer(response.result);
+      }
+    } catch (error) {
+      console.error("Error fetching active trainers:", error);
+    } finally {
+      setIsLoadingTrainers(false);
     }
   };
 
@@ -150,15 +161,35 @@ const NavHomePage = () => {
     if (!socket) return;
 
     const handleBookingUpdate = () => {
-      dispatch(getScheduledMeetingDetailsAsync());
+      // Force refresh to get latest data, bypassing cache
+      dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
     };
 
-    // Removed BOOKING_CREATED listener - reverted timezone changes
-    // socket.on(EVENTS.BOOKING.CREATED, handleBookingUpdate);
-    // socket.on(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
+    // Listen for push notifications that indicate booking updates
+    const handleNotification = (notification) => {
+      // Only refresh if it's a booking-related notification
+      if (
+        notification.title === notificiationTitles.newBookingRequest ||
+        notification.title === notificiationTitles.sessionStrated ||
+        notification.title === notificiationTitles.sessionConfirmation
+      ) {
+        // Small delay to ensure backend has processed the booking
+        setTimeout(() => {
+          handleBookingUpdate();
+        }, 500);
+      }
+    };
+
+    socket.on(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
+
+    // Also listen for instant lesson events that might create bookings
+    socket.on(EVENTS.INSTANT_LESSON.ACCEPT, handleBookingUpdate);
 
     return () => {
-      // Cleanup removed
+      if (socket) {
+        socket.off(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
+        socket.off(EVENTS.INSTANT_LESSON.ACCEPT, handleBookingUpdate);
+      }
     };
   }, [socket, dispatch]);
   
@@ -185,6 +216,8 @@ const NavHomePage = () => {
     draggable: true,
     variableWidth: false,
     adaptiveHeight: true,
+    lazyLoad: 'ondemand', // Enable lazy loading for slides
+    cssEase: 'ease-in-out',
     responsive: [
       {
         breakpoint: 1200,
@@ -436,9 +469,7 @@ const NavHomePage = () => {
     <div className="container-fluid">
       {/* top  baaner */}
 
-      {accountType === AccountType.TRAINEE &&
-        activeTrainer &&
-        activeTrainer?.length ? (
+      {accountType === AccountType.TRAINEE && (
         <div
           className="upcoming_session"
           style={{
@@ -487,7 +518,9 @@ const NavHomePage = () => {
               width: "100%",
               maxWidth: "100%",
               margin: "0",
-              height: "280px", 
+              minHeight: width600 ? "280px" : "300px",
+              height: "auto",
+              maxHeight: width600 ? "320px" : "340px",
               boxSizing: "border-box",
               overflow: "visible",
               display: "flex",
@@ -550,17 +583,29 @@ const NavHomePage = () => {
                 }
                 .banner_Slider .slick-slide {
                   height: auto;
+                  min-height: 0;
                 }
                 .banner_Slider .slick-slide > div {
                   height: 100%;
                   display: flex;
+                  min-height: 0;
                 }
                 .banner_Slider .slick-track {
                   touch-action: pan-y pinch-zoom;
+                  display: flex;
+                  align-items: stretch;
                 }
                 .banner_Slider .slick-slide {
                   padding: 0 10px;
                   touch-action: pan-y pinch-zoom;
+                  display: flex;
+                }
+                .banner_Slider .slick-slide[aria-hidden="true"] {
+                  opacity: 0.5;
+                }
+                .banner_Slider .slick-slide[aria-hidden="false"] {
+                  opacity: 1;
+                  transition: opacity 0.3s ease;
                 }
                 .banner_Slider .slick-prev,
                 .banner_Slider .slick-next {
@@ -653,10 +698,36 @@ const NavHomePage = () => {
                     font-size: 16px;
                   }
                 }
-              `}</style>
-              <Slider {...settings}>
-                {activeTrainer &&
-                  activeTrainer?.map((info, index) => {
+              `}              </style>
+              {isLoadingTrainers ? (
+                <Slider {...settings}>
+                  {Array(4).fill(0).map((_, index) => (
+                    <div 
+                      key={`skeleton-${index}`}
+                      style={{
+                        padding: width600 ? "0 4px" : "0 10px",
+                        boxSizing: "border-box",
+                        height: "auto",
+                        minHeight: "0",
+                        display: "flex",
+                        alignItems: "stretch"
+                      }}
+                    >
+                      <div style={{
+                        width: "100%",
+                        height: "auto",
+                        display: "flex",
+                        alignItems: "stretch",
+                        minHeight: "0"
+                      }}>
+                        <TrainerCardSkeleton width600={width600} />
+                      </div>
+                    </div>
+                  ))}
+                </Slider>
+              ) : activeTrainer && activeTrainer?.length > 0 ? (
+                <Slider {...settings}>
+                  {activeTrainer.map((info, index) => {
                     return (
                       <div 
                         key={`slider-${info.trainer_info?._id}-${index}`}
@@ -664,30 +735,40 @@ const NavHomePage = () => {
                           padding: width600 ? "0 4px" : "0 10px",
                           boxSizing: "border-box",
                           height: "auto",
-                          minHeight: "0"
+                          minHeight: "0",
+                          display: "flex",
+                          alignItems: "stretch"
                         }}
                       >
                         <div style={{
                           width: "100%",
                           height: "auto",
                           display: "flex",
-                          alignItems: "stretch"
+                          alignItems: "stretch",
+                          minHeight: "0"
                         }}>
                           <OnlineUserCard trainer={info.trainer_info} />
                         </div>
                       </div>
                     );
                   })}
-              </Slider>
+                </Slider>
+              ) : null}
             </div>
           </div>
         </div>
-      ) : null}
+      )}
 
-      {filteredSessions && filteredSessions?.length ? (
-        <div className="upcoming_session">
-          <h2 className="text-center">Active Sessions</h2>
-          {filteredSessions.map((session, booking_index) => (
+      <div className="upcoming_session">
+        <h2 className="text-center">Active Sessions</h2>
+        {isMeetingLoading && !filteredSessions?.length ? (
+          <>
+            {Array(2).fill(0).map((_, index) => (
+              <ActiveSessionSkeleton key={`active-session-skeleton-${index}`} />
+            ))}
+          </>
+        ) : filteredSessions && filteredSessions?.length > 0 ? (
+          filteredSessions.map((session, booking_index) => (
             <div
               className="card mt-2 trainer-bookings-card upcoming_session_content"
               key={`booking-schedule-training`}
@@ -816,9 +897,13 @@ const NavHomePage = () => {
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      ) : null}
+          ))
+        ) : !isMeetingLoading ? (
+          <div style={{ textAlign: "center", padding: "20px" }}>
+            <p>No Active Sessions</p>
+          </div>
+        ) : null}
+      </div>
 
       <div
         className="row"

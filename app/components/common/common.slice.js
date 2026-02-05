@@ -99,20 +99,24 @@ export const getScheduledMeetingDetailsAsync = createAsyncThunk(
       const requestedTab = payload?.status || null;
       const cachedTab = bookings?.cachedTabBook || null;
       const lastFetched = bookings?.lastFetchedTimestamp || null;
+      const forceRefresh = payload?.forceRefresh === true; // Allow force refresh flag
 
-      // If we already fetched this tab recently, reuse cached data
-      const CACHE_TTL_MS = 60 * 1000; // 1 minute cache to avoid aggressive refetching on tab changes
-      const isSameTab = requestedTab && cachedTab && requestedTab === cachedTab;
-      const isFresh =
-        typeof lastFetched === "number" &&
-        Date.now() - lastFetched < CACHE_TTL_MS;
+      // If force refresh is requested, skip cache
+      if (!forceRefresh) {
+        // If we already fetched this tab recently, reuse cached data
+        const CACHE_TTL_MS = 30 * 1000; // 30 seconds cache (reduced from 1 minute for better freshness)
+        const isSameTab = requestedTab && cachedTab && requestedTab === cachedTab;
+        const isFresh =
+          typeof lastFetched === "number" &&
+          Date.now() - lastFetched < CACHE_TTL_MS;
 
-      if (isSameTab && isFresh && Array.isArray(bookings?.scheduledMeetingDetails)) {
-        return {
-          data: bookings.scheduledMeetingDetails,
-          cachedTabBook: requestedTab,
-          fromCache: true,
-        };
+        if (isSameTab && isFresh && Array.isArray(bookings?.scheduledMeetingDetails)) {
+          return {
+            data: bookings.scheduledMeetingDetails,
+            cachedTabBook: requestedTab,
+            fromCache: true,
+          };
+        }
       }
 
       const response = await getScheduledMeetingDetails(payload);

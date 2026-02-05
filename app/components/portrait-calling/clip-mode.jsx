@@ -193,7 +193,7 @@ const VideoContainer = ({
     if (accountType === AccountType.TRAINEE) return;
 
     if (e.touches.length === 2) {
-      // Zoom Handling
+      // Zoom Handling - prevent panning during pinch zoom
       const [touch1, touch2] = Array.from(e.touches);
       const currentDistance = Math.hypot(
         touch2.pageX - touch1.pageX,
@@ -215,10 +215,12 @@ const VideoContainer = ({
         });
 
         setScale(newScale);
+        // Reset drag start to prevent panning during zoom
+        setDragStart(null);
       }
       setLastTouch(currentDistance);
-    } else if (e.touches.length === 1 && dragStart) {
-      // Panning Handling
+    } else if (e.touches.length === 1 && dragStart && !lastTouch) {
+      // Panning Handling - only allow panning when NOT zooming (lastTouch === 0)
       const touch = e.touches[0];
       const deltaX = touch.pageX - dragStart.x;
       const deltaY = touch.pageY - dragStart.y;
@@ -257,7 +259,10 @@ const VideoContainer = ({
 
   const handleTouchEnd = () => {
     if (accountType === AccountType.TRAINEE) return;
-    setLastTouch(0);
+    // Small delay before resetting lastTouch to prevent accidental panning after zoom
+    setTimeout(() => {
+      setLastTouch(0);
+    }, 100);
     setDragStart(null);
   };
 
@@ -1326,10 +1331,20 @@ const ClipModeCall = ({
 
   const handleHideVideo = (videoType) => {
     setHiddenVideos(prev => ({ ...prev, [videoType]: true }));
+    // Emit socket event to sync hide state
+    socket?.emit(EVENTS.ON_VIDEO_HIDE, {
+      userInfo: { from_user: fromUser._id, to_user: toUser._id },
+      videoType, // 'student' | 'teacher' | 'clips'
+    });
   };
 
   const handleRestoreVideo = (videoType) => {
     setHiddenVideos(prev => ({ ...prev, [videoType]: false }));
+    // Emit socket event to sync show state
+    socket?.emit(EVENTS.ON_VIDEO_SHOW, {
+      userInfo: { from_user: fromUser._id, to_user: toUser._id },
+      videoType, // 'student' | 'teacher' | 'clips'
+    });
   };
 
   function handleUserClick(id) {
@@ -1445,12 +1460,34 @@ const ClipModeCall = ({
       clearCanvas();
     };
 
+    const handleVideoHide = (data) => {
+      console.log("📡 [ClipModeCall] Received ON_VIDEO_HIDE event", {
+        receivedData: data,
+        videoType: data?.videoType,
+      });
+      if (data?.videoType) {
+        setHiddenVideos(prev => ({ ...prev, [data.videoType]: true }));
+      }
+    };
+
+    const handleVideoShow = (data) => {
+      console.log("📡 [ClipModeCall] Received ON_VIDEO_SHOW event", {
+        receivedData: data,
+        videoType: data?.videoType,
+      });
+      if (data?.videoType) {
+        setHiddenVideos(prev => ({ ...prev, [data.videoType]: false }));
+      }
+    };
+
     socket.on(EVENTS.ON_VIDEO_PLAY_PAUSE, handlePlayPause);
     socket.on(EVENTS.ON_VIDEO_TIME, handleTime);
     socket.on(EVENTS.TOGGLE_DRAWING_MODE, handleToggleDrawingMode);
     socket.on(EVENTS.TOGGLE_FULL_SCREEN, handleToggleFullscreen);
     socket.on(EVENTS.TOGGLE_LOCK_MODE, handleToggleLockMode);
     socket.on(EVENTS.ON_CLEAR_CANVAS, handleClearCanvasSocket);
+    socket.on(EVENTS.ON_VIDEO_HIDE, handleVideoHide);
+    socket.on(EVENTS.ON_VIDEO_SHOW, handleVideoShow);
 
     // Clean up on unmount
     return () => {
@@ -1460,6 +1497,8 @@ const ClipModeCall = ({
       socket.off(EVENTS.TOGGLE_FULL_SCREEN, handleToggleFullscreen);
       socket.off(EVENTS.TOGGLE_LOCK_MODE, handleToggleLockMode);
       socket.off(EVENTS.ON_CLEAR_CANVAS, handleClearCanvasSocket);
+      socket.off(EVENTS.ON_VIDEO_HIDE, handleVideoHide);
+      socket.off(EVENTS.ON_VIDEO_SHOW, handleVideoShow);
     };
   }, [socket, videoRef, videoRef2, accountType, isLock]);
 
@@ -2398,6 +2437,8 @@ const ClipModeCall = ({
           padding: "6px 12px 4px",
           flexShrink: 0,
           boxSizing: "border-box",
+          zIndex: 100,
+          position: "relative",
         }}
       >
         {timeRemaining && (
@@ -2713,6 +2754,10 @@ const ClipModeCall = ({
               stream={remoteStream}
               isStreamOff={isRemoteStreamOff}
               isLandscape={isLandscape}
+              onHide={handleHideVideo}
+              onRestore={handleRestoreVideo}
+              isHidden={hiddenVideos.student}
+              videoType="student"
             />
 
             <UserBox
@@ -2727,6 +2772,10 @@ const ClipModeCall = ({
               isStreamOff={isLocalStreamOff}
               isLandscape={isLandscape}
               muted={true}
+              onHide={handleHideVideo}
+              onRestore={handleRestoreVideo}
+              isHidden={hiddenVideos.teacher}
+              videoType="teacher"
             />
 
             {selectedUser === toUser._id ? (

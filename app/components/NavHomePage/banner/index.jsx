@@ -1,13 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Utils } from "../../../../utils/utils";
 import { topNavbarOptions } from "../../../common/constants";
 import { useAppDispatch } from "../../../store";
 import { authAction } from "../../auth/auth.slice";
 import { useMediaQuery } from "../../../hook/useMediaQuery";
+import ImageSkeleton from "../../common/ImageSkeleton";
 
 const OnlineUserCard = ({ trainer }) => {
     const dispatch = useAppDispatch();
     const width600 = useMediaQuery(600);
+    const [isCardReady, setIsCardReady] = useState(false);
 
     const handleTraineInstantLesson = () => {
         dispatch(authAction?.setSeletedOnlineTrainer({
@@ -15,6 +17,14 @@ const OnlineUserCard = ({ trainer }) => {
             selectedOnlineUser: trainer
         }))
     }
+
+    // Mark card as ready after a short delay to ensure smooth rendering
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsCardReady(true);
+        }, 50);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         // Add CSS animation for glowing effect
@@ -46,24 +56,32 @@ const OnlineUserCard = ({ trainer }) => {
     }, []);
 
     return (<>
-        <div className="trainer-card" style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: width600 ? "10px" : "12px",
-            justifyContent: "flex-start",
-            alignItems: "center",
-            padding: width600 ? "14px 10px" : "18px 16px",
-            width: "100%",
-            maxWidth: "100%",
-            boxSizing: "border-box",
-            height: "auto",
-            backgroundColor: "#fff",
-            borderRadius: "8px",
-            border: "1px solid #e0e0e0",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
-            minHeight: "auto",
-            touchAction: "manipulation"
-        }}>
+        <div 
+            className="trainer-card" 
+            style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: width600 ? "10px" : "12px",
+                justifyContent: "flex-start",
+                alignItems: "center",
+                padding: width600 ? "14px 10px" : "18px 16px",
+                width: "100%",
+                maxWidth: "100%",
+                boxSizing: "border-box",
+                height: "auto",
+                minHeight: width600 ? "240px" : "260px",
+                maxHeight: width600 ? "280px" : "300px",
+                backgroundColor: "#fff",
+                borderRadius: "8px",
+                border: "1px solid #e0e0e0",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
+                touchAction: "manipulation",
+                opacity: isCardReady ? 1 : 0,
+                transform: isCardReady ? "translateY(0)" : "translateY(10px)",
+                transition: "opacity 0.2s ease-in-out, transform 0.2s ease-in-out",
+                willChange: "opacity, transform"
+            }}
+        >
             <div style={{ 
                 width: width600 ? "90px" : "110px", 
                 height: width600 ? "90px" : "110px", 
@@ -80,9 +98,12 @@ const OnlineUserCard = ({ trainer }) => {
                 marginBottom: width600 ? "6px" : "8px",
                 position: "relative"
             }}>
-                <img
+                <ImageSkeleton
                     src={trainer.profile_picture ? Utils.getImageUrlOfS3(trainer.profile_picture) : "/assets/images/demoUser.png"}
                     alt="trainer_image"
+                    fallbackSrc="/assets/images/demoUser.png"
+                    lazy={true}
+                    skeletonType="circular"
                     style={{
                         width: "100%",
                         height: "100%",
@@ -94,9 +115,6 @@ const OnlineUserCard = ({ trainer }) => {
                         margin: "0",
                         padding: "0"
                     }}
-                    onError={(e) => {
-                        e.target.src = "/assets/images/demoUser.png";
-                      }}
                 />
             </div>
             <div className="card-info" style={{
