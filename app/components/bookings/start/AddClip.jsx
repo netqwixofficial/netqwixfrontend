@@ -214,17 +214,20 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
               padding: "20px",
               backgroundColor: "#fff",
               borderRadius: "8px",
-              overflowY: "auto",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
             }}
           >
-            {/* Header + Share + Selected Clips (Sticky at top) */}
+            {/* Header + Share + Selected Clips (Fixed at top) */}
             <div
               style={{
-                position: "sticky",
-                top: 0,
+                flexShrink: 0,
                 zIndex: 10,
                 backgroundColor: "#fff",
-                paddingBottom: "10px",
+                paddingBottom: "15px",
+                borderBottom: "1px solid #e0e0e0",
+                marginBottom: "15px",
               }}
             >
               {/* Header */}
@@ -312,12 +315,15 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
               )}
             </div>
 
-            {/* Clips Grid (scrolls under sticky header) */}
+            {/* Clips Grid (scrollable section) */}
             <div
               className="media-gallery portfolio-section grid-portfolio"
               style={{
                 flex: 1,
+                overflowY: "auto",
+                overflowX: "hidden",
                 padding: "10px 0",
+                minHeight: 0,
               }}
             >
               {clips?.length ? (
@@ -337,8 +343,8 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: isMobileScreen ? "repeat(2, 1fr)" : "repeat(2, 1fr)",
-                        gap: "15px",
+                        gridTemplateColumns: isMobileScreen ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
+                        gap: isMobileScreen ? "10px" : "12px",
                         width: "100%"
                       }}
                     >
@@ -372,12 +378,13 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                               <h6
                                 className="text-truncate mb-2"
                                 style={{
-                                  fontSize: "13px",
+                                  fontSize: isMobileScreen ? "11px" : "12px",
                                   fontWeight: "500",
                                   textAlign: "center",
-                                  padding: "0 5px",
-                                  marginBottom: "8px",
-                                  maxWidth: "100%"
+                                  padding: "0 4px",
+                                  marginBottom: "6px",
+                                  maxWidth: "100%",
+                                  lineHeight: "1.3"
                                 }}
                               >
                                 {clip?.title && clip.title.length > MY_CLIPS_LABEL_LIMIT 
@@ -411,7 +418,7 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                                   transform: "translate(-50%, -50%)",
                                   backgroundColor: "rgba(0, 0, 0, 0.6)",
                                   borderRadius: "50%",
-                                  padding: "12px",
+                                  padding: isMobileScreen ? "8px" : "10px",
                                   cursor: isDisabled ? "not-allowed" : "pointer",
                                   display: "flex",
                                   alignItems: "center",
@@ -433,21 +440,21 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                                   e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 0.6)";
                                 }}
                               >
-                                <Play size={20} color="#fff" fill="#fff" />
+                                <Play size={isMobileScreen ? 16 : 18} color="#fff" fill="#fff" />
                               </div>
 
                               {/* Checkbox */}
                               <div
                                 style={{
                                   position: "absolute",
-                                  top: "8px",
-                                  right: "8px",
+                                  top: "6px",
+                                  right: "6px",
                                   backgroundColor: isSelected ? "#28a745" : "white",
                                   border: "2px solid",
                                   borderColor: isSelected ? "#28a745" : "#b4bbd1",
                                   borderRadius: "4px",
-                                  width: "24px",
-                                  height: "24px",
+                                  width: isMobileScreen ? "20px" : "22px",
+                                  height: isMobileScreen ? "20px" : "22px",
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
@@ -464,8 +471,8 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                               >
                                 {isSelected && (
                                   <svg
-                                    width="16"
-                                    height="16"
+                                    width={isMobileScreen ? "12" : "14"}
+                                    height={isMobileScreen ? "12" : "14"}
                                     viewBox="0 0 16 16"
                                     fill="none"
                                     xmlns="http://www.w3.org/2000/svg"

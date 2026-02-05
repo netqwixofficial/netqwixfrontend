@@ -137,8 +137,11 @@ const MeetingRoom = () => {
   
   useEffect(() => {
     // Fetch meeting details when component mounts or when id changes
-    // Fetch with "upcoming" status to include confirmed bookings (which are in upcoming)
+    // Fetch ALL bookings (no status filter) to ensure we find the booking regardless of status
     if (id) {
+      // First fetch without status to get all bookings
+      dispatch(getScheduledMeetingDetailsAsync());
+      // Also fetch with "upcoming" status as backup
       dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming" }));
       dispatch(authAction?.setAccountType(localStorage.getItem(LOCAL_STORAGE_KEYS?.ACC_TYPE)))
     }
@@ -147,13 +150,12 @@ const MeetingRoom = () => {
   // Refetch if meeting details not found but we have an id
   useEffect(() => {
     if (id && !meetingDetails && !loading) {
-      // Meeting not found, try refetching with "upcoming" status
-      // Also try without status filter as fallback to get all bookings
+      // Meeting not found, try refetching without status filter first (gets all bookings)
       const timer = setTimeout(() => {
-        dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming" }));
-        // Fallback: fetch without status to get all bookings
+        dispatch(getScheduledMeetingDetailsAsync());
+        // Also try with "upcoming" status as backup
         setTimeout(() => {
-          dispatch(getScheduledMeetingDetailsAsync());
+          dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming" }));
         }, 200);
       }, 300);
       return () => clearTimeout(timer);

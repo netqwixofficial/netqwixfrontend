@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from "../../store";
 import {
   bookingsState,
   updateBookedSessionScheduledMeetingAsync,
+  getScheduledMeetingDetailsAsync,
 } from "../common/common.slice";
 import { AccountType, BookedSession } from "../../common/constants";
 import { Button } from "reactstrap";
@@ -62,7 +63,27 @@ const TrainerRenderBooking = ({
   const currentTime = DateTime.now();
   const startTime = DateTime.fromISO(bookingInfo.start_time, { zone: "utc" });
   const endTime = DateTime.fromISO(bookingInfo.end_time, { zone: "utc" });
-  const isWithinTimeFrame = currentTime >= startTime && currentTime <= endTime;
+  
+  // Allow starting 5 minutes before the session starts
+  const fiveMinutesBeforeStart = startTime.minus({ minutes: 5 });
+  const isWithinTimeFrame = 
+    currentTime.isValid && startTime.isValid && endTime.isValid
+      ? currentTime >= fiveMinutesBeforeStart && currentTime <= endTime
+      : false;
+  
+  // Debug logging
+  useEffect(() => {
+    if (status === BookedSession.confirmed) {
+      console.log("[TrainerRenderBooking] Start button state:", {
+        bookingId: _id,
+        isWithinTimeFrame,
+        currentTime: currentTime.toISO(),
+        startTime: startTime.toISO(),
+        endTime: endTime.toISO(),
+        fiveMinutesBeforeStart: fiveMinutesBeforeStart.toISO(),
+      });
+    }
+  }, [status, isWithinTimeFrame, _id]);
 
   const isCurrentTimeAfterEndTime = currentTime > endTime;
 
@@ -196,17 +217,35 @@ const TrainerRenderBooking = ({
                     cursor: isWithinTimeFrame ? "pointer" : "not-allowed",
                   }}
                   disabled={!isWithinTimeFrame}
-                  onClick={() => {
-                    
-                    navigateToMeeting(_id)
-                    sendNotifications({
-                      title: notificiationTitles.sessionStrated,
-                      description: `${trainer_info.fullname} has started the session. Join the session via the upcoming sessions tab in My Locker.`,
-                      senderId: trainer_info?._id,
-                      receiverId: trainee_info?._id,
-                      bookingInfo: bookingInfo,
-                      type:NotificationType.TRANSCATIONAL
-                    });
+                  onClick={async () => {
+                    try {
+                      // Ensure booking is fetched before navigating
+                      await dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming" }));
+                      // Also fetch without status to ensure we have the booking
+                      await dispatch(getScheduledMeetingDetailsAsync());
+                      
+                      // Small delay to ensure state is updated
+                      setTimeout(() => {
+                        navigateToMeeting(_id);
+                      }, 100);
+                      
+                      // Send notification (non-blocking)
+                      try {
+                        sendNotifications({
+                          title: notificiationTitles.sessionStrated,
+                          description: `${trainer_info.fullname} has started the session. Join the session via the upcoming sessions tab in My Locker.`,
+                          senderId: trainer_info?._id,
+                          receiverId: trainee_info?._id,
+                          bookingInfo: bookingInfo,
+                          type:NotificationType.TRANSCATIONAL
+                        });
+                      } catch (notifError) {
+                        console.warn("Failed to send notification:", notifError);
+                        // Don't block navigation if notification fails
+                      }
+                    } catch (error) {
+                      console.error("Error starting session:", error);
+                    }
                   }}
                 >
                   {BookedSession.start}

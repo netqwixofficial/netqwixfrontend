@@ -75,10 +75,27 @@ const TraineeRenderBooking = ({
   const currentTime = DateTime.now();
   const startTime = DateTime.fromISO(bookingInfo.start_time, { zone: "utc" });
   const endTime = DateTime.fromISO(bookingInfo.end_time, { zone: "utc" });
+  
+  // Allow starting 5 minutes before the session starts
+  const fiveMinutesBeforeStart = startTime.minus({ minutes: 5 });
   const isWithinTimeFrame =
     currentTime.isValid && startTime.isValid && endTime.isValid
-      ? currentTime >= startTime && currentTime <= endTime
+      ? currentTime >= fiveMinutesBeforeStart && currentTime <= endTime
       : false;
+  
+  // Debug logging
+  useEffect(() => {
+    if (status === BookedSession.confirmed) {
+      console.log("[TraineeRenderBooking] Start button state:", {
+        bookingId: _id,
+        isWithinTimeFrame,
+        currentTime: currentTime.toISO(),
+        startTime: startTime.toISO(),
+        endTime: endTime.toISO(),
+        fiveMinutesBeforeStart: fiveMinutesBeforeStart.toISO(),
+      });
+    }
+  }, [status, isWithinTimeFrame, _id]);
   const isCurrentTimeAfterEndTime =
     currentTime.isValid && endTime.isValid ? currentTime > endTime : false;
   const canShowRatingButton =
@@ -225,10 +242,17 @@ const TraineeRenderBooking = ({
                     paddingLeft:isMobileScreen?"5px":"auto",paddingRight:isMobileScreen?"5px":"auto"
                   }}
                   disabled={!isWithinTimeFrame}
-                  onClick={() => {
+                  onClick={async () => {
                     try {
-                      // Navigate first to ensure user gets to meeting page
-                      navigateToMeeting(_id);
+                      // Ensure booking is fetched before navigating
+                      await dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming" }));
+                      // Also fetch without status to ensure we have the booking
+                      await dispatch(getScheduledMeetingDetailsAsync());
+                      
+                      // Small delay to ensure state is updated
+                      setTimeout(() => {
+                        navigateToMeeting(_id);
+                      }, 100);
                       
                       // Send notification (non-blocking)
                       try {
