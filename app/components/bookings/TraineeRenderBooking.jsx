@@ -22,9 +22,8 @@ import { commonState } from "../../common/common.slice";
 import { SocketContext } from "../socket";
 import { EVENTS } from "../../../helpers/events";
 import { NotificationType, notificiationTitles } from "../../../utils/constant";
-import { useMediaQuery } from "usehooks-ts";
-import { formatUtcDateTime } from "../../../utils/dateTime";
 import { DateTime } from "luxon";
+import { useMediaQuery } from "usehooks-ts";
 
 const TraineeRenderBooking = ({
   _id,
@@ -68,70 +67,26 @@ const TraineeRenderBooking = ({
   const isCompleted =
     has24HoursPassedSinceBooking || bookingInfo?.ratings?.trainee;
 
-  // Treat stored start_time / end_time as UTC and format for local display
-  const { dateLabel, timeLabel } = formatUtcDateTime(bookingInfo.start_time);
-  const { timeLabel: endTimeLabel } = formatUtcDateTime(bookingInfo.end_time);
+  const currentTime = DateTime.now(); // Use UTC to avoid timezone mismatch
 
-  const currentTime = DateTime.now();
+  // Parse the start_time and end_time in UTC
+  const startTime = DateTime.fromISO(bookingInfo.start_time, { zone: 'utc' });
+  const endTime = DateTime.fromISO(bookingInfo.end_time, { zone: 'utc' });
   
-  // Try to parse start_time and end_time as ISO UTC strings
-  // If parsing fails, fall back to using isStartButtonEnabled prop
-  let startTime = null;
-  let endTime = null;
-  let isWithinTimeFrame = false;
-  
-  try {
-    if (bookingInfo.start_time && bookingInfo.end_time) {
-      startTime = DateTime.fromISO(bookingInfo.start_time, { zone: "utc" });
-      endTime = DateTime.fromISO(bookingInfo.end_time, { zone: "utc" });
-      
-      if (startTime.isValid && endTime.isValid) {
-        // Allow starting 5 minutes before the session starts
-        const fiveMinutesBeforeStart = startTime.minus({ minutes: 5 });
-        isWithinTimeFrame =
-          currentTime.isValid
-            ? currentTime >= fiveMinutesBeforeStart && currentTime <= endTime
-            : false;
-      } else {
-        // If parsing failed, fall back to isStartButtonEnabled prop
-        console.warn("[TraineeRenderBooking] Invalid time format, using isStartButtonEnabled:", {
-          start_time: bookingInfo.start_time,
-          end_time: bookingInfo.end_time,
-          startTimeValid: startTime.isValid,
-          endTimeValid: endTime.isValid
-        });
-        isWithinTimeFrame = isStartButtonEnabled || false;
-      }
-    } else {
-      // No times provided, use prop
-      isWithinTimeFrame = isStartButtonEnabled || false;
-    }
-  } catch (error) {
-    console.warn("[TraineeRenderBooking] Error parsing times, using isStartButtonEnabled:", error);
-    isWithinTimeFrame = isStartButtonEnabled || false;
-  }
-  
-  // Final check: button should be enabled if EITHER isWithinTimeFrame OR isStartButtonEnabled is true
-  const canStartSession = isWithinTimeFrame || isStartButtonEnabled;
-  
-  // Debug logging
-  useEffect(() => {
-    if (status === BookedSession.confirmed) {
-      console.log("[TraineeRenderBooking] Start button state:", {
-        bookingId: _id,
-        isWithinTimeFrame,
-        isStartButtonEnabled,
-        canStartSession,
-        currentTime: currentTime.toISO(),
-        startTime: startTime?.toISO() || "invalid",
-        endTime: endTime?.toISO() || "invalid",
-        start_time_raw: bookingInfo?.start_time,
-        end_time_raw: bookingInfo?.end_time,
-      });
-    }
-  }, [status, isWithinTimeFrame, isStartButtonEnabled, canStartSession, _id, bookingInfo?.start_time, bookingInfo?.end_time]);
-  const isCurrentTimeAfterEndTime =
-    currentTime.isValid && endTime?.isValid ? currentTime > endTime : false;
+  // Extract date and time components
+  const currentDate = currentTime.toFormat('yyyy-MM-dd');  // YYYY-MM-DD format
+  const currentTimeOnly = currentTime.toFormat('HH:mm');  // HH:mm format
+
+  const startDate = startTime.toFormat('yyyy-MM-dd');
+  const startTimeOnly = startTime.toFormat('HH:mm');
+
+  const endDate = endTime.toFormat('yyyy-MM-dd');
+  const endTimeOnly = endTime.toFormat('HH:mm');
+
+  // Compare the current date and time (date + hour:minute) with start and end time
+  const isDateSame = currentDate === startDate && currentDate === endDate;
+  const isWithinTimeFrame = isDateSame && currentTimeOnly >= startTimeOnly && currentTimeOnly <= endTimeOnly;
+  const isCurrentTimeAfterEndTime = currentTime > endTime;
   const canShowRatingButton =
     !isUpcomingSession &&
     !isCurrentDateBefore &&
@@ -272,20 +227,15 @@ const TraineeRenderBooking = ({
 
                   type="button"
                   style={{
-                    cursor: canStartSession ? "pointer" : "not-allowed",
+                    cursor: isWithinTimeFrame ? "pointer" : "not-allowed",
                     paddingLeft:isMobileScreen?"5px":"auto",paddingRight:isMobileScreen?"5px":"auto"
                   }}
-                  disabled={!canStartSession}
+                  disabled={!isWithinTimeFrame}
                   onClick={async () => {
                     console.log("[TraineeRenderBooking] Start button clicked:", {
                       bookingId: _id,
                       isWithinTimeFrame,
-                      isStartButtonEnabled,
-                      canStartSession,
-                      status,
-                      bookingInfo: bookingInfo?._id,
-                      start_time: bookingInfo?.start_time,
-                      end_time: bookingInfo?.end_time
+                      status
                     });
                     
                     try {

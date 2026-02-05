@@ -230,36 +230,13 @@ const Bookings = ({ accountType = null }) => {
     // Also listen for instant lesson events that might create bookings
     socket.on(EVENTS.INSTANT_LESSON.ACCEPT, handleBookingUpdate);
 
-    // Realtime booking creation (timezone‑safe payload from backend)
-    const handleBookingCreated = (payload) => {
-      try {
-        if (!payload) return;
-
-        const myId = userInfo?._id;
-        if (!myId) return;
-
-        const isTargetUser =
-          payload.trainerId === myId || payload.traineeId === myId;
-        if (!isTargetUser) return;
-
-        // Reuse the same refresh logic as other booking updates
-        handleBookingUpdate();
-      } catch (e) {
-        console.warn("[BOOKING_CREATED] handler error", e);
-      }
-    };
-
-    // Register BOOKING_CREATED listener (no conditional needed - EVENTS.BOOKING is always defined)
-    socket.on(EVENTS.BOOKING.CREATED, handleBookingCreated);
-
     return () => {
       if (socket) {
         socket.off(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
         socket.off(EVENTS.INSTANT_LESSON.ACCEPT, handleBookingUpdate);
-        socket.off(EVENTS.BOOKING.CREATED, handleBookingCreated);
       }
     };
-  }, [socket, currentAccountType, tabBook, dispatch, userInfo?._id]);
+  }, [socket, currentAccountType, tabBook, dispatch]);
 
   useEffect(() => {
     if (bookedSession.id) {

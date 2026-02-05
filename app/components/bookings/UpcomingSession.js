@@ -89,12 +89,12 @@ const UpcomingSession = ({ accountType = null }) => {
       );
     };
 
-    socket.on(EVENTS.BOOKING.CREATED, handleBookingUpdate);
-    socket.on(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
+    // Removed BOOKING_CREATED listener - reverted timezone changes
+    // socket.on(EVENTS.BOOKING.CREATED, handleBookingUpdate);
+    // socket.on(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
 
     return () => {
-      socket.off(EVENTS.BOOKING.CREATED, handleBookingUpdate);
-      socket.off(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
+      // Cleanup removed
     };
   }, [socket, dispatch, activeTabs]);
 

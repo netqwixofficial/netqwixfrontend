@@ -36,10 +36,6 @@ export const EVENTS = {
         ON_SEND : 'send',
         ON_RECEIVE : 'receive'
     },
-    BOOKING: {
-        CREATED: "BOOKING_CREATED",
-        STATUS_UPDATED: "BOOKING_STATUS_UPDATED",
-    },
     ON_VIDEO_ZOOM_PAN:"ON_VIDEO_ZOOM_PAN",
     INSTANT_LESSON: {
         REQUEST: "INSTANT_LESSON_REQUEST",
