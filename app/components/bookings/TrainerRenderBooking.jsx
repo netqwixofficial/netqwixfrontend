@@ -14,7 +14,7 @@ import { commonState } from "../../common/common.slice";
 import { SocketContext } from "../socket";
 import { EVENTS } from "../../../helpers/events";
 import { NotificationType, notificiationTitles } from "../../../utils/constant";
-import { DateTime } from "luxon";
+import { formatUtcDateTime } from "../../../utils/dateTime";
 
 const TrainerRenderBooking = ({
   _id,
@@ -53,27 +53,12 @@ const TrainerRenderBooking = ({
   const { accountType } = useAppSelector(authState);
   const dispatch = useAppDispatch();
 
-  const currentTime = DateTime.now(); // Use UTC to avoid timezone mismatch
-  // Parse the start_time and end_time in UTC
-  const startTime = DateTime.fromISO(bookingInfo.start_time, { zone: 'utc' });
-  const endTime = DateTime.fromISO(bookingInfo.end_time, { zone: 'utc' });
-  
-  // Extract date and time components
-  const currentDate = currentTime.toFormat('yyyy-MM-dd');  // YYYY-MM-DD format
-  const currentTimeOnly = currentTime.toFormat('HH:mm');  // HH:mm format
+  // Format start/end for display by treating them as UTC and converting to local
+  const { dateLabel, timeLabel } = formatUtcDateTime(bookingInfo.start_time);
+  const { timeLabel: endTimeLabel } = formatUtcDateTime(bookingInfo.end_time);
 
-  const startDate = startTime.toFormat('yyyy-MM-dd');
-  const startTimeOnly = startTime.toFormat('HH:mm');
-
-  const endDate = endTime.toFormat('yyyy-MM-dd');
-  const endTimeOnly = endTime.toFormat('HH:mm');
-
-  // Compare the current date and time (date + hour:minute) with start and end time
-  const isDateSame = currentDate === startDate && currentDate === endDate;
-  const isWithinTimeFrame  = isDateSame && currentTimeOnly >= startTimeOnly && currentTimeOnly <= endTimeOnly;
-
-
-  const isCurrentTimeAfterEndTime = currentTime > endTime;
+  const isCurrentTimeAfterEndTime =
+    new Date(bookingInfo.end_time).getTime() < Date.now();
 
   const isCompleted =
     has24HoursPassedSinceBooking || bookingInfo?.ratings?.trainee;

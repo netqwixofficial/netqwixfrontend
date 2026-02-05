@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useContext } from "react";
 import NavHomePageCenterContainer from "./NavHomePageCenterContainer";
 import "./home.scss";
 import ShareClipsCard from "../share-clips";
@@ -34,6 +34,8 @@ import TraineeRenderBooking from "../bookings/TraineeRenderBooking";
 import { fetchAllLatestOnlineUsers } from "../auth/auth.api";
 import { acceptFriendRequest, getFriendRequests, rejectFriendRequest } from "../../common/common.api";
 import { toast } from "react-toastify";
+import { EVENTS } from "../../../helpers/events";
+import { SocketContext } from "../socket";
 import { Star } from "react-feather";
 import ImageSkeleton from "../common/ImageSkeleton";
 const NavHomePage = () => {
@@ -61,6 +63,7 @@ const NavHomePage = () => {
   const [filteredSessions, setFilteredSessions] = useState([]);
   const [activeCenterTab, setActiveCenterTab] = useState("myClips");
   const [selectedTraineeId, setSelectedTraineeId] = useState(null);
+  const socket = useContext(SocketContext);
   
   // Use refs to prevent duplicate API calls when switching tabs
   const hasFetchedFriendRequestsRef = useRef(false);
@@ -136,6 +139,28 @@ const NavHomePage = () => {
       dispatch(getScheduledMeetingDetailsAsync());
     }
   }, [dispatch, scheduledMeetingDetails]);
+
+  /**
+   * Keep scheduled meetings (and therefore Active Sessions) in sync in real-time.
+   * When a booking is created or its status changes, we silently refetch the
+   * full scheduledMeetingDetails list so ActiveSessionsSection and related
+   * components always reflect the latest state for both trainee and trainer.
+   */
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleBookingUpdate = () => {
+      dispatch(getScheduledMeetingDetailsAsync());
+    };
+
+    socket.on(EVENTS.BOOKING.CREATED, handleBookingUpdate);
+    socket.on(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
+
+    return () => {
+      socket.off(EVENTS.BOOKING.CREATED, handleBookingUpdate);
+      socket.off(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
+    };
+  }, [socket, dispatch]);
   
   useEffect(() => {
     // Only fetch active trainers if not already fetched

@@ -71,6 +71,33 @@ const UpcomingSession = ({ accountType = null }) => {
     );
   }, [newBookingData]);
 
+  /**
+   * Keep upcoming sessions in sync in real-time.
+   * Whenever a booking is created or its status is updated via socket events,
+   * we silently refetch the scheduled meetings for the currently active tab.
+   * This avoids the need for a manual page refresh while preserving existing behaviour.
+   */
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleBookingUpdate = () => {
+      // Refetch data for the currently selected tab (upcoming / completed / cancelled, etc.)
+      dispatch(
+        getScheduledMeetingDetailsAsync({
+          status: activeTabs,
+        })
+      );
+    };
+
+    socket.on(EVENTS.BOOKING.CREATED, handleBookingUpdate);
+    socket.on(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
+
+    return () => {
+      socket.off(EVENTS.BOOKING.CREATED, handleBookingUpdate);
+      socket.off(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
+    };
+  }, [socket, dispatch, activeTabs]);
+
   const trainer = scheduledMeetingDetails?.filter((booking) => {
     return (
       booking.trainer_info?._id === newBookingData?.trainer_id &&
