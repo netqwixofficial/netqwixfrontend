@@ -122,11 +122,24 @@ const MeetingRoom = () => {
   const meetingDetails = scheduledMeetingDetails?.find(
     (meeting) => meeting._id === id
   );
+
+  // Debug logging to help diagnose issues
+  useEffect(() => {
+    if (id && !meetingDetails && scheduledMeetingDetails?.length > 0 && !loading) {
+      console.warn("[Meeting Page] Booking not found:", {
+        bookingId: id,
+        totalBookings: scheduledMeetingDetails.length,
+        bookingIds: scheduledMeetingDetails.map(b => b._id),
+        bookingStatuses: scheduledMeetingDetails.map(b => b.status)
+      });
+    }
+  }, [id, meetingDetails, scheduledMeetingDetails, loading]);
   
   useEffect(() => {
     // Fetch meeting details when component mounts or when id changes
+    // Fetch with "upcoming" status to include confirmed bookings (which are in upcoming)
     if (id) {
-      dispatch(getScheduledMeetingDetailsAsync());
+      dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming" }));
       dispatch(authAction?.setAccountType(localStorage.getItem(LOCAL_STORAGE_KEYS?.ACC_TYPE)))
     }
   }, [dispatch, id]);
@@ -134,9 +147,14 @@ const MeetingRoom = () => {
   // Refetch if meeting details not found but we have an id
   useEffect(() => {
     if (id && !meetingDetails && !loading) {
-      // Meeting not found, try refetching with a small delay
+      // Meeting not found, try refetching with "upcoming" status
+      // Also try without status filter as fallback to get all bookings
       const timer = setTimeout(() => {
-        dispatch(getScheduledMeetingDetailsAsync());
+        dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming" }));
+        // Fallback: fetch without status to get all bookings
+        setTimeout(() => {
+          dispatch(getScheduledMeetingDetailsAsync());
+        }, 200);
       }, 300);
       return () => clearTimeout(timer);
     }
