@@ -31,7 +31,6 @@ export default function MyAppComponent({ Component, pageProps }) {
   const pathName = router.pathname;
   const [currentUser, setCurrentUser] = useState(undefined);
   let componentMounted = true;
-  const { handleLoading } = bookingsAction;
 
   // Initialize OpenReplay tracker
   const initializeTracker = async () => {
@@ -204,12 +203,7 @@ export default function MyAppComponent({ Component, pageProps }) {
   useEffect(() => {
     document.body.classList.add("sidebar-active");
     let localStorageUser = localStorage.getItem("email");
-    // get all details about authenticate login users
-    if (currentUser === undefined) {
-      if(pathName !== "/meeting"){
-        handlePublicRoutes(pathName, path, router);
-      }
-    } else {
+    if (currentUser !== undefined) {
       setCurrentUser(localStorageUser);
     }
 
@@ -223,11 +217,6 @@ export default function MyAppComponent({ Component, pageProps }) {
 
     //   handlePublicRoutes(pathName, path, router);
     // }
-    // Page Loader - control global loader via Redux
-    setTimeout(() => {
-      store.dispatch(handleLoading(false));
-    }, 1500);
-
     return () => {
       // This code runs when component is unmounted
       componentMounted = false; // (4) set it to false if we leave the page
@@ -265,9 +254,10 @@ export default function MyAppComponent({ Component, pageProps }) {
         </Head>
         <Provider store={store}>
           <ErrorBoundary>
+            {/* Global full-screen loader, controlled via Redux */}
+            <UniversalLoader />
             <AuthGuard>
               <SocketProvider>
-                <UniversalLoader />
                 <div>
                   <CustomizerContextProvider>
                     <ChatContextProvider>
