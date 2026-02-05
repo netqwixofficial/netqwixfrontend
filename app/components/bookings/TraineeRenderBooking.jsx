@@ -24,6 +24,7 @@ import { EVENTS } from "../../../helpers/events";
 import { NotificationType, notificiationTitles } from "../../../utils/constant";
 import { useMediaQuery } from "usehooks-ts";
 import { formatUtcDateTime } from "../../../utils/dateTime";
+import { DateTime } from "luxon";
 
 const TraineeRenderBooking = ({
   _id,
@@ -71,10 +72,15 @@ const TraineeRenderBooking = ({
   const { dateLabel, timeLabel } = formatUtcDateTime(bookingInfo.start_time);
   const { timeLabel: endTimeLabel } = formatUtcDateTime(bookingInfo.end_time);
 
-  // Existing window calculations (use Luxon internally in utils)
-  const currentTime = Date.now();
+  const currentTime = DateTime.now();
+  const startTime = DateTime.fromISO(bookingInfo.start_time, { zone: "utc" });
+  const endTime = DateTime.fromISO(bookingInfo.end_time, { zone: "utc" });
+  const isWithinTimeFrame =
+    currentTime.isValid && startTime.isValid && endTime.isValid
+      ? currentTime >= startTime && currentTime <= endTime
+      : false;
   const isCurrentTimeAfterEndTime =
-    new Date(bookingInfo.end_time).getTime() < currentTime;
+    currentTime.isValid && endTime.isValid ? currentTime > endTime : false;
   const canShowRatingButton =
     !isUpcomingSession &&
     !isCurrentDateBefore &&
