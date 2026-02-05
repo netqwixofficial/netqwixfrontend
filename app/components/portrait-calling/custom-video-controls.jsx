@@ -33,11 +33,12 @@ const CustomVideoControls = ({
   isLock,
   currentTime,
   setCurrentTime,
-  lockPoint
+  lockPoint,
+  // When provided, this controls visibility from the parent (per-video)
+  controlsVisible = true,
 }) => {
   const { accountType } = useAppSelector(authState);
   const [showVolume, setShowVolume] = useState(false);
-  const [controlsVisible, setControlsVisible] = useState(true);
 
   useEffect(() => {
     const handleEnded = () => setIsPlaying(false);
@@ -61,14 +62,11 @@ const CustomVideoControls = ({
   //   };
 
    
-  // Detect mobile device
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
-  
   return (
     <div
       style={{
         position: "absolute",
-        bottom: isMobile ? "70px" : "10px", // Higher on mobile to account for browser UI
+        bottom: "10px", // Sit close to the bottom edge of the clip
         left: "50%",
         transform: "translateX(-50%)",
         display: "flex",
@@ -78,7 +76,7 @@ const CustomVideoControls = ({
         gap: "5px",
         width: "95%",
         maxWidth: "600px",
-        padding: isMobile ? "6px 10px" : "8px 12px",
+        padding: "8px 12px",
         zIndex: 100,
         pointerEvents: "auto",
       }}
@@ -99,10 +97,10 @@ const CustomVideoControls = ({
               alignItems: "center",
               backgroundColor: "rgba(0, 0, 0, 0.85)",
               backdropFilter: "blur(10px)",
-              padding: isMobile ? "8px 16px" : "12px 20px",
+              padding: "8px 16px",
               width: "100%",
               maxWidth: "95%",
-              gap: isMobile ? "10px" : "15px",
+              gap: "10px",
               borderRadius: "50px",
               boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
               border: "1px solid rgba(255, 255, 255, 0.1)",

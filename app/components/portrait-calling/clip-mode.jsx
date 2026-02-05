@@ -108,6 +108,7 @@ const VideoContainer = ({
     y: 0,
   });
   const [dragStart, setDragStart] = useState(null);
+  const [controlsVisible, setControlsVisible] = useState(true);
   // Queue for remote sync events that may arrive before the student's video is ready
   const pendingPlayStateRef = useRef(null);
   const pendingTimeRef = useRef(null);
@@ -263,6 +264,11 @@ const VideoContainer = ({
   // Apply CSS transformations directly to the element
   const transformStyle = {
     transform: `scale(${scale}) translate(${translate.x}px, ${translate.y}px)`,
+  };
+
+  // Toggle visibility of custom controls when clicking on the video
+  const handleVideoClick = () => {
+    setControlsVisible((prev) => !prev);
   };
 
   // const [cu,setCurrentTime]
@@ -1136,6 +1142,7 @@ const VideoContainer = ({
                     console.error("❌ [VideoContainer] Error in onPlay event", error);
                   }
                 }}
+                onClick={handleVideoClick}
               >
                 <source src={Utils?.generateVideoURL(clip)} type="video/mp4" />
                 Your browser does not support the video tag.
@@ -1220,6 +1227,7 @@ const VideoContainer = ({
             volume={1}
             changeVolume={() => {}}
             currentTime={currentTime}
+            controlsVisible={controlsVisible}
           />
         )}
       </div>
@@ -1292,6 +1300,29 @@ const ClipModeCall = ({
     teacher: false,
     clips: false
   });
+  const longPressTimerRef = useRef(null);
+
+  // Long press (3s) to hide teacher & student videos on trainer side
+  const startLongPressHide = () => {
+    if (accountType !== AccountType.TRAINER) return;
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+    }
+    longPressTimerRef.current = setTimeout(() => {
+      setHiddenVideos((prev) => ({
+        ...prev,
+        student: true,
+        teacher: true,
+      }));
+    }, 3000);
+  };
+
+  const cancelLongPressHide = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
 
   const handleHideVideo = (videoType) => {
     setHiddenVideos(prev => ({ ...prev, [videoType]: true }));
@@ -2753,6 +2784,12 @@ const ClipModeCall = ({
           position: "relative",
         }}
         id="clip-container"
+        onMouseDown={startLongPressHide}
+        onMouseUp={cancelLongPressHide}
+        onMouseLeave={cancelLongPressHide}
+        onTouchStart={startLongPressHide}
+        onTouchEnd={cancelLongPressHide}
+        onTouchCancel={cancelLongPressHide}
       >
         <NextImage
           src="/assets/images/netquix_logo_beta.png"
