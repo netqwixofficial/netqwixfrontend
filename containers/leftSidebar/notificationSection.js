@@ -147,23 +147,37 @@ const NotificationSection = (props) => {
               notifications.map((notification) => {
                 return (
                   <li key={notification?._id}>
-                    <div className="chat-box notification" style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      alignItems: 'flex-start',
-                      gap: '12px',
-                      padding: '12px 15px',
-                      position: 'relative',
-                      width: '100%',
-                      boxSizing: 'border-box'
-                    }}>
+                    <div
+                      className="chat-box notification"
+                      style={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "flex-start",
+                        gap: "10px",
+                        padding: "8px 12px",
+                        position: "relative",
+                        width: "100%",
+                        boxSizing: "border-box",
+                        borderBottom: "1px solid #f0f0f0",
+                        cursor: "default",
+                        transition: "background-color 0.2s ease, transform 0.1s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#f9fafb";
+                        e.currentTarget.style.transform = "translateY(-1px)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                        e.currentTarget.style.transform = "translateY(0)";
+                      }}
+                    >
                       <div className="profile" style={{ 
-                        position: 'relative',
-                        width: '50px',
-                        height: '50px',
-                        borderRadius: '50%',
-                        overflow: 'hidden',
-                        flexShrink: 0
+                        position: "relative",
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "50%",
+                        overflow: "hidden",
+                        flexShrink: 0,
                       }}>
                         <ImageSkeleton
                           src={Utils?.getImageUrlOfS3(notification?.sender?.profile_picture) || '/assets/images/contact/1.jpg'}
@@ -178,51 +192,80 @@ const NotificationSection = (props) => {
                           }}
                         />
                       </div>
-                      <div className="details" style={{
-                        flex: 1,
-                        minWidth: 0,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '4px',
-                        paddingRight: '60px'
-                      }}>
-                        <span style={{
-                          fontSize: '14px',
-                          fontWeight: 600,
-                          color: '#333',
-                          marginBottom: '2px'
-                        }}>{notification?.sender?.name}</span>
-                        <h5 style={{
-                          margin: 0,
-                          fontSize: '15px',
-                          fontWeight: 600,
-                          color: '#1a1a1a',
-                          lineHeight: '1.4',
-                          marginBottom: '4px'
-                        }}>{notification?.title}</h5>
-                        <p style={{
-                          margin: 0,
-                          fontSize: '13px',
-                          color: '#666',
-                          lineHeight: '1.5',
-                          wordWrap: 'break-word',
-                          overflowWrap: 'break-word'
-                        }}>{notification?.description}</p>
+                      <div
+                        className="details"
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "3px",
+                          paddingRight: "60px",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            color: "#333",
+                            marginBottom: "1px",
+                          }}
+                        >
+                          {notification?.sender?.name}
+                        </span>
+                        <h5
+                          style={{
+                            margin: 0,
+                            fontSize: "14px",
+                            fontWeight: 600,
+                            color: "#1a1a1a",
+                            lineHeight: "1.3",
+                            marginBottom: "2px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {notification?.title}
+                        </h5>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: "12px",
+                            color: "#666",
+                            lineHeight: "1.4",
+                            wordWrap: "break-word",
+                            overflowWrap: "break-word",
+                            overflow: "hidden",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                        >
+                          {notification?.description}
+                        </p>
                       </div>
-                      <div className="date-status" style={{
-                        position: 'absolute',
-                        top: '12px',
-                        right: '15px',
-                        flexShrink: 0,
-                        textAlign: 'right'
-                      }}>
-                        <h6 style={{
-                          margin: 0,
-                          fontSize: '11px',
-                          fontWeight: 500,
-                          color: '#999',
-                          whiteSpace: 'nowrap'
-                        }}>{Utils.formatTimeAgo(notification?.createdAt)}</h6>
+                      <div
+                        className="date-status"
+                        style={{
+                          position: "absolute",
+                          top: "8px",
+                          right: "12px",
+                          flexShrink: 0,
+                          textAlign: "right",
+                        }}
+                      >
+                        <h6
+                          style={{
+                            margin: 0,
+                            fontSize: "11px",
+                            fontWeight: 500,
+                            color: "#999",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {Utils.formatTimeAgo(notification?.createdAt)}
+                        </h6>
                       </div>
                     </div>
                   </li>
