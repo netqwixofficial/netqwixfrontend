@@ -249,17 +249,14 @@ const Bookings = ({ accountType = null }) => {
       }
     };
 
-    if (EVENTS.BOOKING && EVENTS.BOOKING.CREATED) {
-      socket.on(EVENTS.BOOKING.CREATED, handleBookingCreated);
-    }
+    // Register BOOKING_CREATED listener (no conditional needed - EVENTS.BOOKING is always defined)
+    socket.on(EVENTS.BOOKING.CREATED, handleBookingCreated);
 
     return () => {
       if (socket) {
         socket.off(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
         socket.off(EVENTS.INSTANT_LESSON.ACCEPT, handleBookingUpdate);
-        if (EVENTS.BOOKING && EVENTS.BOOKING.CREATED) {
-          socket.off(EVENTS.BOOKING.CREATED, handleBookingCreated);
-        }
+        socket.off(EVENTS.BOOKING.CREATED, handleBookingCreated);
       }
     };
   }, [socket, currentAccountType, tabBook, dispatch, userInfo?._id]);

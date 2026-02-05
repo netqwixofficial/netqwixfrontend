@@ -243,33 +243,47 @@ const TraineeRenderBooking = ({
                   }}
                   disabled={!isWithinTimeFrame}
                   onClick={async () => {
+                    console.log("[TraineeRenderBooking] Start button clicked:", {
+                      bookingId: _id,
+                      isWithinTimeFrame,
+                      status,
+                      bookingInfo: bookingInfo?._id
+                    });
+                    
                     try {
                       // Ensure booking is fetched before navigating
+                      console.log("[TraineeRenderBooking] Fetching bookings...");
                       await dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming" }));
                       // Also fetch without status to ensure we have the booking
                       await dispatch(getScheduledMeetingDetailsAsync());
                       
-                      // Small delay to ensure state is updated
-                      setTimeout(() => {
-                        navigateToMeeting(_id);
-                      }, 100);
+                      console.log("[TraineeRenderBooking] Bookings fetched, navigating to meeting:", _id);
+                      
+                      // Navigate immediately - don't wait for timeout
+                      navigateToMeeting(_id);
                       
                       // Send notification (non-blocking)
                       try {
-                        sendNotifications({
-                          title: notificiationTitles.sessionStrated,
-                          description: `${trainee_info.fullname} has started the session. Join the session via the upcoming sessions tab in My Locker.`,
-                          senderId: trainee_info?._id,
-                          receiverId: trainer_info?._id,
-                          bookingInfo: bookingInfo,
-                          type:NotificationType.TRANSCATIONAL
-                        });
+                        if (socket) {
+                          sendNotifications({
+                            title: notificiationTitles.sessionStrated,
+                            description: `${trainee_info.fullname} has started the session. Join the session via the upcoming sessions tab in My Locker.`,
+                            senderId: trainee_info?._id,
+                            receiverId: trainer_info?._id,
+                            bookingInfo: bookingInfo,
+                            type:NotificationType.TRANSCATIONAL
+                          });
+                        } else {
+                          console.warn("[TraineeRenderBooking] Socket not available for notification");
+                        }
                       } catch (notifError) {
                         console.warn("Failed to send notification:", notifError);
                         // Don't block navigation if notification fails
                       }
                     } catch (error) {
-                      console.error("Error starting session:", error);
+                      console.error("[TraineeRenderBooking] Error starting session:", error);
+                      // Still try to navigate even if fetch fails
+                      navigateToMeeting(_id);
                     }
                   }}
                 >
