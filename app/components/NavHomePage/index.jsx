@@ -362,7 +362,7 @@ const NavHomePage = () => {
             trainee_info={trainee_info}
             trainer_info={trainer_info}
             isCurrentDateBefore={isCurrentDateBefore}
-            isStartButtonEnabled={true}
+            isStartButtonEnabled={isStartButtonEnabled}
             isMeetingDone={false}
             isUpcomingSession={isUpcomingSession}
             ratings={ratings}

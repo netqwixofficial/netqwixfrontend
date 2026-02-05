@@ -73,15 +73,46 @@ const TraineeRenderBooking = ({
   const { timeLabel: endTimeLabel } = formatUtcDateTime(bookingInfo.end_time);
 
   const currentTime = DateTime.now();
-  const startTime = DateTime.fromISO(bookingInfo.start_time, { zone: "utc" });
-  const endTime = DateTime.fromISO(bookingInfo.end_time, { zone: "utc" });
   
-  // Allow starting 5 minutes before the session starts
-  const fiveMinutesBeforeStart = startTime.minus({ minutes: 5 });
-  const isWithinTimeFrame =
-    currentTime.isValid && startTime.isValid && endTime.isValid
-      ? currentTime >= fiveMinutesBeforeStart && currentTime <= endTime
-      : false;
+  // Try to parse start_time and end_time as ISO UTC strings
+  // If parsing fails, fall back to using isStartButtonEnabled prop
+  let startTime = null;
+  let endTime = null;
+  let isWithinTimeFrame = false;
+  
+  try {
+    if (bookingInfo.start_time && bookingInfo.end_time) {
+      startTime = DateTime.fromISO(bookingInfo.start_time, { zone: "utc" });
+      endTime = DateTime.fromISO(bookingInfo.end_time, { zone: "utc" });
+      
+      if (startTime.isValid && endTime.isValid) {
+        // Allow starting 5 minutes before the session starts
+        const fiveMinutesBeforeStart = startTime.minus({ minutes: 5 });
+        isWithinTimeFrame =
+          currentTime.isValid
+            ? currentTime >= fiveMinutesBeforeStart && currentTime <= endTime
+            : false;
+      } else {
+        // If parsing failed, fall back to isStartButtonEnabled prop
+        console.warn("[TraineeRenderBooking] Invalid time format, using isStartButtonEnabled:", {
+          start_time: bookingInfo.start_time,
+          end_time: bookingInfo.end_time,
+          startTimeValid: startTime.isValid,
+          endTimeValid: endTime.isValid
+        });
+        isWithinTimeFrame = isStartButtonEnabled || false;
+      }
+    } else {
+      // No times provided, use prop
+      isWithinTimeFrame = isStartButtonEnabled || false;
+    }
+  } catch (error) {
+    console.warn("[TraineeRenderBooking] Error parsing times, using isStartButtonEnabled:", error);
+    isWithinTimeFrame = isStartButtonEnabled || false;
+  }
+  
+  // Final check: button should be enabled if EITHER isWithinTimeFrame OR isStartButtonEnabled is true
+  const canStartSession = isWithinTimeFrame || isStartButtonEnabled;
   
   // Debug logging
   useEffect(() => {
@@ -89,15 +120,18 @@ const TraineeRenderBooking = ({
       console.log("[TraineeRenderBooking] Start button state:", {
         bookingId: _id,
         isWithinTimeFrame,
+        isStartButtonEnabled,
+        canStartSession,
         currentTime: currentTime.toISO(),
-        startTime: startTime.toISO(),
-        endTime: endTime.toISO(),
-        fiveMinutesBeforeStart: fiveMinutesBeforeStart.toISO(),
+        startTime: startTime?.toISO() || "invalid",
+        endTime: endTime?.toISO() || "invalid",
+        start_time_raw: bookingInfo?.start_time,
+        end_time_raw: bookingInfo?.end_time,
       });
     }
-  }, [status, isWithinTimeFrame, _id]);
+  }, [status, isWithinTimeFrame, isStartButtonEnabled, canStartSession, _id, bookingInfo?.start_time, bookingInfo?.end_time]);
   const isCurrentTimeAfterEndTime =
-    currentTime.isValid && endTime.isValid ? currentTime > endTime : false;
+    currentTime.isValid && endTime?.isValid ? currentTime > endTime : false;
   const canShowRatingButton =
     !isUpcomingSession &&
     !isCurrentDateBefore &&
@@ -238,16 +272,20 @@ const TraineeRenderBooking = ({
 
                   type="button"
                   style={{
-                    cursor: isWithinTimeFrame ? "pointer" : "not-allowed",
+                    cursor: canStartSession ? "pointer" : "not-allowed",
                     paddingLeft:isMobileScreen?"5px":"auto",paddingRight:isMobileScreen?"5px":"auto"
                   }}
-                  disabled={!isWithinTimeFrame}
+                  disabled={!canStartSession}
                   onClick={async () => {
                     console.log("[TraineeRenderBooking] Start button clicked:", {
                       bookingId: _id,
                       isWithinTimeFrame,
+                      isStartButtonEnabled,
+                      canStartSession,
                       status,
-                      bookingInfo: bookingInfo?._id
+                      bookingInfo: bookingInfo?._id,
+                      start_time: bookingInfo?.start_time,
+                      end_time: bookingInfo?.end_time
                     });
                     
                     try {
