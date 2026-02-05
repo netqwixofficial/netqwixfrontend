@@ -30,10 +30,19 @@
   margin: 0;
   flex: 1;
   min-height: 0;
-  max-height: 100%;
   overflow: hidden;
   width: 100%;
   box-sizing: border-box;
+}
+
+// Clip mode: no max-height constraint
+.video-section-clip-mode {
+  max-height: none !important;
+}
+
+// One-on-one call: max-height 100%
+.video-section-one-on-one {
+  max-height: 100% !important;
 }
 
 .profile-box {

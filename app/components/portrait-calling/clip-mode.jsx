@@ -2648,11 +2648,11 @@ const ClipModeCall = ({
       </div>
       
       <div
-        className="video-section"
+        className="video-section video-section-clip-mode"
         style={{
           flex: 1,
           minHeight: 0,
-          maxHeight: "1%",
+          maxHeight: "none", // No max-height constraint for clip mode
           overflow: "hidden",
           width: "100%",
           display: "flex",

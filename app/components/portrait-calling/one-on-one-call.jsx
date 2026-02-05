@@ -358,11 +358,11 @@ const OneOnOneCall = ({
         )}
       </div>
 
-      <div className="video-section one-on-one-layout" style={{ 
+      <div className="video-section video-section-one-on-one one-on-one-layout" style={{ 
         position: "relative", 
         flex: 1, 
         minHeight: 0, 
-        maxHeight: "100%",
+        maxHeight: "100%", // Keep max-height at 100% for one-on-one call
         overflow: "hidden",
         boxSizing: "border-box",
         padding: "0 8px"
