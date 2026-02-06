@@ -24,6 +24,7 @@ import { masterState } from "../../master/master.slice";
 import { MY_CLIPS_LABEL_LIMIT } from "../../../../utils/constant";
 import { AccountType, topNavbarOptions } from "../../../common/constants";
 import { authAction } from "../../auth/auth.slice";
+import ClipsSkeleton from "../../common/ClipsSkeleton";
 
 const MyClips = ({ activeCenterContainerTab, trainee_id }) => {
   const dispatch = useAppDispatch();
@@ -411,21 +412,7 @@ const MyClips = ({ activeCenterContainerTab, trainee_id }) => {
           </p>
         </div>
         {status === "pending" ? (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              flexDirection: "column",
-              minHeight: "240px",
-              gap: "12px",
-            }}
-          >
-            <Spinner color="primary" style={{ width: "2.5rem", height: "2.5rem" }} />
-            <h5 style={{ color: "#666", margin: 0, fontSize: "14px" }}>
-              Loading your clips...
-            </h5>
-          </div>
+          <ClipsSkeleton />
         ) : (trainee_id ? clips?.length : myClips?.length) ? (
           sortedClips?.map((cl, ind) => (
             <div

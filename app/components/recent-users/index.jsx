@@ -16,6 +16,7 @@ import { useMediaQuery } from "../../hook/useMediaQuery";
 import BookingTable from "../trainee/scheduleTraining/BookingTable.jsx";
 import { TrainerDetails } from "../trainer/trainerDetails.jsx";
 import { getTraineeWithSlotsAsync } from "../trainee/trainee.slice";
+import RecentUsersSkeleton from "../common/RecentUsersSkeleton";
 
 // const placeholderImageUrl = '/assets/images/avtar/user.png'; // Placeholder image path
 const placeholderImageUrl = "/assets/images/demoUser.png"; // Placeholder image path
@@ -34,6 +35,7 @@ const RecentUsers = ({ onTraineeSelect }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedStudentData, SetselectedStudentData] = useState({});
   const [imageLoadingStates, setImageLoadingStates] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
   const width600 = useMediaQuery(600);
   const width900 = useMediaQuery(900);
 
@@ -60,6 +62,7 @@ const RecentUsers = ({ onTraineeSelect }) => {
 
   const getRecentStudentApi = async () => {
     try {
+      setIsLoading(true);
       let res = await getRecentStudent();
       // API returns { status: "SUCCESS", data: [...] }
       // axiosInstance returns response.data, so res is { status: "SUCCESS", data: [...] }
@@ -70,16 +73,21 @@ const RecentUsers = ({ onTraineeSelect }) => {
     } catch (error) {
       console.error("Error fetching recent students:", error);
       setRecentStudent([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const getRecentTrainerApi = async () => {
     try {
+      setIsLoading(true);
       let res = await getRecentTrainers();
       setRecentTrainer(res?.data || []);
     } catch (error) {
       console.error("Error fetching recent trainers:", error);
       setRecentTrainer([]);
+    } finally {
+      setIsLoading(false);
     }
   };
   const getTraineeClipsApi = async (id) => {
@@ -419,6 +427,9 @@ const RecentUsers = ({ onTraineeSelect }) => {
         }}
       >
         <div className="recent-users-container">
+          {isLoading ? (
+            <RecentUsersSkeleton />
+          ) : (
           <div className="recent-users-box">
           {currentList && currentList.length > 0 ? (
             <div 
@@ -511,6 +522,7 @@ const RecentUsers = ({ onTraineeSelect }) => {
             </div>
           )}
         </div>
+          )}
         </div>
       </div>
       {accountType === AccountType?.TRAINER && (

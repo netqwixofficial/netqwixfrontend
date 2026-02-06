@@ -3,7 +3,7 @@ import React from 'react';
 /**
  * ActiveSessionSkeleton - Skeleton loader for active session cards
  */
-const ActiveSessionSkeleton = () => {
+const ActiveSessionSkeleton = ({ width600 = false }) => {
   return (
     <div
       className="card mt-2 trainer-bookings-card upcoming_session_content"
@@ -11,21 +11,24 @@ const ActiveSessionSkeleton = () => {
         borderRadius: "8px",
         boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
         border: "1px solid #e0e0e0",
-        overflow: "hidden"
+        overflow: "hidden",
+        width: "100%",
+        boxSizing: "border-box"
       }}
     >
-      <div className="card-body" style={{ padding: "15px" }}>
-        <div className="d-flex justify-content-center" style={{ gap: "30px" }}>
+      <div className="card-body" style={{ padding: width600 ? "12px" : "15px" }}>
+        <div className={`d-flex ${width600 ? "flex-column" : "justify-content-center"}`} style={{ gap: width600 ? "12px" : "30px", alignItems: width600 ? "center" : "flex-start" }}>
           {/* Avatar Skeleton */}
-          <div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div
               style={{
-                width: "80px",
-                height: "80px",
+                width: width600 ? "70px" : "80px",
+                height: width600 ? "70px" : "80px",
                 border: "2px solid rgb(0, 0, 128)",
                 borderRadius: "5px",
                 padding: "5px",
-                marginBottom: "10px"
+                marginBottom: "10px",
+                boxSizing: "border-box"
               }}
             >
               <div
@@ -41,24 +44,23 @@ const ActiveSessionSkeleton = () => {
             </div>
             <div
               style={{
-                width: "100px",
-                height: "16px",
+                width: width600 ? "90px" : "100px",
+                height: width600 ? "14px" : "16px",
                 background: "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)",
                 backgroundSize: "200% 100%",
                 animation: "skeleton-loading 1.5s ease-in-out infinite",
-                borderRadius: "4px",
-                margin: "0 auto"
+                borderRadius: "4px"
               }}
             />
           </div>
 
           {/* Details Skeleton */}
-          <div className="d-flex flex-column justify-content-center" style={{ gap: "12px" }}>
-            <div className="d-flex" style={{ gap: "8px" }}>
+          <div className={`d-flex flex-column ${width600 ? "" : "justify-content-center"}`} style={{ gap: width600 ? "8px" : "12px", width: width600 ? "100%" : "auto" }}>
+            <div className={`d-flex ${width600 ? "flex-column" : ""}`} style={{ gap: "8px" }}>
               <div
                 style={{
-                  width: "50px",
-                  height: "16px",
+                  width: width600 ? "60px" : "50px",
+                  height: width600 ? "14px" : "16px",
                   background: "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)",
                   backgroundSize: "200% 100%",
                   animation: "skeleton-loading 1.5s ease-in-out infinite",
@@ -67,8 +69,8 @@ const ActiveSessionSkeleton = () => {
               />
               <div
                 style={{
-                  width: "100px",
-                  height: "16px",
+                  width: width600 ? "120px" : "100px",
+                  height: width600 ? "14px" : "16px",
                   background: "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)",
                   backgroundSize: "200% 100%",
                   animation: "skeleton-loading 1.5s ease-in-out infinite",
@@ -76,11 +78,11 @@ const ActiveSessionSkeleton = () => {
                 }}
               />
             </div>
-            <div className="d-flex" style={{ gap: "8px" }}>
+            <div className={`d-flex ${width600 ? "flex-column" : ""}`} style={{ gap: "8px" }}>
               <div
                 style={{
-                  width: "150px",
-                  height: "16px",
+                  width: width600 ? "140px" : "150px",
+                  height: width600 ? "14px" : "16px",
                   background: "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)",
                   backgroundSize: "200% 100%",
                   animation: "skeleton-loading 1.5s ease-in-out infinite",
@@ -89,8 +91,8 @@ const ActiveSessionSkeleton = () => {
               />
               <div
                 style={{
-                  width: "120px",
-                  height: "16px",
+                  width: width600 ? "100px" : "120px",
+                  height: width600 ? "14px" : "16px",
                   background: "linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)",
                   backgroundSize: "200% 100%",
                   animation: "skeleton-loading 1.5s ease-in-out infinite",

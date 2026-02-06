@@ -11,6 +11,12 @@ import { toast } from "react-toastify";
 const initialState = {
   status: "idle",
   scheduledMeetingDetails: [],
+  scheduledMeetingDetailsByStatus: {
+    upcoming: [],
+    cancelled: [],
+    completed: [],
+    active: [],
+  },
   addRatingModel: { _id: null, isOpen: false },
   profile_picture: null,
   isLoading: true,
@@ -32,7 +38,7 @@ const initialState = {
     isOpenModal: false,
   },
   // Cache metadata to prevent unnecessary refetches
-  lastFetchedTimestamp: null,
+  lastFetchedTimestamp: {},
   cachedTabBook: null,
 };
 
@@ -98,7 +104,7 @@ export const getScheduledMeetingDetailsAsync = createAsyncThunk(
 
       const requestedTab = payload?.status || null;
       const cachedTab = bookings?.cachedTabBook || null;
-      const lastFetched = bookings?.lastFetchedTimestamp || null;
+      const lastFetchedTimestamps = bookings?.lastFetchedTimestamp || {};
       const forceRefresh = payload?.forceRefresh === true; // Allow force refresh flag
 
       // If force refresh is requested, skip cache
@@ -106,13 +112,17 @@ export const getScheduledMeetingDetailsAsync = createAsyncThunk(
         // If we already fetched this tab recently, reuse cached data
         const CACHE_TTL_MS = 30 * 1000; // 30 seconds cache (reduced from 1 minute for better freshness)
         const isSameTab = requestedTab && cachedTab && requestedTab === cachedTab;
+        const lastFetched = lastFetchedTimestamps[requestedTab] || lastFetchedTimestamps["all"];
         const isFresh =
           typeof lastFetched === "number" &&
           Date.now() - lastFetched < CACHE_TTL_MS;
 
-        if (isSameTab && isFresh && Array.isArray(bookings?.scheduledMeetingDetails)) {
+        // Check if we have cached data for this specific status
+        const cachedDataForStatus = requestedTab && bookings?.scheduledMeetingDetailsByStatus?.[requestedTab];
+        
+        if (isSameTab && isFresh && Array.isArray(cachedDataForStatus) && cachedDataForStatus.length > 0) {
           return {
-            data: bookings.scheduledMeetingDetails,
+            data: cachedDataForStatus,
             cachedTabBook: requestedTab,
             fromCache: true,
           };
@@ -199,8 +209,39 @@ export const bookingsSlice = createSlice({
       .addCase(getScheduledMeetingDetailsAsync.fulfilled, (state, action) => {
         state.status = "fulfilled";
         state.isMeetingLoading = false;
-        state.scheduledMeetingDetails = action.payload.data;
-        state.lastFetchedTimestamp = Date.now();
+        const fetchedStatus = action.payload.cachedTabBook || "all";
+        const fetchedData = action.payload.data || [];
+        
+        // Store data by status to prevent data loss
+        if (fetchedStatus && fetchedStatus !== "all") {
+          state.scheduledMeetingDetailsByStatus[fetchedStatus] = fetchedData;
+        }
+        
+        // Merge all statuses for backward compatibility
+        const allData = [
+          ...state.scheduledMeetingDetailsByStatus.upcoming,
+          ...state.scheduledMeetingDetailsByStatus.cancelled,
+          ...state.scheduledMeetingDetailsByStatus.completed,
+          ...state.scheduledMeetingDetailsByStatus.active,
+        ];
+        
+        // Remove duplicates based on _id
+        const uniqueData = allData.reduce((acc, current) => {
+          const existingIndex = acc.findIndex(item => item._id === current._id);
+          if (existingIndex === -1) {
+            acc.push(current);
+          } else {
+            // Update existing item with latest data
+            acc[existingIndex] = current;
+          }
+          return acc;
+        }, []);
+        
+        state.scheduledMeetingDetails = uniqueData;
+        state.lastFetchedTimestamp = {
+          ...state.lastFetchedTimestamp,
+          [fetchedStatus]: Date.now()
+        };
         state.cachedTabBook = action.payload.cachedTabBook;
       })
       .addCase(getScheduledMeetingDetailsAsync.rejected, (state, action) => {

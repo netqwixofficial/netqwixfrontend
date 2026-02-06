@@ -161,8 +161,11 @@ const NavHomePage = () => {
     if (!socket) return;
 
     const handleBookingUpdate = () => {
-      // Force refresh to get latest data, bypassing cache
+      // Force refresh to get latest data for active sessions, bypassing cache
+      // Fetch without status to get all meetings, which includes active ones
       dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
+      // Also explicitly fetch upcoming to ensure it's updated
+      dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming", forceRefresh: true }));
     };
 
     // Listen for push notifications that indicate booking updates
@@ -759,16 +762,10 @@ const NavHomePage = () => {
         </div>
       )}
 
-      <div className="upcoming_session">
-        <h2 className="text-center">Active Sessions</h2>
-        {isMeetingLoading && !filteredSessions?.length ? (
-          <>
-            {Array(2).fill(0).map((_, index) => (
-              <ActiveSessionSkeleton key={`active-session-skeleton-${index}`} />
-            ))}
-          </>
-        ) : filteredSessions && filteredSessions?.length > 0 ? (
-          filteredSessions.map((session, booking_index) => (
+      {filteredSessions && filteredSessions?.length > 0 ? (
+        <div className="upcoming_session">
+          <h2 className="text-center">Active Sessions</h2>
+          {filteredSessions.map((session, booking_index) => (
             <div
               className="card mt-2 trainer-bookings-card upcoming_session_content"
               key={`booking-schedule-training`}
@@ -897,13 +894,16 @@ const NavHomePage = () => {
                 </div>
               </div>
             </div>
-          ))
-        ) : !isMeetingLoading ? (
-          <div style={{ textAlign: "center", padding: "20px" }}>
-            <p>No Active Sessions</p>
-          </div>
-        ) : null}
-      </div>
+          ))}
+        </div>
+      ) : isMeetingLoading ? (
+        <div className="upcoming_session">
+          <h2 className="text-center">Active Sessions</h2>
+          {Array(2).fill(0).map((_, index) => (
+            <ActiveSessionSkeleton key={`active-session-skeleton-${index}`} width600={width600} />
+          ))}
+        </div>
+      ) : null}
 
       <div
         className="row"

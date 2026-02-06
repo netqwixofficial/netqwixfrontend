@@ -26,6 +26,7 @@ import '@react-pdf-viewer/core/lib/styles/index.css';
 import { Spinner } from "reactstrap";
 import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
 import '@react-pdf-viewer/default-layout/lib/styles/index.css';
+import ReportsSkeleton from "../../common/ReportsSkeleton";
 
 const getReportDownloadName = (reportPath) => {
   if (!reportPath || typeof reportPath !== "string") {
@@ -270,17 +271,7 @@ const Reports = ({ activeCenterContainerTab, trainee_id }) => {
       {/* <ToastContainer /> */}
     <div className="media-gallery portfolio-section grid-portfolio">
       {isLoadingData ? (
-        <div style={{ 
-          display: "flex", 
-          justifyContent: "center", 
-          alignItems: "center", 
-          minHeight: "400px",
-          flexDirection: "column",
-          gap: "20px"
-        }}>
-          <Spinner color="primary" style={{ width: "3rem", height: "3rem" }} />
-          <h5 style={{ color: "#666", margin: 0 }}>Loading Saved Lessons & Game Plans...</h5>
-        </div>
+        <ReportsSkeleton />
       ) : reportsData?.length ? reportsData?.map((cl, ind) =>
         <div className={`collapse-block ${!cl?.show ? "" : "open"}`} key={ind}>
           <h5
