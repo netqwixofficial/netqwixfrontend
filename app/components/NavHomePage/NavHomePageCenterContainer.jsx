@@ -24,6 +24,7 @@ import { useMediaQuery } from "../../hook/useMediaQuery";
 import OrientationModal from "../modalComponent/OrientationModal";
 import Image from "next/image";
 import Scheduler from "./Scheduler";
+import UserInfoCard from "../cards/user-card";
 
 const Schedule = ({ activeCenterContainerTab }) => {
   useEffect(() => { }, [activeCenterContainerTab]);
@@ -271,6 +272,16 @@ const NavHomePageCenterContainer = ({ onTabChange, selectedTraineeId, onClearTra
     <>
 
       <div id="navHomePageCenterContainer">
+        {/* Trainer Profile Card - Always visible for trainers */}
+        {accountType === AccountType?.TRAINER && (
+          <div style={{ 
+            marginBottom: "20px",
+            width: "100%",
+            maxWidth: "100%"
+          }}>
+            <UserInfoCard />
+          </div>
+        )}
         { (
           <>
             {(userInfo?.account_type === "Trainer" &&!userInfo?.is_kyc_completed )? (

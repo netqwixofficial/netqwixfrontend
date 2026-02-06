@@ -1026,7 +1026,7 @@ const Bookings = ({ accountType = null }) => {
               <div className="w-100"></div>
               <div className="col">
                 <dl className="row">
-                  <dd className="ml-3">Enthusiast :</dd>
+                  <dd className="ml-3">Enthusiasts :</dd>
                   <dt className="ml-1">{trainee_info.fullname}</dt>
                 </dl>
               </div>

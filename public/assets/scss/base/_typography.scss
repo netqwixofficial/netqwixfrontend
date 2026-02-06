@@ -5,7 +5,7 @@ body {
     background-color: $white;
     font-size:  calc(12px + (14 - 13) * ((100vw - 320px) / (1920 - 320)));
     overflow-x: hidden;
-    font-family: $font-1, $font-2;
+    font-family: "Montserrat", sans-serif;
     color: $dark-color;
     &.main-page{
         overflow: hidden;
@@ -63,42 +63,42 @@ input {
 
 //Typography css start
 h1{
-    font-family: $font-1;
+    font-family: "Montserrat", sans-serif;
     font-size:  calc(30px + (48 - 30) * ((100vw - 320px) / (1920 - 320)));
     font-weight: 800;
     color: $dark-color;
     margin: 0;
 }
 h2{
-    font-family: $font-1;
+    font-family: "Montserrat", sans-serif;
     font-size: calc(20px + (28 - 20) * ((100vw - 320px) / (1920 - 320)));
     font-weight: 800;
     color: $dark-color;
     margin: 0;
 }
 h3{
-    font-family: $font-1;
+    font-family: "Montserrat", sans-serif;
     font-size: calc(16px + (18 - 16) * ((100vw - 320px) / (1920 - 320)));
     font-weight: 700;
     color: $dark-color;
     margin: 0;
 }
 h4{
-    font-family: $font-2;
+    font-family: "Montserrat", sans-serif;
     font-size: calc(14px + (16 - 14) * ((100vw - 320px) / (1920 - 320)));
     font-weight: 400;
     color: $muted-font;
     margin: 0;
 }
 h5{
-    font-family: $font-1;
+    font-family: "Montserrat", sans-serif;
     font-size: calc(13px + (14 - 13) * ((100vw - 320px) / (1920 - 320)));
     font-weight: 700;
     color: $dark-color;
     margin: 0;
 }
 h6{
-    font-family: $font-2;
+    font-family: "Montserrat", sans-serif;
     font-size: calc(11px + (12 - 11) * ((100vw - 320px) / (1920 - 320)));
     font-weight: 400;
     color: $muted-font;
@@ -108,13 +108,13 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     line-height: 1.1;
 }
 span{
-    font-family: $font-1;
+    font-family: "Montserrat", sans-serif;
     font-size: 13px;
     font-weight: 700;
     color: $dark-color;
 }
 .title2{
-    font-family: $font-1;
+    font-family: "Montserrat", sans-serif;
     font-size: calc(22px + (36 - 22) * ((100vw - 320px) / (1920 - 320)));
     font-weight: 700;
     color: $white;
@@ -122,7 +122,7 @@ span{
 }
 
 p{
-    font-family: $font-2;
+    font-family: "Montserrat", sans-serif;
     font-size: calc(13px + (14 - 13) * ((100vw - 320px) / (1920 - 320)));
     font-weight: 400;
     color: $muted-font;
@@ -136,7 +136,7 @@ a{
 .theme-title{
     position: relative;
     h4{
-        font-family: $font-2;
+        font-family: "Montserrat", sans-serif;
         padding-top: 5px;
     }
 }

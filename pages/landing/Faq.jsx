@@ -60,7 +60,7 @@ const faqs = [
   //     answer: (
   //       <>
   //         Sessions on NetQwix can be recorded for later review. The recording process automatically stops when the meeting ends, and the video file is automatically attached to the Session and stored in your locker. You can find the video file(s) by going to the individual Sessions, under the "Saved Sessions" tab. You will receive an email with the subject line “NetQwix Gameplan” along with the name of the expert and the date.
-  //         **At the moment, recording can only occur if the Enthusiast is using a laptop computer.  NetQwix is working on a mobile solution for recording sessions
+  //         **At the moment, recording can only occur if the Enthusiasts is using a laptop computer.  NetQwix is working on a mobile solution for recording sessions
   //       </>
   //     ),
   //   },

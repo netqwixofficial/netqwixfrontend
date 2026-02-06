@@ -103,6 +103,7 @@ const VideoContainer = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [scale, setScale] = useState(1); // Zoom level (scale)
   const [lastTouch, setLastTouch] = useState(0);
+  // Keep translate fixed at (0,0) so clips stay in their original position.
   const [translate, setTranslate] = useState({
     x: 0,
     y: 0,
@@ -136,7 +137,7 @@ const VideoContainer = ({
     socket?.emit(EVENTS?.ON_VIDEO_ZOOM_PAN, {
       videoId: clip._id,
       zoom: newScale,
-      pan: translate,
+      pan: { x: 0, y: 0 },
       userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
     });
   };
@@ -160,7 +161,7 @@ const VideoContainer = ({
     socket?.emit(EVENTS?.ON_VIDEO_ZOOM_PAN, {
       videoId: clip._id,
       zoom: newScale,
-      pan: translate,
+      pan: { x: 0, y: 0 },
       userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
     });
   };
@@ -219,42 +220,12 @@ const VideoContainer = ({
         setDragStart(null);
       }
       setLastTouch(currentDistance);
-    } else if (e.touches.length === 1 && dragStart && !lastTouch) {
-      // Panning Handling - only allow panning when NOT zooming (lastTouch === 0)
-      const touch = e.touches[0];
-      const deltaX = touch.pageX - dragStart.x;
-      const deltaY = touch.pageY - dragStart.y;
-
-      let newX = translate.x + deltaX;
-      let newY = translate.y + deltaY;
-
-      console.log("🖐️ [VideoContainer] Touch pan", {
-        oldTranslate: translate,
-        newTranslate: { x: newX, y: newY },
-        deltaX,
-        deltaY,
-        clipId: clip?._id,
-        index
-      });
-
-      setTranslate({ x: newX, y: newY });
-      setDragStart({ x: touch.pageX, y: touch.pageY });
-
-      socket?.emit(EVENTS?.ON_VIDEO_ZOOM_PAN, {
-        videoId: clip._id,
-        zoom: scale,
-        pan: { x: newX, y: newY },
-        userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
-      });
     }
   };
 
   const handleTouchStart = (e) => {
+    // Panning disabled – do not start drag to keep clips anchored
     if (accountType === AccountType.TRAINEE) return;
-    if (e.touches.length === 1) {
-      const touch = e.touches[0];
-      setDragStart({ x: touch.pageX, y: touch.pageY });
-    }
   };
 
   const handleTouchEnd = () => {
@@ -268,7 +239,8 @@ const VideoContainer = ({
 
   // Apply CSS transformations directly to the element
   const transformStyle = {
-    transform: `scale(${scale}) translate(${translate.x}px, ${translate.y}px)`,
+    // Apply only zoom; keep translate at (0,0) so clips don't move from their position
+    transform: `scale(${scale})`,
   };
 
   // Toggle visibility of custom controls when clicking on the video
@@ -413,42 +385,11 @@ const VideoContainer = ({
       }
     };
     const handleZoomPanChange = (data) => {
-      console.log("📡 [VideoContainer] Received ON_VIDEO_ZOOM_PAN event", {
-        receivedData: data,
-        clipId: clip?._id,
-        isMatch: data?.videoId === clip?._id,
-        isTrainee: accountType === AccountType.TRAINEE,
-        currentScale: scale,
-        currentTranslate: translate,
-        newScale: data?.zoom,
-        newPan: data?.pan,
-        index
-      });
-      
       if (data?.videoId === clip?._id) {
-        // If the current user is the Trainee, apply the zoom and pan changes
-        if (accountType === AccountType.TRAINEE) {
-          // Only update if the zoom or pan values are different to avoid unnecessary re-renders
-          if (
-            data.zoom !== scale ||
-            data.pan?.x !== translate.x ||
-            data.pan?.y !== translate.y
-          ) {
-            console.log("🔄 [VideoContainer] Applying zoom/pan changes from socket", {
-              clipId: clip?._id,
-              oldScale: scale,
-              newScale: data.zoom,
-              oldTranslate: translate,
-              newTranslate: data.pan,
-              index
-            });
+        // On trainee side, only follow zoom; ignore pan so clips stay in place
+        if (accountType === AccountType.TRAINEE && typeof data.zoom === "number") {
+          if (data.zoom !== scale) {
             setScale(data.zoom);
-            setTranslate(data.pan);
-          } else {
-            console.log("ℹ️ [VideoContainer] No zoom/pan changes needed", {
-              clipId: clip?._id,
-              index
-            });
           }
         }
       }
@@ -2754,10 +2695,6 @@ const ClipModeCall = ({
               stream={remoteStream}
               isStreamOff={isRemoteStreamOff}
               isLandscape={isLandscape}
-              onHide={handleHideVideo}
-              onRestore={handleRestoreVideo}
-              isHidden={hiddenVideos.student}
-              videoType="student"
             />
 
             <UserBox
@@ -2772,10 +2709,6 @@ const ClipModeCall = ({
               isStreamOff={isLocalStreamOff}
               isLandscape={isLandscape}
               muted={true}
-              onHide={handleHideVideo}
-              onRestore={handleRestoreVideo}
-              isHidden={hiddenVideos.teacher}
-              videoType="teacher"
             />
 
             {selectedUser === toUser._id ? (
@@ -2788,10 +2721,6 @@ const ClipModeCall = ({
                 user={toUser}
                 bottom={300}
                 isStreamOff={isRemoteStreamOff}
-                videoType="student"
-                onHide={handleHideVideo}
-                onRestore={handleRestoreVideo}
-                isHidden={hiddenVideos.student}
               />
             ) : (
               <UserBoxMini
@@ -2804,10 +2733,6 @@ const ClipModeCall = ({
                 bottom={300}
                 isStreamOff={isLocalStreamOff}
                 muted={true}
-                videoType="teacher"
-                onHide={handleHideVideo}
-                onRestore={handleRestoreVideo}
-                isHidden={hiddenVideos.teacher}
               />
             )}
 

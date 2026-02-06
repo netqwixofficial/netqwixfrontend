@@ -91,6 +91,14 @@ const Auth_SignIn = ({isRedirect = true}) => {
 
   return (   
     <div className="login-page1">
+      <style dangerouslySetInnerHTML={{__html: `
+        .login-page1 .btn-primary {
+          color: #ffffff !important;
+        }
+        .login-page1 .btn-primary span {
+          color: #ffffff !important;
+        }
+      `}} />
       <div className="container-fluid p-0">
         <div className="row m-0">
           <div className="col-12 p-0">

@@ -18,6 +18,7 @@ const NotificationSection = (props) => {
     const {notifications , isLoading, hasMoreNotifications} = useAppSelector(notificationState);
     const scrollContainerRef = useRef(null);
     const isInitialLoadRef = useRef(false);
+    const [expandedNotifications, setExpandedNotifications] = useState(new Set());
     
     // Debounced scroll handler to prevent multiple API calls
     const handleScrollRef = useRef(null);
@@ -145,6 +146,10 @@ const NotificationSection = (props) => {
             <ul className="chat-main custom-scroll" ref={scrollContainerRef}>
             {notifications && notifications.length > 0 ? (
               notifications.map((notification) => {
+                const isExpanded = expandedNotifications.has(notification?._id);
+                const descriptionLength = notification?.description?.length || 0;
+                const shouldTruncate = descriptionLength > 100; // Show truncate if description is longer than 100 chars
+                
                 return (
                   <li key={notification?._id}>
                     <div
@@ -159,8 +164,21 @@ const NotificationSection = (props) => {
                         width: "100%",
                         boxSizing: "border-box",
                         borderBottom: "1px solid #f0f0f0",
-                        cursor: "default",
+                        cursor: "pointer",
                         transition: "background-color 0.2s ease, transform 0.1s ease",
+                      }}
+                      onClick={() => {
+                        if (shouldTruncate) {
+                          setExpandedNotifications(prev => {
+                            const newSet = new Set(prev);
+                            if (newSet.has(notification?._id)) {
+                              newSet.delete(notification?._id);
+                            } else {
+                              newSet.add(notification?._id);
+                            }
+                            return newSet;
+                          });
+                        }
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = "#f9fafb";
@@ -236,14 +254,41 @@ const NotificationSection = (props) => {
                             lineHeight: "1.4",
                             wordWrap: "break-word",
                             overflowWrap: "break-word",
-                            overflow: "hidden",
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
+                            overflow: isExpanded ? "visible" : "hidden",
+                            display: isExpanded ? "block" : "-webkit-box",
+                            WebkitLineClamp: isExpanded ? "none" : 2,
+                            WebkitBoxOrient: isExpanded ? "horizontal" : "vertical",
+                            whiteSpace: isExpanded ? "normal" : "nowrap",
                           }}
                         >
                           {notification?.description}
                         </p>
+                        {shouldTruncate && (
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              color: "#000080",
+                              fontWeight: 500,
+                              cursor: "pointer",
+                              marginTop: "4px",
+                              display: "inline-block",
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedNotifications(prev => {
+                                const newSet = new Set(prev);
+                                if (newSet.has(notification?._id)) {
+                                  newSet.delete(notification?._id);
+                                } else {
+                                  newSet.add(notification?._id);
+                                }
+                                return newSet;
+                              });
+                            }}
+                          >
+                            {isExpanded ? "Show less" : "Show more"}
+                          </span>
+                        )}
                       </div>
                       <div
                         className="date-status"

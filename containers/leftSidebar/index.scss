@@ -88,6 +88,16 @@
     }
 }
 
+// Spinner animation for logout
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
 // Ensure icons are properly sized and visible - CRITICAL for all devices
 .sidebar-top .icon-btn,
 .sidebar-top li .icon-btn,

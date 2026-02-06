@@ -9,7 +9,7 @@ export const URL_MAX_LENGTH = {
 export const LIST_OF_ACCOUNT_TYPE = [
   {
     id: 1,
-    label: "Enthusiast",
+    label: "Enthusiasts",
     value: "Trainee",
   },
   {
@@ -77,7 +77,7 @@ export const bookingButton = ["upcoming", "canceled", "completed"];
 
 export const not_data_for_booking = {
   upcoming: "No Upcoming Sessions",
-  canceled: "No Cancelled Sessions",
+  canceled: "No Canceled Sessions",
   completed: "No Completed Sessions",
 };
 
@@ -665,7 +665,7 @@ export const HOW_IT_WORKS = [
     id: 1,
     icon: "1",
     title: "Get Started",
-    content: "Users open an account either as an Enthusiast or an Expert.",
+    content: "Users open an account either as an Enthusiasts or an Expert.",
   },
   {
     id: 2,

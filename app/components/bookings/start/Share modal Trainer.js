@@ -17,7 +17,7 @@ const ShareModalTrainer = ({ isOpen, onClose, selectedClips, clips, isTrainer, u
           </button>
         </div>
         <div className="modal-body">
-          <h2 className="my" style={{ marginBottom: "20px" }}>Feel free to select clips with the Enthusiast</h2>
+          <h2 className="my" style={{ marginBottom: "20px" }}>Feel free to select clips with the Enthusiasts</h2>
 
           <h5 className="block-title p-0"> Selected Clips<label className="badge badge-primary sm ml-2">{selectedClips?.length}</label></h5>
           <div className={`block-content`} style={{ marginTop: "10px" }}>

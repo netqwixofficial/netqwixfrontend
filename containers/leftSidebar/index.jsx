@@ -31,14 +31,16 @@ import FileSection from "../rightSidebar/fileSection";
 import AppListSection from "../rightSidebar/appList";
 import {
   Book,
-  File as FileIcon,
+  Cloud,
+  Upload,
   ChevronLeft,
   ChevronRight,
-  Home as HomeIcon,
+  Lock,
   Calendar as CalendarIcon,
+  Clock,
   Bell as BellIcon,
   Settings as SettingsIcon,
-  CreditCard as CreditCardIcon,
+  DollarSign,
   Users as UsersIcon,
   MessageCircle as MessageCircleIcon,
   LogOut as LogOutIcon,
@@ -215,7 +217,13 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
     }
   };
 
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const Logout = () => {
+    if (isLoggingOut) return; // Prevent multiple clicks
+    
+    setIsLoggingOut(true);
+    
     try {
       // Disconnect socket if it exists
       if (socket && typeof socket.disconnect === 'function') {
@@ -537,7 +545,7 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                     }`}
                     aria-label="My Locker"
                   >
-                    <HomeIcon size={22} />
+                    <Lock size={22} />
                   </NavLink>
                   <p className="menu-name px-2">My Locker</p>
                 </li>
@@ -562,8 +570,20 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                           : ""
                       }`}
                       aria-label="Upcoming Sessions"
+                      style={{ position: "relative" }}
                     >
                       <CalendarIcon size={22} />
+                      <Clock 
+                        size={10} 
+                        style={{ 
+                          position: "absolute", 
+                          top: "2px", 
+                          right: "2px",
+                          background: "white",
+                          borderRadius: "50%",
+                          padding: "1px"
+                        }} 
+                      />
                     </NavLink>
                     <p className="menu-name px-2">Upcoming Sessions</p>
                   </li>
@@ -606,8 +626,20 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                     }`}
                     data-intro=""
                     aria-label="My Uploads"
+                    style={{ position: "relative" }}
                   >
-                    <FileIcon size={22} />
+                    <Cloud size={22} />
+                    <Upload 
+                      size={10} 
+                      style={{ 
+                        position: "absolute", 
+                        top: "2px", 
+                        right: "2px",
+                        background: "white",
+                        borderRadius: "50%",
+                        padding: "1px"
+                      }} 
+                    />
                   </NavLink>
                   <p className="menu-name px-2">My Uploads</p>
                 </li>
@@ -722,8 +754,20 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                       }`}
                       data-intro=""
                       aria-label="Upcoming Sessions"
+                      style={{ position: "relative" }}
                     >
                       <CalendarIcon size={22} />
+                      <Clock 
+                        size={10} 
+                        style={{ 
+                          position: "absolute", 
+                          top: "2px", 
+                          right: "2px",
+                          background: "white",
+                          borderRadius: "50%",
+                          padding: "1px"
+                        }} 
+                      />
                     </NavLink>
                     <p className="menu-name px-2">Upcoming Sessions</p>
                   </li>
@@ -795,7 +839,7 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                     }`}
                     aria-label="Transactions"
                   >
-                    <CreditCardIcon size={22} />
+                    <DollarSign size={22} />
                   </NavLink>
 
                   {/* </div> */}
@@ -876,11 +920,25 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                     id="sidebar-item-logout"
                     className="icon-btn btn-light"
                     aria-label="Logout"
+                    style={{ position: "relative" }}
                   >
-                    <LogOutIcon size={22} />
+                    {isLoggingOut ? (
+                      <div style={{
+                        width: "22px",
+                        height: "22px",
+                        border: "2px solid #000080",
+                        borderTop: "2px solid transparent",
+                        borderRadius: "50%",
+                        animation: "spin 0.8s linear infinite"
+                      }} />
+                    ) : (
+                      <LogOutIcon size={22} />
+                    )}
                   </NavLink>
 
-                  <p className="menu-name px-2" style={{ color: "black", fontWeight: "500" }}>Logout</p>
+                  <p className="menu-name px-2" style={{ color: "black", fontWeight: "500" }}>
+                    {isLoggingOut ? "Logging out..." : "Logout"}
+                  </p>
                 </li>
 
                 <li>

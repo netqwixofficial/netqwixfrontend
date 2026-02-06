@@ -313,7 +313,7 @@ const Reports = ({ activeCenterContainerTab, trainee_id }) => {
                           }
                         }}
                       >
-                        {/* Image preview of the report cover has been removed for a cleaner locker view. */}
+                        {/* Show first image from game plan if available */}
                         <div
                           style={{
                             display: "flex",
@@ -325,11 +325,32 @@ const Reports = ({ activeCenterContainerTab, trainee_id }) => {
                             minHeight: "120px",
                           }}
                         >
-                          <img
-                            src="/icons/FileSee.png"
-                            alt="FileSee Icon"
-                            style={{ width: "40px", height: "40px", marginBottom: "4px" }}
-                          />
+                          {clp?.reportData && Array.isArray(clp.reportData) && clp.reportData.length > 0 && clp.reportData[0]?.imageUrl ? (
+                            <img
+                              src={awsS3Url + clp.reportData[0].imageUrl}
+                              alt="Game Plan Preview"
+                              style={{ 
+                                width: "100%", 
+                                height: "120px", 
+                                objectFit: "cover",
+                                borderRadius: "8px",
+                                border: "2px solid #e0e0e0",
+                                marginBottom: "4px"
+                              }}
+                              onError={(e) => {
+                                e.target.src = "/icons/FileSee.png";
+                                e.target.style.width = "40px";
+                                e.target.style.height = "40px";
+                                e.target.style.objectFit = "contain";
+                              }}
+                            />
+                          ) : (
+                            <img
+                              src="/icons/FileSee.png"
+                              alt="FileSee Icon"
+                              style={{ width: "40px", height: "40px", marginBottom: "4px" }}
+                            />
+                          )}
                           <span style={{ fontSize: "0.9rem", fontWeight: 500 }}>
                             View Game Plan
                           </span>

@@ -493,7 +493,7 @@ const FileSection = (props) => {
                         margin: "0 2px"
                       }}
                     >
-                      Enthusiast
+                      Enthusiasts
                     </NavLink>
                   </NavItem>
                 </div>
@@ -1079,7 +1079,7 @@ const FileSection = (props) => {
                             </dd>
                           </div>
                           <div className="ml-3" style={{ fontSize: "10px" }}>
-                            <dd>{index + 1}. {accountType === "Trainer" ? "Enthusiast" : "Expert"} : <strong>{clp?.[accountType === "Trainer" ? "trainee" : "trainer"]?.fullname}</strong></dd>
+                            <dd>{index + 1}. {accountType === "Trainer" ? "Enthusiasts" : "Expert"} : <strong>{clp?.[accountType === "Trainer" ? "trainee" : "trainer"]?.fullname}</strong></dd>
                           </div>
                         </div>
                       </div>

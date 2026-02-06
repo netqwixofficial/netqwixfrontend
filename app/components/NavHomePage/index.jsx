@@ -135,6 +135,9 @@ const NavHomePage = () => {
   );
   const dispatch = useAppDispatch();
   const { scheduledMeetingDetails } = useAppSelector(bookingsState);
+  const shouldShowCoachesSection =
+    accountType === AccountType.TRAINEE &&
+    (isLoadingTrainers || (activeTrainer && activeTrainer.length > 0));
   
   useEffect(() => {
     // Check if data already exists in Redux before making API call
@@ -470,46 +473,26 @@ const NavHomePage = () => {
   };
   return (
     <div className="container-fluid">
-      {/* top  baaner */}
-
-      {accountType === AccountType.TRAINEE && (
+      {/* Coaches Online Now - only show for trainees and when data is loading or available */}
+      {shouldShowCoachesSection && (
         <div
           className="upcoming_session"
           style={{
             marginTop: width600 ? "15px" : "20px",
             marginBottom: width600 ? "15px" : "20px",
           }}
-        >
+          >
           <h2
-            className="text-center coaches-online-heading"
+            className="text-center"
             style={{ 
               marginBottom: width600 ? "15px" : "20px",
-              fontSize: width600 ? "24px" : "32px",
-              fontWeight: 700,
-              background: "linear-gradient(135deg, #000080 0%, #4169E1 50%, #1E90FF 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
+              fontSize: width600 ? "24px" : "28px",
+              fontWeight: 600,
+              color: "#000080",
               letterSpacing: "0.5px",
-              textShadow: "0 2px 4px rgba(0, 0, 128, 0.2)",
-              position: "relative",
-              display: "inline-block",
-              padding: "0 20px"
             }}
           >
-            <span style={{ 
-              display: "inline-block",
-              animation: "pulseGlow 2s ease-in-out infinite"
-            }}>
-              ⚡
-            </span>
-            {" "}Coaches Online Now!{" "}
-            <span style={{ 
-              display: "inline-block",
-              animation: "pulseGlow 2s ease-in-out infinite 0.5s"
-            }}>
-              ⚡
-            </span>
+            Coaches Online Now
           </h2>
           <div
             className="card trainer-bookings-card"
@@ -537,44 +520,7 @@ const NavHomePage = () => {
               position: "relative",
               flex: "1"
             }}>
-              <style>{`
-                @keyframes pulseGlow {
-                  0%, 100% {
-                    transform: scale(1);
-                    opacity: 1;
-                  }
-                  50% {
-                    transform: scale(1.2);
-                    opacity: 0.8;
-                  }
-                }
-                @keyframes textShimmer {
-                  0% {
-                    background-position: -200% center;
-                  }
-                  100% {
-                    background-position: 200% center;
-                  }
-                }
-                .coaches-online-heading {
-                  position: relative;
-                }
-                .coaches-online-heading::before {
-                  content: '';
-                  position: absolute;
-                  top: 0;
-                  left: 0;
-                  right: 0;
-                  bottom: 0;
-                  background: linear-gradient(90deg, 
-                    transparent 0%, 
-                    rgba(255, 255, 255, 0.3) 50%, 
-                    transparent 100%);
-                  background-size: 200% 100%;
-                  animation: textShimmer 3s ease-in-out infinite;
-                  pointer-events: none;
-                  border-radius: 4px;
-                }
+          <style>{`
                 .banner_Slider {
                   position: relative;
                   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */

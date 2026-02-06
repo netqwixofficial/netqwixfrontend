@@ -1928,7 +1928,7 @@ const VideoCallUI = ({
                       }}
                       onClick={() => setAideoActiveTab("trainee")}
                     >
-                      Enthusiast
+                      Enthusiasts
                     </NavLink>
                   </NavItem>
                   <NavItem className="mb-2" style={{
@@ -2219,7 +2219,7 @@ const VideoCallUI = ({
                                 alignItems: "center"
                               }}
                             >
-                              {cl?._id?.fullname || "Enthusiast Clips"}
+                              {cl?._id?.fullname || "Enthusiasts Clips"}
                               {cl?.clips?.length && (
                                 <label className="badge badge-primary sm ml-2">
                                   {cl?.clips?.length}

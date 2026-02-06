@@ -17,6 +17,7 @@ import BookingTable from "../trainee/scheduleTraining/BookingTable.jsx";
 import { TrainerDetails } from "../trainer/trainerDetails.jsx";
 import { getTraineeWithSlotsAsync } from "../trainee/trainee.slice";
 import RecentUsersSkeleton from "../common/RecentUsersSkeleton";
+import ImageSkeleton from "../common/ImageSkeleton";
 
 // const placeholderImageUrl = '/assets/images/avtar/user.png'; // Placeholder image path
 const placeholderImageUrl = "/assets/images/demoUser.png"; // Placeholder image path
@@ -217,7 +218,7 @@ const RecentUsers = ({ onTraineeSelect }) => {
         }
 
         .recent-users-avatar {
-          border-radius: 50%;
+          border-radius: 8px;
           border: 3px solid rgb(0, 0, 128);
           padding: 2px;
           margin-bottom: 8px;
@@ -233,7 +234,7 @@ const RecentUsers = ({ onTraineeSelect }) => {
         .recent-users-avatar img {
           width: 100%;
           height: 100%;
-          border-radius: 50%;
+          border-radius: 6px;
           object-fit: cover;
           object-position: center;
           display: block;
@@ -251,7 +252,7 @@ const RecentUsers = ({ onTraineeSelect }) => {
         .recent-users-skeleton {
           width: 100%;
           height: 100%;
-          border-radius: 50%;
+          border-radius: 6px;
           background: linear-gradient(
             90deg,
             #f0f0f0 25%,
@@ -474,33 +475,19 @@ const RecentUsers = ({ onTraineeSelect }) => {
                     }}
                   >
                     <div className="recent-users-avatar-wrapper">
-                      {(imageLoadingStates[item?._id || item?.id] !== false) && (
-                        <div className="recent-users-skeleton" />
-                      )}
-                      <img
-                        className={`Image-Division ${imageLoadingStates[item?._id || item?.id] === false ? 'loaded' : 'loading'}`}
+                      <ImageSkeleton
+                        src={Utils?.getImageUrlOfS3(item?.profile_picture || item.profile_picture) || "/assets/images/demoUser.png"}
+                        alt={accountType === AccountType?.TRAINER ? `Recent Student ${index + 1}` : `Recent Expert ${index + 1}`}
+                        fallbackSrc="/assets/images/demoUser.png"
+                        lazy={true}
+                        skeletonType="square"
                         style={{
                           width: "100%",
                           height: "100%",
-                          borderRadius: "50%",
+                          borderRadius: "6px",
                           objectFit: "cover",
                           objectPosition: "center",
                           display: "block",
-                        }}
-                        src={
-                          Utils?.getImageUrlOfS3(item?.profile_picture || item.profile_picture) ||
-                          "/assets/images/demoUser.png"
-                        }
-                        alt={
-                          accountType === AccountType?.TRAINER
-                            ? `Recent Student ${index + 1}`
-                            : `Recent Expert ${index + 1}`
-                        }
-                        onLoadStart={() => handleImageLoadStart(item?._id || item?.id)}
-                        onLoad={() => handleImageLoad(item?._id || item?.id)}
-                        onError={(e) => {
-                          e.target.src = "/assets/images/demoUser.png";
-                          handleImageLoad(item?._id || item?.id);
                         }}
                       />
                     </div>
