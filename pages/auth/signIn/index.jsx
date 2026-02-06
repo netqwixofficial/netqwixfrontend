@@ -242,6 +242,7 @@ const Auth_SignIn = ({isRedirect = true}) => {
                             opacity: status === "loading" ? 0.8 : 1,
                             cursor:
                               status === "loading" ? "not-allowed" : "pointer",
+                            color: "#ffffff",
                           }}
                         >
                           {status === "loading" && <CircleLoader size={22} />}
@@ -252,18 +253,30 @@ const Auth_SignIn = ({isRedirect = true}) => {
                       </div>
                     </div>
                   </form>
-                  <div className="line">
-                    <h6>OR</h6>
-                  </div>
-                  <div className="form-group">
-                    <div className="buttons" style={{ display: "flex", justifyContent: "center", width: "100%" }}>
-                      <Link
-                        className="btn btn-primary button-effect"
-                        href={routingPaths.signUp}
-                        style={{ width: "100%", maxWidth: "400px", padding: "12px 24px", fontSize: "16px", fontWeight: "500", display: "block", textAlign: "center", textDecoration: "none" }}
-                      >
-                        Sign Up
-                      </Link>
+                  <div className="form-group" style={{ marginTop: "12px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        width: "100%",
+                        fontSize: "14px",
+                      }}
+                    >
+                      <span style={{ color: "#555" }}>
+                        Don&apos;t have an account?{" "}
+                        <Link
+                          href={routingPaths.signUp}
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: 500,
+                            color: "#000080",
+                            textDecoration: "underline",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Sign up
+                        </Link>
+                      </span>
                     </div>
                   </div>
                   <div className="line">
