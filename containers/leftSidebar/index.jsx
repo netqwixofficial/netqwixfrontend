@@ -932,7 +932,7 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                         animation: "spin 0.8s linear infinite"
                       }} />
                     ) : (
-                      <LogOutIcon size={22} />
+                    <LogOutIcon size={22} />
                     )}
                   </NavLink>
 

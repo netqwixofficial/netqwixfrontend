@@ -345,11 +345,11 @@ const Reports = ({ activeCenterContainerTab, trainee_id }) => {
                               }}
                             />
                           ) : (
-                            <img
-                              src="/icons/FileSee.png"
-                              alt="FileSee Icon"
-                              style={{ width: "40px", height: "40px", marginBottom: "4px" }}
-                            />
+                          <img
+                            src="/icons/FileSee.png"
+                            alt="FileSee Icon"
+                            style={{ width: "40px", height: "40px", marginBottom: "4px" }}
+                          />
                           )}
                           <span style={{ fontSize: "0.9rem", fontWeight: 500 }}>
                             View Game Plan

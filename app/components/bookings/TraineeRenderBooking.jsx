@@ -73,24 +73,24 @@ const TraineeRenderBooking = ({
   const isCompleted =
     has24HoursPassedSinceBooking || bookingInfo?.ratings?.trainee;
 
-  const currentTime = DateTime.now(); // Use UTC to avoid timezone mismatch
+    const currentTime = DateTime.now(); // Use UTC to avoid timezone mismatch
 
-  // Parse the start_time and end_time in UTC
-  const startTime = DateTime.fromISO(bookingInfo.start_time, { zone: 'utc' });
-  const endTime = DateTime.fromISO(bookingInfo.end_time, { zone: 'utc' });
+    // Parse the start_time and end_time in UTC
+    const startTime = DateTime.fromISO(bookingInfo.start_time, { zone: 'utc' });
+    const endTime = DateTime.fromISO(bookingInfo.end_time, { zone: 'utc' });
+    
+    // Extract date and time components
+    const currentDate = currentTime.toFormat('yyyy-MM-dd');  // YYYY-MM-DD format
+    const currentTimeOnly = currentTime.toFormat('HH:mm');  // HH:mm format
   
-  // Extract date and time components
-  const currentDate = currentTime.toFormat('yyyy-MM-dd');  // YYYY-MM-DD format
-  const currentTimeOnly = currentTime.toFormat('HH:mm');  // HH:mm format
-
-  const startDate = startTime.toFormat('yyyy-MM-dd');
-  const startTimeOnly = startTime.toFormat('HH:mm');
-
-  const endDate = endTime.toFormat('yyyy-MM-dd');
-  const endTimeOnly = endTime.toFormat('HH:mm');
-
-  // Compare the current date and time (date + hour:minute) with start and end time
-  const isDateSame = currentDate === startDate && currentDate === endDate;
+    const startDate = startTime.toFormat('yyyy-MM-dd');
+    const startTimeOnly = startTime.toFormat('HH:mm');
+  
+    const endDate = endTime.toFormat('yyyy-MM-dd');
+    const endTimeOnly = endTime.toFormat('HH:mm');
+  
+    // Compare the current date and time (date + hour:minute) with start and end time
+    const isDateSame = currentDate === startDate && currentDate === endDate;
   const isWithinTimeFrame = isDateSame && currentTimeOnly >= startTimeOnly && currentTimeOnly <= endTimeOnly;
   const isCurrentTimeAfterEndTime = currentTime > endTime;
   const canShowRatingButton =
@@ -268,14 +268,14 @@ const TraineeRenderBooking = ({
                       // Send notification (non-blocking)
                       try {
                         if (socket) {
-                          sendNotifications({
-                            title: notificiationTitles.sessionStrated,
-                            description: `${trainee_info.fullname} has started the session. Join the session via the upcoming sessions tab in My Locker.`,
-                            senderId: trainee_info?._id,
-                            receiverId: trainer_info?._id,
-                            bookingInfo: bookingInfo,
-                            type:NotificationType.TRANSCATIONAL
-                          });
+                        sendNotifications({
+                          title: notificiationTitles.sessionStrated,
+                          description: `${trainee_info.fullname} has started the session. Join the session via the upcoming sessions tab in My Locker.`,
+                          senderId: trainee_info?._id,
+                          receiverId: trainer_info?._id,
+                          bookingInfo: bookingInfo,
+                          type:NotificationType.TRANSCATIONAL
+                        });
                         } else {
                           console.warn("[TraineeRenderBooking] Socket not available for notification");
                         }

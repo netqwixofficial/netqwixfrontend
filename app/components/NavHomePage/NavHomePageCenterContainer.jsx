@@ -180,6 +180,12 @@ var settings = {
 
 const allTabs = [
   {
+    name: "Schedule",
+    value: "schedule",
+    accessBy: [AccountType?.TRAINER],
+    component: Schedule,
+  },
+  {
     name: "My Clips",
     value: "myClips",
     accessBy: [AccountType?.TRAINEE, AccountType?.TRAINER],
@@ -196,7 +202,7 @@ const allTabs = [
 const NavHomePageCenterContainer = ({ onTabChange, selectedTraineeId, onClearTrainee }) => {
   const dispatch = useAppDispatch();
   const { accountType, userInfo } = useAppSelector(authState);
-  const [activeTab, setActiveTab] = useState("myClips");
+  const [activeTab, setActiveTab] = useState(accountType === AccountType?.TRAINER ? "schedule" : "myClips");
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef(null);
 
@@ -365,6 +371,19 @@ const NavHomePageCenterContainer = ({ onTabChange, selectedTraineeId, onClearTra
               <div className="theme-tab">
                 <Nav tabs>
                   <div className="row mb-2">
+                    {accountType === AccountType?.TRAINER && (
+                      <div className="col text-center" style={{ flexBasis: "auto" }}>
+                        <NavItem className="ml-1 text-center">
+                          <NavLink
+                            className={`button-effect ${activeTab === "schedule" ? "activelink" : ""}`}
+                            onClick={() => toggleTab("schedule")}
+                            style={{ width: "100%" }}
+                          >
+                            Schedule
+                          </NavLink>
+                        </NavItem>
+                      </div>
+                    )}
                     <div className="col text-center" style={{ flexBasis: "auto" }}>
                       <NavItem className="ml-1 text-center">
                         <NavLink

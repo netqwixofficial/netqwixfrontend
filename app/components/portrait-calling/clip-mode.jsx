@@ -232,7 +232,7 @@ const VideoContainer = ({
     if (accountType === AccountType.TRAINEE) return;
     // Small delay before resetting lastTouch to prevent accidental panning after zoom
     setTimeout(() => {
-      setLastTouch(0);
+    setLastTouch(0);
     }, 100);
     setDragStart(null);
   };
@@ -1155,16 +1155,16 @@ const VideoContainer = ({
             </div>
           </div>
         )}
-        {!isLock && (
-          <CustomVideoControls
-            handleSeek={handleSeek}
-            isFullscreen={isFullscreen}
-            isPlaying={isPlaying}
-            toggleFullscreen={toggleFullscreen}
-            togglePlayPause={togglePlayPause}
-            videoRef={videoRef}
-            setIsPlaying={setIsPlaying}
-            setCurrentTime={setCurrentTime}
+      {!isLock && (
+        <CustomVideoControls
+          handleSeek={handleSeek}
+          isFullscreen={isFullscreen}
+          isPlaying={isPlaying}
+          toggleFullscreen={toggleFullscreen}
+          togglePlayPause={togglePlayPause}
+          videoRef={videoRef}
+          setIsPlaying={setIsPlaying}
+          setCurrentTime={setCurrentTime}
             isLock={isLock}
             lockPoint={lockPoint}
             videoRef2={null}
@@ -1174,8 +1174,8 @@ const VideoContainer = ({
             changeVolume={() => {}}
             currentTime={currentTime}
             controlsVisible={controlsVisible}
-          />
-        )}
+        />
+      )}
       </div>
     </>
   );
@@ -2663,9 +2663,9 @@ const ClipModeCall = ({
       {/* Show top user video section only when a user is selected.
           This prevents an empty block of space above the clips when nothing is selected. */}
       {selectedUser && (
-        <div
+      <div
           className="video-section video-section-clip-mode"
-          style={{
+        style={{
             flex: 1,
             minHeight: 0,
             maxHeight: "none", // No max-height constraint for clip mode
@@ -2679,73 +2679,73 @@ const ClipModeCall = ({
         >
           <div
             style={{
-              position: "relative",
+          position: "relative",
               flex: 1,
               minHeight: 0,
-            }}
-          >
-            <UserBox
-              id={fromUser._id}
-              onClick={handleUserClick}
-              selectedUser={selectedUser}
-              selected={selectedUser === fromUser._id}
-              notSelected={selectedUser}
-              videoRef={remoteVideoRef}
-              user={toUser}
-              stream={remoteStream}
-              isStreamOff={isRemoteStreamOff}
-              isLandscape={isLandscape}
-            />
+        }}
+      >
+        <UserBox
+          id={fromUser._id}
+          onClick={handleUserClick}
+          selectedUser={selectedUser}
+          selected={selectedUser === fromUser._id}
+          notSelected={selectedUser}
+          videoRef={remoteVideoRef}
+          user={toUser}
+          stream={remoteStream}
+          isStreamOff={isRemoteStreamOff}
+          isLandscape={isLandscape}
+        />
 
-            <UserBox
-              id={toUser._id}
-              onClick={handleUserClick}
-              selectedUser={selectedUser}
-              selected={selectedUser === toUser._id}
-              notSelected={selectedUser}
-              videoRef={localVideoRef}
-              user={fromUser}
-              stream={localStream}
-              isStreamOff={isLocalStreamOff}
-              isLandscape={isLandscape}
-              muted={true}
-            />
+        <UserBox
+          id={toUser._id}
+          onClick={handleUserClick}
+          selectedUser={selectedUser}
+          selected={selectedUser === toUser._id}
+          notSelected={selectedUser}
+          videoRef={localVideoRef}
+          user={fromUser}
+          stream={localStream}
+          isStreamOff={isLocalStreamOff}
+          isLandscape={isLandscape}
+          muted={true}
+        />
 
-            {selectedUser === toUser._id ? (
-              <UserBoxMini
-                id={fromUser._id}
-                onClick={handleUserClick}
-                selected={false}
-                videoRef={remoteVideoRef}
-                stream={remoteStream}
-                user={toUser}
-                bottom={300}
-                isStreamOff={isRemoteStreamOff}
-              />
-            ) : (
-              <UserBoxMini
-                id={toUser._id}
-                onClick={handleUserClick}
-                selected={false}
-                videoRef={localVideoRef}
-                stream={localStream}
-                user={fromUser}
-                bottom={300}
-                isStreamOff={isLocalStreamOff}
-                muted={true}
-              />
-            )}
+        {selectedUser === toUser._id ? (
+          <UserBoxMini
+            id={fromUser._id}
+            onClick={handleUserClick}
+            selected={false}
+            videoRef={remoteVideoRef}
+            stream={remoteStream}
+            user={toUser}
+            bottom={300}
+            isStreamOff={isRemoteStreamOff}
+          />
+        ) : (
+          <UserBoxMini
+            id={toUser._id}
+            onClick={handleUserClick}
+            selected={false}
+            videoRef={localVideoRef}
+            stream={localStream}
+            user={fromUser}
+            bottom={300}
+            isStreamOff={isLocalStreamOff}
+            muted={true}
+          />
+        )}
 
-            <VideoMiniBox
-              clips={selectedClips}
-              id={null}
-              bottom={60}
-              onClick={handleUserClick}
-              onHide={handleHideVideo}
-              onRestore={handleRestoreVideo}
-              isHidden={hiddenVideos.clips}
-            />
-          </div>
+        <VideoMiniBox
+          clips={selectedClips}
+          id={null}
+          bottom={60}
+          onClick={handleUserClick}
+          onHide={handleHideVideo}
+          onRestore={handleRestoreVideo}
+          isHidden={hiddenVideos.clips}
+        />
+      </div>
         </div>
       )}
       <div

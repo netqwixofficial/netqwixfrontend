@@ -568,22 +568,22 @@ const MyClips = ({ activeCenterContainerTab, trainee_id }) => {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center"
+                    }}
+                  >
+                    <h4
+                        id="clip-title"
+                      style={{
+                        margin: 0,
+                        fontSize: "18px",
+                        fontWeight: 600,
+                        color: "#fff",
+                        textAlign: "center",
+                        whiteSpace: "nowrap",
+                          display: "inline-block"
                       }}
                     >
-                      <h4
-                        id="clip-title"
-                        style={{
-                          margin: 0,
-                          fontSize: "18px",
-                          fontWeight: 600,
-                          color: "#fff",
-                          textAlign: "center",
-                          whiteSpace: "nowrap",
-                          display: "inline-block"
-                        }}
-                      >
-                        {selectedClip.title}
-                      </h4>
+                      {selectedClip.title}
+                    </h4>
                     </div>
                   </div>
                 )}
@@ -727,7 +727,7 @@ const MyClips = ({ activeCenterContainerTab, trainee_id }) => {
                         display: "block"
                       }}
                       autoPlay={false}
-                      controls
+                    controls
                       playsInline
                       preload="metadata"
                       poster={selectedClip ? Utils?.generateThumbnailURL(selectedClip) : undefined}
@@ -757,9 +757,9 @@ const MyClips = ({ activeCenterContainerTab, trainee_id }) => {
                       onError={() => {
                         setIsVideoLoading(false);
                       }}
-                    >
-                      <source src={selectedVideo} type="video/mp4" />
-                    </video>
+                  >
+                    <source src={selectedVideo} type="video/mp4" />
+                  </video>
                   </div>
 
                   {/* Next button */}
@@ -819,115 +819,115 @@ const MyClips = ({ activeCenterContainerTab, trainee_id }) => {
                   }}
                 >
                   {/* Delete and Download buttons - shown for all users (students and trainers) */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "12px",
-                      width: "100%",
-                      maxWidth: "400px"
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsConfirmModalOpen(true);
-                        setSelectedId(selectedClip?._id);
-                      }}
+                    <div
                       style={{
-                        border: "none",
-                        background: "#ff0000",
-                        color: "#fff",
-                        borderRadius: "6px",
-                        padding: "12px 20px",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: "8px",
-                        fontSize: "14px",
-                        fontWeight: 500,
-                        cursor: "pointer",
-                        transition: "all 0.3s ease",
+                        gap: "12px",
+                        width: "100%",
+                        maxWidth: "400px"
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsConfirmModalOpen(true);
+                          setSelectedId(selectedClip?._id);
+                        }}
+                        style={{
+                          border: "none",
+                        background: "#ff0000",
+                          color: "#fff",
+                          borderRadius: "6px",
+                        padding: "12px 20px",
+                          display: "flex",
+                          alignItems: "center",
+                        justifyContent: "center",
+                          gap: "8px",
+                          fontSize: "14px",
+                          fontWeight: 500,
+                          cursor: "pointer",
+                          transition: "all 0.3s ease",
                         flex: "1",
                         height: "44px"
-                      }}
+                        }}
                       onMouseEnter={(e) => e.target.style.background = "#cc0000"}
                       onMouseLeave={(e) => e.target.style.background = "#ff0000"}
-                    >
-                      <FaTrash size={14} />
-                      <span>Delete</span>
-                    </button>
-                    <a
-                      href={Utils?.generateVideoURL(selectedClip)}
-                      download={true}
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        background: "#007bff",
-                        color: "#fff",
-                        borderRadius: "6px",
+                      >
+                        <FaTrash size={14} />
+                        <span>Delete</span>
+                      </button>
+                      <a
+                        href={Utils?.generateVideoURL(selectedClip)}
+                        download={true}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          background: "#007bff",
+                          color: "#fff",
+                          borderRadius: "6px",
                         padding: "12px 20px",
-                        display: "flex",
-                        alignItems: "center",
+                          display: "flex",
+                          alignItems: "center",
                         justifyContent: "center",
-                        gap: "8px",
-                        fontSize: "14px",
-                        fontWeight: 500,
-                        textDecoration: "none",
-                        transition: "all 0.3s ease",
+                          gap: "8px",
+                          fontSize: "14px",
+                          fontWeight: 500,
+                          textDecoration: "none",
+                          transition: "all 0.3s ease",
                         flex: "1",
                         height: "44px"
-                      }}
-                      onMouseEnter={(e) => e.target.style.background = "#0056b3"}
-                      onMouseLeave={(e) => e.target.style.background = "#007bff"}
-                      target="_self"
-                    >
-                      <FaDownload size={14} />
-                      <span>Download</span>
-                    </a>
-                  </div>
+                        }}
+                        onMouseEnter={(e) => e.target.style.background = "#0056b3"}
+                        onMouseLeave={(e) => e.target.style.background = "#007bff"}
+                        target="_self"
+                      >
+                        <FaDownload size={14} />
+                        <span>Download</span>
+                      </a>
+                    </div>
                   
                   {/* Book An Instant Lesson Now button - only for trainees (not trainers) */}
                   {accountType !== AccountType.TRAINER && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsOpen(false);
-                        dispatch(authAction?.setTopNavbarActiveTab(topNavbarOptions?.BOOK_LESSON));
-                      }}
-                      style={{
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsOpen(false);
+                      dispatch(authAction?.setTopNavbarActiveTab(topNavbarOptions?.BOOK_LESSON));
+                    }}
+                    style={{
                         border: "2px solid #28a745",
                         background: "#28a745",
                         color: "#000000",
-                        borderRadius: "6px",
-                        padding: "12px 24px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        fontSize: "15px",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        transition: "all 0.3s ease",
+                      borderRadius: "6px",
+                      padding: "12px 24px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      fontSize: "15px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.3s ease",
                         boxShadow: "0 2px 8px rgba(40, 167, 69, 0.4)",
-                        width: "100%",
-                        maxWidth: "400px",
-                        justifyContent: "center"
-                      }}
-                      onMouseEnter={(e) => {
+                      width: "100%",
+                      maxWidth: "400px",
+                      justifyContent: "center"
+                    }}
+                    onMouseEnter={(e) => {
                         e.currentTarget.style.background = "#218838";
                         e.currentTarget.style.borderColor = "#218838";
                         e.currentTarget.style.boxShadow = "0 4px 12px rgba(40, 167, 69, 0.6)";
-                      }}
-                      onMouseLeave={(e) => {
+                    }}
+                    onMouseLeave={(e) => {
                         e.currentTarget.style.background = "#28a745";
                         e.currentTarget.style.borderColor = "#28a745";
                         e.currentTarget.style.boxShadow = "0 2px 8px rgba(40, 167, 69, 0.4)";
-                      }}
-                    >
-                      <span>Book An Instant Lesson Now!</span>
-                    </button>
+                    }}
+                  >
+                    <span>Book An Instant Lesson Now!</span>
+                  </button>
                   )}
                 </div>
               </div>
