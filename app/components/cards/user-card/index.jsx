@@ -126,9 +126,9 @@ const UserInfoCard = () => {
       <div className={`Trainer-box-1 card-body`} style={{ 
         height: "100%", 
         display: "flex", 
-        flexDirection: "column", 
-        alignItems: "center", 
-        gap: width600 ? "12px" : "18px",
+        flexDirection: width600 ? "column" : "row",
+        alignItems: width600 ? "center" : "flex-start",
+        gap: width600 ? "15px" : "18px",
         padding: width600 ? "15px 12px" : "20px 18px",
         backgroundColor: "#ffffff",
         borderRadius: "12px",
@@ -136,17 +136,17 @@ const UserInfoCard = () => {
         border: "1px solid #e0e0e0",
         transition: "all 0.3s ease"
       }}>
+        {/* Square Image */}
         <div
           className="profile-picture-container"
           style={{
             position: "relative",
-            width: width600 ? "110px" : width1200 ? "150px" : "200px",
-            height: width600 ? "110px" : width1200 ? "150px" : "200px",
-            borderRadius: "50%",
+            width: width600 ? "100px" : width1200 ? "120px" : "140px",
+            height: width600 ? "100px" : width1200 ? "120px" : "140px",
+            borderRadius: "8px",
             border: width600 ? "3px solid #000080" : "4px solid #000080",
             overflow: "hidden",
-            margin: "0 auto",
-            padding: width600 ? "3px" : "4px",
+            flexShrink: 0,
             backgroundColor: "#fff",
             boxShadow: "0 4px 12px rgba(0, 0, 128, 0.2)",
             transition: "all 0.3s ease"
@@ -170,20 +170,29 @@ const UserInfoCard = () => {
               height: "100%",
               objectFit: "cover",
               display: "block",
-              borderRadius: "50%"
+              borderRadius: "4px"
             }}
             onError={(e) => {
               e.target.src = "/assets/images/demoUser.png";
             }}
           />
         </div>
-        <div style={{ width: "100%", textAlign: "center" }}>
+
+        {/* Name and Pricing Section - Right side of image */}
+        <div style={{ 
+          flex: 1, 
+          display: "flex", 
+          flexDirection: "column",
+          width: "100%",
+          gap: width600 ? "8px" : "10px"
+        }}>
           <h4 style={{ 
-            marginBottom: width600 ? "10px" : "12px", 
+            margin: 0,
             fontWeight: "700", 
             color: "#1a1a1a",
-            fontSize: width600 ? "16px" : width1200 ? "20px" : "24px",
-            letterSpacing: "0.3px"
+            fontSize: width600 ? "16px" : width1200 ? "18px" : "22px",
+            letterSpacing: "0.3px",
+            textAlign: width600 ? "center" : "left"
           }}>
             {profile?.fullname || userInfo?.fullname || "User"}
           </h4>
@@ -192,16 +201,15 @@ const UserInfoCard = () => {
             <div style={{ 
               display: "flex", 
               alignItems: "center", 
-              justifyContent: "center", 
-              gap: width600 ? "8px" : "12px",
-              marginBottom: width600 ? "10px" : "12px",
+              justifyContent: width600 ? "center" : "flex-start",
+              gap: width600 ? "8px" : "10px",
               flexWrap: "wrap"
             }}>
               <h5 style={{ 
                 margin: 0, 
                 fontWeight: "600", 
                 color: "#555",
-                fontSize: width600 ? "13px" : width1200 ? "15px" : "17px"
+                fontSize: width600 ? "13px" : width1200 ? "14px" : "16px"
               }}>
                 Hourly Rate: $
                 {isEditing ? (
@@ -215,7 +223,7 @@ const UserInfoCard = () => {
                       handleSaveClick(e);
                     }}
                     style={{
-                      width: width600 ? "70px" : "90px",
+                      width: width600 ? "70px" : "85px",
                       padding: width600 ? "4px 8px" : "5px 10px",
                       border: "2px solid #000080",
                       borderRadius: "6px",
@@ -231,7 +239,7 @@ const UserInfoCard = () => {
                     }}
                   />
                 ) : (
-                  <span style={{ color: "#000080", fontWeight: "700", fontSize: width600 ? "15px" : "18px" }}>
+                  <span style={{ color: "#000080", fontWeight: "700", fontSize: width600 ? "15px" : "17px" }}>
                     {profile?.extraInfo?.hourly_rate || 0}
                   </span>
                 )}
@@ -272,27 +280,35 @@ const UserInfoCard = () => {
             </div>
           )}
 
-          {accountType === AccountType?.TRAINER &&
-            showRatings(trainerRatings, "d-flex justify-content-center align-items-center")}
-          
-          {userInfo &&
-            userInfo.extraInfo &&
-            userInfo.extraInfo.social_media_links &&
-            Object.keys(userInfo.extraInfo.social_media_links).some(key => userInfo.extraInfo.social_media_links[key]) && (
-            <div style={{ 
-              marginTop: width600 ? "10px" : "12px",
-              display: "flex",
-              justifyContent: "center",
-              width: "100%"
-            }}>
-              <SocialMediaIcons
-                profileImageURL={""}
-                social_media_links={userInfo.extraInfo.social_media_links}
-                isvisible={false}
-                isMobile={width600}
-              />
-            </div>
-          )}
+          {/* Ratings and Social Links - Below ratings */}
+          <div style={{ 
+            display: "flex", 
+            flexDirection: "column",
+            alignItems: width600 ? "center" : "flex-start",
+            gap: width600 ? "8px" : "10px",
+            marginTop: width600 ? "8px" : "10px"
+          }}>
+            {accountType === AccountType?.TRAINER &&
+              showRatings(trainerRatings, "d-flex align-items-center")}
+            
+            {userInfo &&
+              userInfo.extraInfo &&
+              userInfo.extraInfo.social_media_links &&
+              Object.keys(userInfo.extraInfo.social_media_links).some(key => userInfo.extraInfo.social_media_links[key]) && (
+              <div style={{ 
+                display: "flex",
+                justifyContent: width600 ? "center" : "flex-start",
+                width: "100%"
+              }}>
+                <SocialMediaIcons
+                  profileImageURL={""}
+                  social_media_links={userInfo.extraInfo.social_media_links}
+                  isvisible={false}
+                  isMobile={width600}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>

@@ -5,7 +5,6 @@ import ShareClipsCard from "../share-clips";
 import UploadClipCard from "../videoupload/UploadClipCard";
 import InviteFriendsCard from "../invite-friends";
 import RecentUsers from "../recent-users";
-import UserInfoCard from "../cards/user-card";
 import { useMediaQuery } from "../../hook/useMediaQuery";
 import {
   AccountType,
@@ -876,31 +875,6 @@ const NavHomePage = () => {
             gap: width600 ? "20px" : width1200 ? "15px" : "0px",
           }}
         >
-          {activeCenterTab !== "myClips" && (
-            <div
-              className={`${width600
-                ? "col-sm-12"
-                : width1200
-                  ? "col-sm-6"
-                  : width2000
-                    ? "col-sm-12"
-                    : ""
-                }`}
-              style={{
-                height: width600 ? "auto" : "400px",
-              }}
-            >
-              <div className="card trainer-profile-card Home-main-Cont" style={{ 
-                height: "100%", 
-                width: "100%", 
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                border: "none"
-              }}>
-                <UserInfoCard />
-              </div>
-            </div>
-          )}
 
           {(width1000 && friendRequests && friendRequests.length > 0) ? (
             <div

@@ -461,7 +461,7 @@ const TrainerSessionInfo = ({
 
   const rowStyle = {
     margin: "0px",
-    padding: "20px",
+    padding: isMobileScreen ? "12px" : "15px",
     maxWidth: "100%",
   };
 
@@ -476,14 +476,17 @@ const TrainerSessionInfo = ({
       style={rowStyle}
       id="trainerinfo"
     >
-      <div className="col-lg-6" style={{ paddingRight: "15px" }}>
+      <div className={isMobileScreen ? "col-12" : "col-lg-6"} style={{ 
+        paddingRight: isMobileScreen ? "0" : "12px",
+        paddingBottom: isMobileScreen ? "15px" : "0"
+      }}>
         {/* Trainer Profile Section */}
         <div
           style={{
             backgroundColor: "#f8f9fa",
             borderRadius: "12px",
-            padding: "20px",
-            marginBottom: "25px",
+            padding: isMobileScreen ? "15px" : "18px",
+            marginBottom: isMobileScreen ? "15px" : "20px",
             border: "1px solid #e9ecef",
           }}
         >
@@ -491,7 +494,7 @@ const TrainerSessionInfo = ({
             display: "flex", 
             flexDirection: "column", 
             alignItems: "center",
-            marginBottom: "20px",
+            marginBottom: isMobileScreen ? "12px" : "15px",
           }}>
             <div>
               <img
@@ -500,11 +503,11 @@ const TrainerSessionInfo = ({
                     ? Utils?.getImageUrlOfS3(trainer.profile_picture)
                     : "/assets/images/avtar/statusMenuIcon.jpeg"
                 }
-                width={120}
-                height={120}
+                width={isMobileScreen ? 100 : 120}
+                height={isMobileScreen ? 100 : 120}
                 style={{
-                  minHeight: "120px",
-                  minWidth: "120px",
+                  minHeight: isMobileScreen ? "100px" : "120px",
+                  minWidth: isMobileScreen ? "100px" : "120px",
                   objectFit: "cover",
                   borderRadius: "12px",
                   border: "3px solid #000080",
@@ -523,12 +526,12 @@ const TrainerSessionInfo = ({
                   justifyContent: 'center',
                   alignItems: 'center',
                   flexDirection: isMobileScreen ? "column" : "row",
-                  marginBottom: "10px",
+                  marginBottom: isMobileScreen ? "8px" : "10px",
                   gap: isMobileScreen ? "5px" : "10px",
                 }}>
                 <h2 style={{ 
                   margin: 0, 
-                  fontSize: isMobileScreen ? "20px" : "24px",
+                  fontSize: isMobileScreen ? "18px" : "22px",
                   fontWeight: "600",
                   color: "#212529",
                 }}>
@@ -541,7 +544,7 @@ const TrainerSessionInfo = ({
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
-                      fontSize: '13px',
+                      fontSize: isMobileScreen ? '12px' : '13px',
                       fontWeight: '600',
                       gap: '8px',
                     }}>
@@ -563,7 +566,7 @@ const TrainerSessionInfo = ({
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
-                      fontSize: '13px',
+                      fontSize: isMobileScreen ? '12px' : '13px',
                       fontWeight: '600',
                       gap: '8px',
                     }}>
@@ -582,8 +585,8 @@ const TrainerSessionInfo = ({
                 )}
               </div>
               <div style={{ 
-                marginTop: "12px",
-                padding: "10px",
+                marginTop: isMobileScreen ? "10px" : "12px",
+                padding: isMobileScreen ? "8px" : "10px",
                 backgroundColor: "#fff",
                 borderRadius: "8px",
                 border: "1px solid #dee2e6",
@@ -591,14 +594,14 @@ const TrainerSessionInfo = ({
               }}>
                 <h3 style={{ 
                   margin: 0, 
-                  fontSize: "18px",
+                  fontSize: isMobileScreen ? "16px" : "18px",
                   fontWeight: "500",
                   color: "#000080",
                 }}>
                   Hourly Rate: ${trainer?.extraInfo?.hourly_rate || TRAINER_AMOUNT_USD}
                 </h3>
               </div>
-              <div style={{ marginTop: "15px", display: "flex", justifyContent: "center" }}>
+              <div style={{ marginTop: isMobileScreen ? "12px" : "15px", display: "flex", justifyContent: "center" }}>
                 <Ratings
                   ratings={trainer && trainer?.trainer_ratings}
                   extraClasses={"d-flex"}
@@ -608,7 +611,7 @@ const TrainerSessionInfo = ({
                 trainer?.extraInfo &&
                 trainer?.extraInfo?.media &&
                 trainer?.extraInfo?.social_media_links ? (
-                <div style={{ marginTop: "15px", display: "flex", justifyContent: "center" }}>
+                <div style={{ marginTop: isMobileScreen ? "12px" : "15px", display: "flex", justifyContent: "center" }}>
                   <SocialMediaIcons
                     profileImageURL={
                       trainer &&
@@ -635,17 +638,17 @@ const TrainerSessionInfo = ({
           style={{
             backgroundColor: "#fff",
             borderRadius: "12px",
-            padding: "20px",
-            marginBottom: "25px",
+            padding: isMobileScreen ? "15px" : "18px",
+            marginBottom: isMobileScreen ? "15px" : "20px",
             border: "1px solid #e9ecef",
           }}
         >
           <h3 style={{
-            fontSize: "20px",
+            fontSize: isMobileScreen ? "18px" : "20px",
             fontWeight: "600",
             color: "#212529",
-            marginBottom: "15px",
-            paddingBottom: "10px",
+            marginBottom: isMobileScreen ? "12px" : "15px",
+            paddingBottom: isMobileScreen ? "8px" : "10px",
             borderBottom: "2px solid #000080",
           }}>
             Book Session
@@ -659,24 +662,24 @@ const TrainerSessionInfo = ({
             style={{
               backgroundColor: "#fff",
               borderRadius: "12px",
-              padding: "20px",
-              marginBottom: "25px",
+              padding: isMobileScreen ? "15px" : "18px",
+              marginBottom: isMobileScreen ? "15px" : "20px",
               border: "1px solid #e9ecef",
             }}
           >
             <h4 style={{
-              fontSize: "20px",
+              fontSize: isMobileScreen ? "18px" : "20px",
               fontWeight: "600",
               color: "#212529",
-              marginBottom: "15px",
-              paddingBottom: "10px",
+              marginBottom: isMobileScreen ? "12px" : "15px",
+              paddingBottom: isMobileScreen ? "8px" : "10px",
               borderBottom: "2px solid #000080",
             }}>
               About
             </h4>
             <p style={{
               margin: 0,
-              fontSize: "15px",
+              fontSize: isMobileScreen ? "14px" : "15px",
               lineHeight: "1.6",
               color: "#495057",
             }}>
@@ -691,8 +694,8 @@ const TrainerSessionInfo = ({
             style={{
               backgroundColor: "#fff",
               borderRadius: "12px",
-              padding: "20px",
-              marginBottom: "25px",
+              padding: isMobileScreen ? "15px" : "18px",
+              marginBottom: isMobileScreen ? "15px" : "20px",
               border: "1px solid #e9ecef",
             }}
           >
@@ -726,23 +729,25 @@ const TrainerSessionInfo = ({
           </div>
         )}
       </div>
-      <div className="col-lg-6" style={{ paddingLeft: "15px" }}>
+      <div className={isMobileScreen ? "col-12" : "col-lg-6"} style={{ 
+        paddingLeft: isMobileScreen ? "0" : "12px"
+      }}>
         {/* Featured Content Section */}
         <div
           style={{
             backgroundColor: "#fff",
             borderRadius: "12px",
-            padding: "20px",
-            marginBottom: "25px",
+            padding: isMobileScreen ? "15px" : "18px",
+            marginBottom: isMobileScreen ? "15px" : "20px",
             border: "1px solid #e9ecef",
           }}
         >
           <h2 style={{
-            fontSize: "20px",
+            fontSize: isMobileScreen ? "18px" : "20px",
             fontWeight: "600",
             color: "#212529",
-            marginBottom: "20px",
-            paddingBottom: "10px",
+            marginBottom: isMobileScreen ? "15px" : "20px",
+            paddingBottom: isMobileScreen ? "8px" : "10px",
             borderBottom: "2px solid #000080",
           }}>
             Featured Content
@@ -756,7 +761,7 @@ const TrainerSessionInfo = ({
             />
           ) : (
             <div style={{
-              padding: "40px",
+              padding: isMobileScreen ? "30px 20px" : "40px",
               textAlign: "center",
               color: "#6c757d",
               backgroundColor: "#f8f9fa",
@@ -773,17 +778,17 @@ const TrainerSessionInfo = ({
             style={{
               backgroundColor: "#fff",
               borderRadius: "12px",
-              padding: "20px",
-              marginBottom: "25px",
+              padding: isMobileScreen ? "15px" : "18px",
+              marginBottom: isMobileScreen ? "15px" : "20px",
               border: "1px solid #e9ecef",
             }}
           >
             <h2 style={{
-              fontSize: "20px",
+              fontSize: isMobileScreen ? "18px" : "20px",
               fontWeight: "600",
               color: "#212529",
-              marginBottom: "20px",
-              paddingBottom: "10px",
+              marginBottom: isMobileScreen ? "15px" : "20px",
+              paddingBottom: isMobileScreen ? "8px" : "10px",
               borderBottom: "2px solid #000080",
             }}>
               Reviews

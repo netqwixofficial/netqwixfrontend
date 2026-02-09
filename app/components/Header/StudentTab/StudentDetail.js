@@ -21,86 +21,110 @@ const StudentDetail = ({ videoClips, data }) => {
   }
 
   return (
-    <div>
-      <h3 style={{ textAlign: 'center' }}>{addSuffix(data?.fullname)} Clips</h3>
+    <div style={{ padding: width600 ? "10px" : "15px", maxWidth: "100%" }}>
+      <h3 style={{ 
+        textAlign: 'center', 
+        marginBottom: width600 ? "15px" : "20px",
+        fontSize: width600 ? "18px" : "22px",
+        fontWeight: "600",
+        color: "#333"
+      }}>
+        {addSuffix(data?.fullname)} Clips
+      </h3>
       <div style={{
         display: 'flex',
-        justifyContent: 'space-around',
-        paddingTop: "10px",
-        flexWrap:"wrap",
-        gap:"15px"
+        flexDirection: width600 ? "column" : "row",
+        justifyContent: 'flex-start',
+        alignItems: width600 ? "center" : "flex-start",
+        gap: width600 ? "15px" : "20px",
+        width: "100%"
       }}>
-        <div >
-        <div className="card rounded trainer-profile-card" style={{
-          width: "250px",
-          maxHeight: "260px",
-          border: "2px solid rgb(0, 0, 128)",
-          borderRadius: "5px"
+        {/* Left Sidebar - Profile Image and Upload */}
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: width600 ? "12px" : "15px",
+          width: width600 ? "100%" : "auto",
+          flexShrink: 0
         }}>
-          <div className="card-body">
-            <div className="row">
-              <div className="col-12 d-flex justify-content-center align-items-center">
+          {/* Profile Card */}
+          <div className="card rounded trainer-profile-card" style={{
+            width: width600 ? "100%" : "240px",
+            maxWidth: width600 ? "100%" : "240px",
+            border: "2px solid rgb(0, 0, 128)",
+            borderRadius: "8px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+          }}>
+            <div className="card-body" style={{ padding: width600 ? "12px" : "15px" }}>
+              <div style={{ 
+                display: "flex", 
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "12px"
+              }}>
                 <img
                   className="card-img-top"
                   src={Utils?.getImageUrlOfS3(data?.profile_picture) || '/assets/images/demoUser.png'}
-                  alt="Card image cap"
+                  alt="Student profile"
                   style={{
-                    padding: "5px",
-                    borderRadius: "20px",
+                    padding: "4px",
+                    borderRadius: "8px",
                     objectFit: 'cover',
-                    height: '190px',
-                    width: '200px',
+                    height: width600 ? "140px" : "160px",
+                    width: width600 ? "140px" : "160px",
+                    border: "2px solid #e0e0e0"
                   }}
                   onError={(e) => {
-                    e.target.src = '/assets/images/demoUser.png';  // Set default image on error
+                    e.target.src = '/assets/images/demoUser.png';
                   }}
                 />
-              </div>
-              <div className="col-12 text-center mt-3">
-                <h3>{data?.fullname}</h3>
+                <h4 style={{ 
+                  margin: 0,
+                  fontSize: width600 ? "16px" : "18px",
+                  fontWeight: "600",
+                  color: "#333",
+                  textAlign: "center"
+                }}>
+                  {data?.fullname}
+                </h4>
               </div>
             </div>
+          </div>
 
-         
+          {/* Upload Card */}
+          <div className="card rounded trainer-profile-card" style={{
+            width: width600 ? "100%" : "240px",
+            maxWidth: width600 ? "100%" : "240px",
+            border: "2px solid rgb(0, 0, 128)",
+            borderRadius: "8px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+          }}>
+            <div className="card-body" style={{ padding: width600 ? "12px" : "15px" }}>
+              <UploadClipCard progress={progress} setProgress={setProgress} isFromCommunity={data?._id}/>
+            </div>
           </div>
         </div>
 
-        <div className="card rounded trainer-profile-card mt-2" style={{
-          width: "250px",
-         
-          border: "2px solid rgb(0, 0, 128)",
-          borderRadius: "5px"
-        }}>
-          <div className="card-body">
-
-            <UploadClipCard progress={progress} setProgress={setProgress} isFromCommunity={data?._id}/>
-          </div>
-        </div>
-</div>
+        {/* Right Side - Clips Section */}
         <div className="card rounded trainer-profile-card" style={{
-          // maxWidth: "60%",
-          width: `calc(100% - 300px)`,
-          height: "100%",
-          padding: width600?"8px":'20px',
-          // overflow: 'scroll',
+          flex: 1,
+          minWidth: width600 ? "100%" : "300px",
+          width: width600 ? "100%" : "auto",
           border: "2px solid rgb(0, 0, 128)",
-          borderRadius: "5px"
+          borderRadius: "8px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          display: "flex",
+          flexDirection: "column"
         }}>
-          <NavStudentRecord  trainee_id={trainee_id}/>
+          <div style={{ 
+            padding: width600 ? "12px" : "18px",
+            flex: 1,
+            overflow: "auto"
+          }}>
+            <NavStudentRecord trainee_id={trainee_id}/>
+          </div>
         </div>
       </div>
-
-      {/* {videoClips?.length ?
-        <div style={{ display: "flex", flexWrap: "wrap", margin: '20px 20px', overflow: 'auto', gap:'20px' }}>
-          {videoClips?.map((clp, index) => (
-            <div key={`video_clip_${index}`}>
-              <video controls style={{ maxWidth:'200px',minWidth:'200px',maxHeight:'120px',minHeight:'120px'}}>
-                <source src={Utils?.generateVideoURL(clp)} type="video/mp4" />
-              </video>
-            </div>
-          ))}
-        </div>
-        : <h5 style={{ margin: '40px 20px', textAlign: 'center' }}>No Clips Found.</h5>} */}
     </div>
   );
 };
