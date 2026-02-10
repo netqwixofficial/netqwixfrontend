@@ -1022,8 +1022,7 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
 
 
       </div>
-      {activeTab !== leftSideBarOptions.HOME &&
-        activeTab !== leftSideBarOptions.SCHEDULE_TRAINING && (
+      {activeTab !== leftSideBarOptions.HOME && (
           <aside className="app-sidebar active">
             <div className="apps">
               <div className="apps-ul">
@@ -1148,7 +1147,11 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                       : ""
                       } sidebar-full-width custom-mobile-schedule-css`}
                   >
-                    <SchedulePage />
+                    <SchedulePage
+                      smallSideBarToggle={smallSideBarToggle}
+                      tab={activeTab}
+                      ActiveTab={setActiveTab}
+                    />
                   </TabPane>
 
                   {/* My Community */}
