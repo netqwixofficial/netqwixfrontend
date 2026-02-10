@@ -519,7 +519,7 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                     ? "active"
                     : ""
                     }`}
-                  onClick={() => TogglTab(leftSideBarOptions.SCHEDULE_TRAINING)}
+                  onClick={() => ToggleTab(leftSideBarOptions.SCHEDULE_TRAINING)}
                 >
                   <i className="fa fa-calendar"></i>
                 </NavLink>
@@ -738,13 +738,13 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                 {accountType === AccountType?.TRAINER && (
                   <li
                     onClick={() => {
-                      ToggleTab("schedule");
+                      ToggleTab(leftSideBarOptions.SCHEDULE_TRAINING);
                     }}
                   >
                     <NavLink
                       id="sidebar-item-schedule"
                       className={`icon-btn btn-light button-effect step2 ${
-                        activeTab === "schedule" ? "active" : ""
+                        activeTab === leftSideBarOptions.SCHEDULE_TRAINING ? "active" : ""
                       }`}
                       data-intro=""
                       aria-label="Schedule"
@@ -1023,8 +1023,7 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
 
       </div>
       {activeTab !== leftSideBarOptions.HOME &&
-        activeTab !== leftSideBarOptions.SCHEDULE_TRAINING &&
-        activeTab !== "schedule" && (
+        activeTab !== leftSideBarOptions.SCHEDULE_TRAINING && (
           <aside className="app-sidebar active">
             <div className="apps">
               <div className="apps-ul">
