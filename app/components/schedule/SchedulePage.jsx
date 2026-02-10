@@ -121,11 +121,9 @@ const DayAvailability = ({ day, times, setTimes, copyToAll, width600, width900 }
     <div
       className="day-availability-item"
       style={{
-        borderBottom: "1px solid #e8eaf0",
-        padding: width600 ? "18px 0" : width900 ? "20px 0" : "22px 0",
-        transition: "all 0.3s ease",
-        borderRadius: "8px",
-        marginBottom: "4px"
+        borderBottom: "1px solid #f0f0f0",
+        padding: width600 ? "16px 0" : "18px 0",
+        transition: "all 0.2s ease"
       }}
     >
       <div
@@ -144,41 +142,17 @@ const DayAvailability = ({ day, times, setTimes, copyToAll, width600, width900 }
             display: "flex",
             alignItems: "center",
             gap: "12px",
-            minWidth: width600 ? "100%" : width900 ? "90px" : "110px",
+            minWidth: width600 ? "100%" : width900 ? "100px" : "120px",
             flexShrink: 0
           }}
         >
-          <div
-            style={{
-              width: width600 ? "40px" : "48px",
-              height: width600 ? "40px" : "48px",
-              borderRadius: "10px",
-              backgroundColor: "#f0f4ff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              border: "2px solid #e0e8ff",
-              flexShrink: 0
-            }}
-          >
-            <span
-              style={{
-                fontSize: width600 ? "12px" : "13px",
-                fontWeight: "700",
-                color: "#000080",
-                textTransform: "uppercase"
-              }}
-            >
-              {day.substring(0, 3)}
-            </span>
-          </div>
           <h4
             style={{
               margin: 0,
-              fontSize: width600 ? "16px" : width900 ? "17px" : "18px",
+              fontSize: width600 ? "15px" : "16px",
               fontWeight: "600",
               color: "#1a1a1a",
-              minWidth: width600 ? "auto" : "60px"
+              minWidth: width600 ? "auto" : "100px"
             }}
           >
             {day === "Sun" ? "Sunday" : day === "Mon" ? "Monday" : day === "Tue" ? "Tuesday" : day === "Wed" ? "Wednesday" : day === "Thu" ? "Thursday" : day === "Fri" ? "Friday" : "Saturday"}
@@ -202,23 +176,13 @@ const DayAvailability = ({ day, times, setTimes, copyToAll, width600, width900 }
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
-                padding: "12px",
-                backgroundColor: "#fafafa",
-                borderRadius: "8px",
-                border: "1px dashed #ddd"
+                padding: "10px",
+                color: "#999",
+                fontSize: width600 ? "13px" : "14px"
               }}
             >
               <Clock size={16} color="#999" />
-              <p
-                style={{
-                  color: "#999",
-                  fontStyle: "italic",
-                  fontSize: width600 ? "13px" : "14px",
-                  margin: 0
-                }}
-              >
-                Unavailable
-              </p>
+              <span>Unavailable</span>
             </div>
           ) : (
             <div
@@ -234,48 +198,32 @@ const DayAvailability = ({ day, times, setTimes, copyToAll, width600, width900 }
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: width600 ? "10px" : "12px",
+                    gap: width600 ? "8px" : "10px",
                     flexWrap: width600 ? "wrap" : "nowrap",
-                    padding: width600 ? "10px" : "12px",
-                    backgroundColor: "#f8f9fa",
-                    borderRadius: "10px",
-                    border: "1px solid #e9ecef",
-                    transition: "all 0.3s ease"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#f0f4ff";
-                    e.currentTarget.style.borderColor = "#d0d8ff";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "#f8f9fa";
-                    e.currentTarget.style.borderColor = "#e9ecef";
+                    padding: width600 ? "8px 0" : "10px 0"
                   }}
                 >
                   <select
                     onChange={(e) => handleTimeChange(index, "start", e.target.value)}
                     value={slot.start}
                     style={{
-                      padding: width600 ? "10px 12px" : "12px 14px",
-                      border: "2px solid #e0e0e0",
-                      borderRadius: "8px",
+                      padding: width600 ? "8px 10px" : "10px 12px",
+                      border: "1px solid #ddd",
+                      borderRadius: "6px",
                       fontSize: width600 ? "13px" : "14px",
-                      fontWeight: "600",
                       color: "#333",
                       backgroundColor: "#fff",
                       cursor: "pointer",
-                      transition: "all 0.3s ease",
-                      flex: width600 ? "1 1 calc(50% - 6px)" : "0 1 auto",
-                      minWidth: width600 ? "calc(50% - 6px)" : "150px",
-                      outline: "none",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+                      transition: "all 0.2s ease",
+                      flex: width600 ? "1 1 calc(50% - 4px)" : "0 1 auto",
+                      minWidth: width600 ? "calc(50% - 4px)" : "140px",
+                      outline: "none"
                     }}
                     onFocus={(e) => {
                       e.target.style.borderColor = "#000080";
-                      e.target.style.boxShadow = "0 0 0 3px rgba(0, 0, 128, 0.1), 0 2px 4px rgba(0,0,0,0.1)";
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = "#e0e0e0";
-                      e.target.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)";
+                      e.target.style.borderColor = "#ddd";
                     }}
                   >
                     {timeOptions.map((time) => (
@@ -300,27 +248,23 @@ const DayAvailability = ({ day, times, setTimes, copyToAll, width600, width900 }
                     value={slot.end}
                     onChange={(e) => handleTimeChange(index, "end", e.target.value)}
                     style={{
-                      padding: width600 ? "10px 12px" : "12px 14px",
-                      border: "2px solid #e0e0e0",
-                      borderRadius: "8px",
+                      padding: width600 ? "8px 10px" : "10px 12px",
+                      border: "1px solid #ddd",
+                      borderRadius: "6px",
                       fontSize: width600 ? "13px" : "14px",
-                      fontWeight: "600",
                       color: "#333",
                       backgroundColor: "#fff",
                       cursor: "pointer",
-                      transition: "all 0.3s ease",
-                      flex: width600 ? "1 1 calc(50% - 6px)" : "0 1 auto",
-                      minWidth: width600 ? "calc(50% - 6px)" : "150px",
-                      outline: "none",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+                      transition: "all 0.2s ease",
+                      flex: width600 ? "1 1 calc(50% - 4px)" : "0 1 auto",
+                      minWidth: width600 ? "calc(50% - 4px)" : "140px",
+                      outline: "none"
                     }}
                     onFocus={(e) => {
                       e.target.style.borderColor = "#000080";
-                      e.target.style.boxShadow = "0 0 0 3px rgba(0, 0, 128, 0.1), 0 2px 4px rgba(0,0,0,0.1)";
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = "#e0e0e0";
-                      e.target.style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)";
+                      e.target.style.borderColor = "#ddd";
                     }}
                   >
                     {timeOptions.map((time) => (
@@ -336,32 +280,27 @@ const DayAvailability = ({ day, times, setTimes, copyToAll, width600, width900 }
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      width: width600 ? "38px" : "42px",
-                      height: width600 ? "38px" : "42px",
-                      backgroundColor: "#fff5f5",
-                      border: "2px solid #fecaca",
-                      borderRadius: "10px",
+                      width: width600 ? "32px" : "36px",
+                      height: width600 ? "32px" : "36px",
+                      backgroundColor: "transparent",
+                      border: "1px solid #ddd",
+                      borderRadius: "6px",
                       cursor: "pointer",
-                      transition: "all 0.3s ease",
+                      transition: "all 0.2s ease",
                       color: "#dc2626",
-                      flexShrink: 0,
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+                      flexShrink: 0
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = "#fee2e2";
                       e.currentTarget.style.borderColor = "#fca5a5";
-                      e.currentTarget.style.transform = "scale(1.08)";
-                      e.currentTarget.style.boxShadow = "0 2px 6px rgba(220, 38, 38, 0.3)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "#fff5f5";
-                      e.currentTarget.style.borderColor = "#fecaca";
-                      e.currentTarget.style.transform = "scale(1)";
-                      e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.borderColor = "#ddd";
                     }}
                     aria-label="Remove time slot"
                   >
-                    <X size={width600 ? 18 : 20} strokeWidth={2.5} />
+                    <X size={width600 ? 16 : 18} strokeWidth={2} />
                   </button>
                 </div>
               ))}
@@ -374,9 +313,9 @@ const DayAvailability = ({ day, times, setTimes, copyToAll, width600, width900 }
           style={{
             display: "flex",
             alignItems: "center",
-            gap: width600 ? "10px" : "12px",
+            gap: width600 ? "8px" : "10px",
             flexShrink: 0,
-            flexDirection: width600 ? "row" : "column"
+            flexDirection: width600 ? "row" : "row"
           }}
         >
           <button
@@ -385,33 +324,28 @@ const DayAvailability = ({ day, times, setTimes, copyToAll, width600, width900 }
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              width: width600 ? "44px" : "48px",
-              height: width600 ? "44px" : "48px",
-              backgroundColor: "#f0fdf4",
-              border: "2px solid #4ade80",
-              borderRadius: "12px",
+              width: width600 ? "36px" : "40px",
+              height: width600 ? "36px" : "40px",
+              backgroundColor: "transparent",
+              border: "1px solid #4ade80",
+              borderRadius: "6px",
               cursor: "pointer",
-              transition: "all 0.3s ease",
+              transition: "all 0.2s ease",
               color: "#16a34a",
-              flexShrink: 0,
-              boxShadow: "0 2px 6px rgba(34, 197, 94, 0.2)"
+              flexShrink: 0
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = "#dcfce7";
               e.currentTarget.style.borderColor = "#22c55e";
-              e.currentTarget.style.transform = "scale(1.08)";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(34, 197, 94, 0.3)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "#f0fdf4";
+              e.currentTarget.style.backgroundColor = "transparent";
               e.currentTarget.style.borderColor = "#4ade80";
-              e.currentTarget.style.transform = "scale(1)";
-              e.currentTarget.style.boxShadow = "0 2px 6px rgba(34, 197, 94, 0.2)";
             }}
             aria-label="Add time slot"
             title="Add time slot"
           >
-            <Plus size={width600 ? 20 : 22} strokeWidth={2.5} />
+            <Plus size={width600 ? 18 : 20} strokeWidth={2} />
           </button>
 
           {times.length > 0 && (
@@ -421,33 +355,28 @@ const DayAvailability = ({ day, times, setTimes, copyToAll, width600, width900 }
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: width600 ? "44px" : "48px",
-                height: width600 ? "44px" : "48px",
-                backgroundColor: "#eff6ff",
-                border: "2px solid #60a5fa",
-                borderRadius: "12px",
+                width: width600 ? "36px" : "40px",
+                height: width600 ? "36px" : "40px",
+                backgroundColor: "transparent",
+                border: "1px solid #60a5fa",
+                borderRadius: "6px",
                 cursor: "pointer",
-                transition: "all 0.3s ease",
+                transition: "all 0.2s ease",
                 color: "#2563eb",
-                flexShrink: 0,
-                boxShadow: "0 2px 6px rgba(37, 99, 235, 0.2)"
+                flexShrink: 0
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = "#dbeafe";
                 e.currentTarget.style.borderColor = "#3b82f6";
-                e.currentTarget.style.transform = "scale(1.08)";
-                e.currentTarget.style.boxShadow = "0 4px 12px rgba(37, 99, 235, 0.3)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "#eff6ff";
+                e.currentTarget.style.backgroundColor = "transparent";
                 e.currentTarget.style.borderColor = "#60a5fa";
-                e.currentTarget.style.transform = "scale(1)";
-                e.currentTarget.style.boxShadow = "0 2px 6px rgba(37, 99, 235, 0.2)";
               }}
               aria-label="Copy to all days"
               title="Copy schedule to all days"
             >
-              <Copy size={width600 ? 18 : 20} strokeWidth={2.5} />
+              <Copy size={width600 ? 16 : 18} strokeWidth={2} />
             </button>
           )}
         </div>
@@ -549,10 +478,10 @@ const SchedulePage = () => {
       <style>{`
         .schedule-page-container {
           padding: ${width600 ? "16px" : width900 ? "20px" : "24px"};
-          max-width: 1400px;
+          max-width: 1200px;
           margin: 0 auto;
           min-height: 100vh;
-          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+          background: #ffffff;
           box-sizing: border-box;
         }
         
@@ -566,117 +495,55 @@ const SchedulePage = () => {
       {/* Header Section */}
       <div
         style={{
-          marginBottom: width600 ? "24px" : width900 ? "28px" : "32px",
-          textAlign: width600 ? "center" : "left",
-          padding: width600 ? "16px" : "20px",
-          backgroundColor: "#fff",
-          borderRadius: "16px",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
-          border: "1px solid #e8ecf0"
+          marginBottom: width600 ? "20px" : "24px",
+          paddingBottom: width600 ? "16px" : "20px",
+          borderBottom: "2px solid #f0f0f0"
         }}
       >
-        <div
+        <h1
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: width600 ? "12px" : "16px",
-            justifyContent: width600 ? "center" : "flex-start",
-            marginBottom: "12px"
+            fontSize: width600 ? "20px" : width900 ? "24px" : "28px",
+            fontWeight: "600",
+            color: "#1a1a1a",
+            margin: 0,
+            lineHeight: "1.3"
           }}
         >
-          <div
-            style={{
-              width: width600 ? "48px" : "56px",
-              height: width600 ? "48px" : "56px",
-              borderRadius: "14px",
-              backgroundColor: "#f0f4ff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              border: "2px solid #d0d8ff",
-              boxShadow: "0 2px 8px rgba(0, 0, 128, 0.15)"
-            }}
-          >
-            <Calendar size={width600 ? 24 : 28} color="#000080" strokeWidth={2} />
-          </div>
-          <div>
-            <h1
-              style={{
-                fontSize: width600 ? "22px" : width900 ? "26px" : "30px",
-                fontWeight: "700",
-                color: "#1a1a1a",
-                margin: 0,
-                lineHeight: "1.2"
-              }}
-            >
-              Schedule Management
-            </h1>
-            <p
-              style={{
-                fontSize: width600 ? "12px" : "14px",
-                color: "#666",
-                margin: "4px 0 0 0"
-              }}
-            >
-              Manage your weekly availability and appointment settings
-            </p>
-          </div>
-        </div>
+          Schedule Management
+        </h1>
+        <p
+          style={{
+            fontSize: width600 ? "13px" : "14px",
+            color: "#666",
+            margin: "8px 0 0 0"
+          }}
+        >
+          Manage your weekly availability and appointment settings
+        </p>
       </div>
 
-      {/* Settings Card */}
+      {/* Settings Section */}
       <div
         style={{
-          backgroundColor: "#fff",
-          borderRadius: "16px",
-          padding: width600 ? "20px" : width900 ? "24px" : "28px",
-          marginBottom: width600 ? "24px" : width900 ? "28px" : "32px",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
-          border: "1px solid #e8ecf0",
-          transition: "all 0.3s ease"
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.12)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)";
+          marginBottom: width600 ? "24px" : "28px",
+          paddingBottom: width600 ? "20px" : "24px",
+          borderBottom: "1px solid #f0f0f0"
         }}
       >
-        <div
+        <h2
           style={{
+            fontSize: width600 ? "18px" : width900 ? "20px" : "22px",
+            fontWeight: "600",
+            color: "#1a1a1a",
+            margin: `0 0 ${width600 ? "16px" : "20px"} 0`,
             display: "flex",
             alignItems: "center",
-            gap: "12px",
-            marginBottom: width600 ? "20px" : "24px",
-            paddingBottom: width600 ? "16px" : "20px",
-            borderBottom: "2px solid #f0f4ff"
+            gap: "8px"
           }}
         >
-          <div
-            style={{
-              width: width600 ? "40px" : "44px",
-              height: width600 ? "40px" : "44px",
-              borderRadius: "12px",
-              backgroundColor: "#f0f4ff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              border: "2px solid #d0d8ff"
-            }}
-          >
-            <Clock size={width600 ? 20 : 22} color="#000080" strokeWidth={2} />
-          </div>
-          <h2
-            style={{
-              fontSize: width600 ? "18px" : width900 ? "20px" : "22px",
-              fontWeight: "700",
-              color: "#1a1a1a",
-              margin: 0
-            }}
-          >
-            Settings
-          </h2>
-        </div>
+          <Clock size={20} color="#666" strokeWidth={2} />
+          <span>Settings</span>
+        </h2>
 
         <div
           style={{
@@ -690,17 +557,14 @@ const SchedulePage = () => {
             <label
               htmlFor="timeZone"
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
+                display: "block",
                 fontSize: width600 ? "13px" : "14px",
-                fontWeight: "600",
+                fontWeight: "500",
                 color: "#333",
-                marginBottom: "12px"
+                marginBottom: "8px"
               }}
             >
-              <Globe size={18} color="#000080" strokeWidth={2} />
-              <span>Time Zone</span>
+              Time Zone
             </label>
             <select
               id="timeZone"
@@ -708,25 +572,21 @@ const SchedulePage = () => {
               onChange={(e) => setTimeZone(e.target.value)}
               style={{
                 width: "100%",
-                padding: width600 ? "12px 14px" : "14px 18px",
-                border: "2px solid #e0e0e0",
-                borderRadius: "12px",
+                padding: width600 ? "10px 12px" : "12px 16px",
+                border: "1px solid #ddd",
+                borderRadius: "8px",
                 fontSize: width600 ? "14px" : "15px",
-                fontWeight: "500",
                 color: "#333",
                 backgroundColor: "#fff",
                 cursor: "pointer",
-                transition: "all 0.3s ease",
-                outline: "none",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+                transition: "all 0.2s ease",
+                outline: "none"
               }}
               onFocus={(e) => {
                 e.target.style.borderColor = "#000080";
-                e.target.style.boxShadow = "0 0 0 4px rgba(0, 0, 128, 0.1), 0 4px 8px rgba(0,0,0,0.1)";
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = "#e0e0e0";
-                e.target.style.boxShadow = "0 2px 4px rgba(0,0,0,0.05)";
+                e.target.style.borderColor = "#ddd";
               }}
             >
               {timezones.map((zone, index) => (
@@ -742,17 +602,14 @@ const SchedulePage = () => {
             <label
               htmlFor="appointmentDuration"
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
+                display: "block",
                 fontSize: width600 ? "13px" : "14px",
-                fontWeight: "600",
+                fontWeight: "500",
                 color: "#333",
-                marginBottom: "12px"
+                marginBottom: "8px"
               }}
             >
-              <Clock size={18} color="#000080" strokeWidth={2} />
-              <span>Appointment Duration</span>
+              Appointment Duration
             </label>
             <select
               id="appointmentDuration"
@@ -760,25 +617,21 @@ const SchedulePage = () => {
               onChange={(e) => setSelectedDuration(Number(e.target.value))}
               style={{
                 width: "100%",
-                padding: width600 ? "12px 14px" : "14px 18px",
-                border: "2px solid #e0e0e0",
-                borderRadius: "12px",
+                padding: width600 ? "10px 12px" : "12px 16px",
+                border: "1px solid #ddd",
+                borderRadius: "8px",
                 fontSize: width600 ? "14px" : "15px",
-                fontWeight: "500",
                 color: "#333",
                 backgroundColor: "#fff",
                 cursor: "pointer",
-                transition: "all 0.3s ease",
-                outline: "none",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+                transition: "all 0.2s ease",
+                outline: "none"
               }}
               onFocus={(e) => {
                 e.target.style.borderColor = "#000080";
-                e.target.style.boxShadow = "0 0 0 4px rgba(0, 0, 128, 0.1), 0 4px 8px rgba(0,0,0,0.1)";
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = "#e0e0e0";
-                e.target.style.boxShadow = "0 2px 4px rgba(0,0,0,0.05)";
+                e.target.style.borderColor = "#ddd";
               }}
             >
               {appointmentDurations.map((duration) => (
@@ -791,59 +644,26 @@ const SchedulePage = () => {
         </div>
       </div>
 
-      {/* Availability Card */}
+      {/* Availability Section */}
       <div
         style={{
-          backgroundColor: "#fff",
-          borderRadius: "16px",
-          padding: width600 ? "20px" : width900 ? "24px" : "28px",
-          marginBottom: width600 ? "24px" : width900 ? "28px" : "32px",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
-          border: "1px solid #e8ecf0",
-          transition: "all 0.3s ease"
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.12)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)";
+          marginBottom: width600 ? "24px" : "28px"
         }}
       >
-        <div
+        <h2
           style={{
+            fontSize: width600 ? "18px" : width900 ? "20px" : "22px",
+            fontWeight: "600",
+            color: "#1a1a1a",
+            margin: `0 0 ${width600 ? "20px" : "24px"} 0`,
             display: "flex",
             alignItems: "center",
-            gap: "12px",
-            marginBottom: width600 ? "24px" : "28px",
-            paddingBottom: width600 ? "18px" : "22px",
-            borderBottom: "2px solid #f0f4ff"
+            gap: "8px"
           }}
         >
-          <div
-            style={{
-              width: width600 ? "40px" : "44px",
-              height: width600 ? "40px" : "44px",
-              borderRadius: "12px",
-              backgroundColor: "#f0f4ff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              border: "2px solid #d0d8ff"
-            }}
-          >
-            <Calendar size={width600 ? 20 : 22} color="#000080" strokeWidth={2} />
-          </div>
-          <h2
-            style={{
-              fontSize: width600 ? "18px" : width900 ? "20px" : "22px",
-              fontWeight: "700",
-              color: "#1a1a1a",
-              margin: 0
-            }}
-          >
-            Weekly Availability
-          </h2>
-        </div>
+          <Calendar size={20} color="#666" strokeWidth={2} />
+          <span>Weekly Availability</span>
+        </h2>
 
         {weekDays.map((day) => (
           <DayAvailability
@@ -862,9 +682,10 @@ const SchedulePage = () => {
       <div
         style={{
           display: "flex",
-          justifyContent: "center",
-          marginTop: width600 ? "24px" : width900 ? "28px" : "32px",
-          padding: width600 ? "0" : "0 20px"
+          justifyContent: "flex-start",
+          marginTop: width600 ? "24px" : "28px",
+          paddingTop: width600 ? "20px" : "24px",
+          borderTop: "1px solid #f0f0f0"
         }}
       >
         <button
@@ -875,45 +696,36 @@ const SchedulePage = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "12px",
-            padding: width600 ? "14px 36px" : width900 ? "16px 44px" : "18px 52px",
+            gap: "8px",
+            padding: width600 ? "12px 24px" : "14px 32px",
             backgroundColor: isSaving ? "#94a3b8" : "#000080",
             color: "#fff",
             border: "none",
-            borderRadius: "14px",
-            fontSize: width600 ? "15px" : width900 ? "16px" : "17px",
-            fontWeight: "700",
+            borderRadius: "8px",
+            fontSize: width600 ? "14px" : "15px",
+            fontWeight: "600",
             cursor: isSaving ? "not-allowed" : "pointer",
-            transition: "all 0.3s ease",
-            boxShadow: isSaving
-              ? "0 2px 4px rgba(0,0,0,0.1)"
-              : "0 6px 20px rgba(0, 0, 128, 0.35)",
-            minWidth: width600 ? "160px" : width900 ? "180px" : "200px",
-            letterSpacing: "0.3px"
+            transition: "all 0.2s ease"
           }}
           onMouseEnter={(e) => {
             if (!isSaving) {
               e.currentTarget.style.backgroundColor = "#0000b0";
-              e.currentTarget.style.transform = "translateY(-3px)";
-              e.currentTarget.style.boxShadow = "0 8px 24px rgba(0, 0, 128, 0.45)";
             }
           }}
           onMouseLeave={(e) => {
             if (!isSaving) {
               e.currentTarget.style.backgroundColor = "#000080";
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "0 6px 20px rgba(0, 0, 128, 0.35)";
             }
           }}
         >
           {isSaving ? (
             <>
-              <CircleLoader size={22} />
+              <CircleLoader size={18} />
               <span>Saving...</span>
             </>
           ) : (
             <>
-              <Save size={22} strokeWidth={2.5} />
+              <Save size={18} strokeWidth={2.5} />
               <span>Save Schedule</span>
             </>
           )}
