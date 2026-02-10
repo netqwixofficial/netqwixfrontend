@@ -11,8 +11,6 @@ import {
 import { AccountType, LOCAL_STORAGE_KEYS } from "../../common/constants";
 import { authState } from "../auth/auth.slice";
 import { useAppSelector, useAppDispatch } from "../../store";
-import Addworkinghour from "../../../containers/leftSidebar/Addworkinghour";
-import CalendarPage from "../calendar/calendar";
 import MyClips from "../locker/my-clips";
 import Reports from "../locker/reports";
 import BookingList from "../bookings/BookingList";
@@ -23,37 +21,6 @@ import Slider from "react-slick";
 import { useMediaQuery } from "../../hook/useMediaQuery";
 import OrientationModal from "../modalComponent/OrientationModal";
 import Image from "next/image";
-import Scheduler from "./Scheduler";
-import UserInfoCard from "../cards/user-card";
-
-const Schedule = ({ activeCenterContainerTab }) => {
-  useEffect(() => { }, [activeCenterContainerTab]);
-  const { userInfo } = useAppSelector(authState);
-
-  if (!userInfo?.is_kyc_completed) {
-    return <p style={{ textAlign: "center", color: "red" }}>Please complete your KYC to create slots.</p>;
-  }
-
-  if (userInfo?.status === "pending") {
-    return <p style={{ textAlign: "center", color: "orange" }}>Please wait while the admin approves your request.</p>;
-  }
-
-  if (userInfo?.status === "rejected") {
-    return <p style={{ textAlign: "center", color: "darkred" }}>Your account has been rejected by the admin. Please contact customer support.</p>;
-  }
-
-  if (userInfo?.status === "approved" && userInfo?.is_kyc_completed) {
-    return (
-      <>
-        {/* <Addworkinghour /> */}
-        <Scheduler />
-        {/* <CalendarPage /> */}
-      </>
-    );
-  }
-
-  return null;
-};
 
 // class VerifyButton extends React.Component {
 //   constructor(props) {
@@ -180,12 +147,6 @@ var settings = {
 
 const allTabs = [
   {
-    name: "Schedule",
-    value: "schedule",
-    accessBy: [AccountType?.TRAINER],
-    component: Schedule,
-  },
-  {
     name: "My Clips",
     value: "myClips",
     accessBy: [AccountType?.TRAINEE, AccountType?.TRAINER],
@@ -202,7 +163,7 @@ const allTabs = [
 const NavHomePageCenterContainer = ({ onTabChange, selectedTraineeId, onClearTrainee }) => {
   const dispatch = useAppDispatch();
   const { accountType, userInfo } = useAppSelector(authState);
-  const [activeTab, setActiveTab] = useState(accountType === AccountType?.TRAINER ? "schedule" : "myClips");
+  const [activeTab, setActiveTab] = useState("myClips");
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef(null);
 
@@ -278,16 +239,6 @@ const NavHomePageCenterContainer = ({ onTabChange, selectedTraineeId, onClearTra
     <>
 
       <div id="navHomePageCenterContainer">
-        {/* Trainer Profile Card - Always visible for trainers */}
-        {accountType === AccountType?.TRAINER && (
-          <div style={{ 
-            marginBottom: "20px",
-            width: "100%",
-            maxWidth: "100%"
-          }}>
-            <UserInfoCard />
-          </div>
-        )}
         { (
           <>
             {(userInfo?.account_type === "Trainer" &&!userInfo?.is_kyc_completed )? (
@@ -371,19 +322,6 @@ const NavHomePageCenterContainer = ({ onTabChange, selectedTraineeId, onClearTra
               <div className="theme-tab">
                 <Nav tabs>
                   <div className="row mb-2">
-                    {accountType === AccountType?.TRAINER && (
-                      <div className="col text-center" style={{ flexBasis: "auto" }}>
-                        <NavItem className="ml-1 text-center">
-                          <NavLink
-                            className={`button-effect ${activeTab === "schedule" ? "activelink" : ""}`}
-                            onClick={() => toggleTab("schedule")}
-                            style={{ width: "100%" }}
-                          >
-                            Schedule
-                          </NavLink>
-                        </NavItem>
-                      </div>
-                    )}
                     <div className="col text-center" style={{ flexBasis: "auto" }}>
                       <NavItem className="ml-1 text-center">
                         <NavLink

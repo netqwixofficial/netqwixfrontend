@@ -40,6 +40,7 @@ import ImageSkeleton from "../common/ImageSkeleton";
 import { notificiationTitles } from "../../../utils/constant";
 import TrainerCardSkeleton from "../common/TrainerCardSkeleton";
 import ActiveSessionSkeleton from "../common/ActiveSessionSkeleton";
+import UserInfoCard from "../cards/user-card";
 const NavHomePage = () => {
   const [progress, setProgress] = useState(0);
   const width2000 = useMediaQuery(2000);
@@ -1030,17 +1031,36 @@ const NavHomePage = () => {
               height: width1200 ? "100%" : "calc(100% - 400px)",
             }}
           >
-            {/* <div className={`card trainer-profile-card Home-main-Cont ${width1200 ? "max-height-280px" : ""}`} style={{ width: "100%", color: "black", maxHeight: (width1200 && accountType === AccountType?.TRAINER) ? '350px' : (width1200 && accountType !== AccountType?.TRAINER) ? '280px' : '' }}>
-                            <div className='card-body'>
-                                <RecentUsers />
-                            </div>
-                        </div> */}
+            {/* Trainer Profile Card - Above Recent Students */}
+            {accountType === AccountType?.TRAINER && (
+              <div
+                className="card trainer-profile-card Home-main-Cont"
+                style={{
+                  width: "100%",
+                  marginBottom: "20px",
+                  borderRadius: "8px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  border: "none"
+                }}
+              >
+                <div
+                  className="card-body"
+                  style={{
+                    padding: width600 ? "15px" : "20px"
+                  }}
+                >
+                  <UserInfoCard />
+                </div>
+              </div>
+            )}
+            
+            {/* Recent Students Card */}
             <div
               className={`card trainer-profile-card Home-main-Cont`}
               style={{ 
                 width: "100%", 
                 color: "black", 
-                height: "100%",
+                height: accountType === AccountType?.TRAINER ? "calc(100% - 200px)" : "100%",
                 borderRadius: "8px",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
                 border: "none"

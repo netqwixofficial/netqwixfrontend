@@ -60,6 +60,7 @@ import MyCommunitySideBar from "./MyCommunity";
 import AboutUsSideBar from "./AboutUs";
 import ContactUSSideBar from "./ContactUs";
 import PracticeLiveExperienceSideBar from "./PracticeSession";
+import SchedulePage from "../../app/components/schedule/SchedulePage";
 const { isMobileFriendly, isSidebarToggleEnabled } = bookingsAction;
 const steps = [
   {
@@ -733,6 +734,27 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
               </Tooltip>
             </li> */}
 
+                {/* Trainer: Schedule */}
+                {accountType === AccountType?.TRAINER && (
+                  <li
+                    onClick={() => {
+                      ToggleTab("schedule");
+                    }}
+                  >
+                    <NavLink
+                      id="sidebar-item-schedule"
+                      className={`icon-btn btn-light button-effect step2 ${
+                        activeTab === "schedule" ? "active" : ""
+                      }`}
+                      data-intro=""
+                      aria-label="Schedule"
+                    >
+                      <CalendarIcon size={22} />
+                    </NavLink>
+                    <p className="menu-name px-2">Schedule</p>
+                  </li>
+                )}
+
                 {/* Trainer: Upcoming Sessions */}
                 {accountType === AccountType?.TRAINER && (
                   <li
@@ -1001,7 +1023,8 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
 
       </div>
       {activeTab !== leftSideBarOptions.HOME &&
-        activeTab !== leftSideBarOptions.SCHEDULE_TRAINING && (
+        activeTab !== leftSideBarOptions.SCHEDULE_TRAINING &&
+        activeTab !== "schedule" && (
           <aside className="app-sidebar active">
             <div className="apps">
               <div className="apps-ul">
@@ -1116,6 +1139,17 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                       tab={activeTab}
                       ActiveTab={setActiveTab}
                     />
+                  </TabPane>
+
+                  {/* Schedule - Trainer Only */}
+                  <TabPane
+                    tabId="schedule"
+                    className={`${activeTab === "schedule"
+                      ? "custom-mobile-menu"
+                      : ""
+                      } sidebar-full-width custom-mobile-schedule-css`}
+                  >
+                    <SchedulePage />
                   </TabPane>
 
                   {/* My Community */}
