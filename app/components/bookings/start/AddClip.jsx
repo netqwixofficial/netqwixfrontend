@@ -16,6 +16,7 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
   const [selectedClip, setSelectedClip] = useState(null);
   const [currentGroupIndex, setCurrentGroupIndex] = useState(null);
   const [currentClipIndex, setCurrentClipIndex] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState("all"); // Filter by category
   const [videoDimensions, setVideoDimensions] = useState({
     maxWidth: "470px",
     height: "587px",
@@ -30,6 +31,14 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
   useEffect(() => {
     setSelectedClipsCopy(selectedClips && selectedClips.length > 0 ? [...selectedClips] : []);
   }, [selectedClips]);
+
+  // Get unique categories from clips
+  const categories = clips.map(cat => cat._id).filter(Boolean);
+  
+  // Filter clips based on selected category
+  const filteredClips = selectedCategory === "all" 
+    ? clips 
+    : clips.filter(category => category._id === selectedCategory);
 
   // Flatten all clips from categories
   const allClips = clips.reduce((acc, category) => {
@@ -250,7 +259,60 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                 </div>
               </div>
 
-              {/* Share Button */}
+              {/* "Please select the clips" text */}
+              <div className="w-100 mb-3" style={{ textAlign: "center" }}>
+                <p
+                  style={{
+                    fontSize: isMobileScreen ? "14px" : "16px",
+                    fontWeight: "500",
+                    color: "#666",
+                    margin: 0,
+                  }}
+                >
+                  Please select the clips
+                </p>
+              </div>
+
+              {/* Category Filter Buttons - Single Row */}
+              {categories.length > 0 && (
+                <div 
+                  className="d-flex justify-content-center w-100 mb-3"
+                  style={{
+                    flexWrap: "wrap",
+                    gap: "8px",
+                  }}
+                >
+                  <Button
+                    color={selectedCategory === "all" ? "primary" : "secondary"}
+                    onClick={() => setSelectedCategory("all")}
+                    size="sm"
+                    style={{
+                      minWidth: isMobileScreen ? "80px" : "100px",
+                      fontSize: isMobileScreen ? "12px" : "14px",
+                      padding: isMobileScreen ? "6px 12px" : "8px 16px",
+                    }}
+                  >
+                    All
+                  </Button>
+                  {categories.map((category) => (
+                    <Button
+                      key={category}
+                      color={selectedCategory === category ? "primary" : "secondary"}
+                      onClick={() => setSelectedCategory(category)}
+                      size="sm"
+                      style={{
+                        minWidth: isMobileScreen ? "80px" : "100px",
+                        fontSize: isMobileScreen ? "12px" : "14px",
+                        padding: isMobileScreen ? "6px 12px" : "8px 16px",
+                      }}
+                    >
+                      {category}
+                    </Button>
+                  ))}
+                </div>
+              )}
+
+              {/* Share Button - At Top */}
               {clips?.length && (
                 <div className="d-flex justify-content-center w-100 mb-2">
                   <Button
@@ -326,8 +388,8 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                 minHeight: 0,
               }}
             >
-              {clips?.length ? (
-                clips.map((category, categoryIndex) => (
+              {filteredClips?.length ? (
+                filteredClips.map((category, categoryIndex) => (
                   <div
                     key={category._id || categoryIndex}
                     className="mb-4"

@@ -246,14 +246,14 @@ const TrainerRenderBooking = ({
                       // Send notification (non-blocking)
                       try {
                         if (socket) {
-                          sendNotifications({
-                            title: notificiationTitles.sessionStrated,
-                            description: `${trainer_info.fullname} has started the session. Join the session via the upcoming sessions tab in My Locker.`,
-                            senderId: trainer_info?._id,
-                            receiverId: trainee_info?._id,
-                            bookingInfo: bookingInfo,
-                            type:NotificationType.TRANSCATIONAL
-                          });
+                    sendNotifications({
+                      title: notificiationTitles.sessionStrated,
+                      description: `${trainer_info.fullname} has started the session. Join the session via the upcoming sessions tab in My Locker.`,
+                      senderId: trainer_info?._id,
+                      receiverId: trainee_info?._id,
+                      bookingInfo: bookingInfo,
+                      type:NotificationType.TRANSCATIONAL
+                    });
                         } else {
                           console.warn("[TrainerRenderBooking] Socket not available for notification");
                         }

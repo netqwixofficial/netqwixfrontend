@@ -122,7 +122,7 @@ const MeetingRoom = () => {
   const meetingDetails = scheduledMeetingDetails?.find(
     (meeting) => meeting._id === id
   );
-
+  
   // Debug logging to help diagnose issues
   useEffect(() => {
     if (id && !meetingDetails && scheduledMeetingDetails?.length > 0 && !loading) {

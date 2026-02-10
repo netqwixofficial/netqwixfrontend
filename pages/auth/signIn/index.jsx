@@ -272,8 +272,8 @@ const Auth_SignIn = ({isRedirect = true}) => {
                     >
                       <span style={{ color: "#555" }}>
                         Don&apos;t have an account?{" "}
-                        <Link
-                          href={routingPaths.signUp}
+                      <Link
+                        href={routingPaths.signUp}
                           style={{
                             fontSize: "13px",
                             fontWeight: 500,
@@ -281,9 +281,9 @@ const Auth_SignIn = ({isRedirect = true}) => {
                             textDecoration: "underline",
                             cursor: "pointer",
                           }}
-                        >
+                      >
                           Sign up
-                        </Link>
+                      </Link>
                       </span>
                     </div>
                   </div>

@@ -1143,8 +1143,8 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
 
                   {/* Schedule - Trainer Only */}
                   <TabPane
-                    tabId="schedule"
-                    className={`${activeTab === "schedule"
+                    tabId={leftSideBarOptions.SCHEDULE_TRAINING}
+                    className={`${activeTab === leftSideBarOptions.SCHEDULE_TRAINING
                       ? "custom-mobile-menu"
                       : ""
                       } sidebar-full-width custom-mobile-schedule-css`}

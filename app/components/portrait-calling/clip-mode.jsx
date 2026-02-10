@@ -900,7 +900,7 @@ const VideoContainer = ({
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          background: "#000",
+          background: "#fff",
           position: "relative",
           minHeight: 0,
           overflow: "hidden",
@@ -996,6 +996,7 @@ const VideoContainer = ({
                   objectFit: "contain", // Prevent stretching
                   opacity: isVideoLoading ? 0.6 : 1,
                   pointerEvents: isVideoLoading ? "none" : "auto",
+                  backgroundColor: "#fff",
                 }}
                 id={clip?.id}
                 autoPlay={false}
@@ -1118,6 +1119,28 @@ const VideoContainer = ({
                   </div> */}
                 </div>
               )}
+              {/* Video Controls - Inside video frame */}
+              {!isLock && (
+                <CustomVideoControls
+                  handleSeek={handleSeek}
+                  isFullscreen={isFullscreen}
+                  isPlaying={isPlaying}
+                  toggleFullscreen={toggleFullscreen}
+                  togglePlayPause={togglePlayPause}
+                  videoRef={videoRef}
+                  setIsPlaying={setIsPlaying}
+                  setCurrentTime={setCurrentTime}
+                  isLock={isLock}
+                  lockPoint={lockPoint}
+                  videoRef2={null}
+                  handleSeekMouseDown={() => {}}
+                  handleSeekMouseUp={() => {}}
+                  volume={1}
+                  changeVolume={() => {}}
+                  currentTime={currentTime}
+                  controlsVisible={controlsVisible}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -1155,27 +1178,6 @@ const VideoContainer = ({
             </div>
           </div>
         )}
-      {!isLock && (
-        <CustomVideoControls
-          handleSeek={handleSeek}
-          isFullscreen={isFullscreen}
-          isPlaying={isPlaying}
-          toggleFullscreen={toggleFullscreen}
-          togglePlayPause={togglePlayPause}
-          videoRef={videoRef}
-          setIsPlaying={setIsPlaying}
-          setCurrentTime={setCurrentTime}
-            isLock={isLock}
-            lockPoint={lockPoint}
-            videoRef2={null}
-            handleSeekMouseDown={() => {}}
-            handleSeekMouseUp={() => {}}
-            volume={1}
-            changeVolume={() => {}}
-            currentTime={currentTime}
-            controlsVisible={controlsVisible}
-        />
-      )}
       </div>
     </>
   );
@@ -2765,31 +2767,6 @@ const ClipModeCall = ({
         onTouchEnd={cancelLongPressHide}
         onTouchCancel={cancelLongPressHide}
       >
-        <NextImage
-          src="/assets/images/netquix_logo_beta.png"
-          width={100}
-          height={40}
-          style={{
-            objectFit: "contain",
-            position: "absolute",
-            zIndex: 10,
-            top: 0,
-            left: 5,
-          }}
-          unoptimized={true}
-        />
-        <h4
-          style={{
-            objectFit: "contain",
-            position: "absolute",
-            zIndex: 10,
-            bottom: 40,
-            right: 5,
-            color: "black",
-          }}
-        >
-          &copy; NetQwix.com
-        </h4>
         {selectedClips.length > 1 ? (
           <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, gap: "8px" }}>
             <VideoContainer
@@ -2854,25 +2831,37 @@ const ClipModeCall = ({
 
             />
 
+            {/* Lock mode controls - positioned between videos but inside the clip container */}
             {isLock && (
-              <CustomVideoControls
-                handleSeek={handleSeek}
-                isPlaying={isPlayingBoth}
-                togglePlayPause={togglePlayPause}
-                videoRef={videoRef}
-                videoRef2={videoRef2}
-                setIsPlaying={setIsPlayingBoth}
-                isLock={isLock}
-                setCurrentTime={setCurrentTime}
-                lockPoint={lockPoint}
-                handleSeekMouseDown={() => {}}
-                handleSeekMouseUp={() => {}}
-                volume={1}
-                changeVolume={() => {}}
-                currentTime={videoRef?.current?.currentTime || 0}
-                isFullscreen={false}
-                toggleFullscreen={() => {}}
-              />
+              <div style={{ 
+                position: "absolute", 
+                bottom: "20px", 
+                left: "50%", 
+                transform: "translateX(-50%)",
+                zIndex: 100,
+                width: "95%",
+                maxWidth: "600px"
+              }}>
+                <CustomVideoControls
+                  handleSeek={handleSeek}
+                  isPlaying={isPlayingBoth}
+                  togglePlayPause={togglePlayPause}
+                  videoRef={videoRef}
+                  videoRef2={videoRef2}
+                  setIsPlaying={setIsPlayingBoth}
+                  isLock={isLock}
+                  setCurrentTime={setCurrentTime}
+                  lockPoint={lockPoint}
+                  handleSeekMouseDown={() => {}}
+                  handleSeekMouseUp={() => {}}
+                  volume={1}
+                  changeVolume={() => {}}
+                  currentTime={videoRef?.current?.currentTime || 0}
+                  isFullscreen={false}
+                  toggleFullscreen={() => {}}
+                  controlsVisible={true}
+                />
+              </div>
             )}
           </div>
         ) : (
