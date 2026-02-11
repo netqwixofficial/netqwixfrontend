@@ -44,6 +44,9 @@ import Notes from "../practiceLiveExperience/Notes";
 import CustomModal from "../../common/modal";
 import ScreenShotDetails from "../video/screenshotDetails";
 import Timer from "../video/Timer";
+import { sendCallDiagnostics } from "../video/callDiagnostics";
+import { CallEngine } from "../video/callEngine";
+import { startQualityMonitoring } from "../video/callQualityMonitor";
 import { getTraineeClips } from "../NavHomePage/navHomePage.api";
 import PermissionModal from "../video/PermissionModal";
 import ReactStrapModal from "../../common/modal";
@@ -143,6 +146,11 @@ const VideoCallUI = ({
   const sessionEndedModalDismissedRef = useRef(false);
   const warning30SecondIntervalRef = useRef(null);
   const [lockPoint, setLockPoint] = useState(0);
+  const callEngineRef = useRef(null);
+  const [preflightDone, setPreflightDone] = useState(false);
+  const [preflightPassed, setPreflightPassed] = useState(false);
+  const [callState, setCallState] = useState("idle"); // idle | connecting | connected | reconnecting | failed | ended
+  const qualityMonitorIntervalRef = useRef(null);
 
   // Authoritative lesson timer (backend-driven)
   const lessonTimerIntervalRef = useRef(null);
@@ -176,6 +184,186 @@ const VideoCallUI = ({
       getMyClips();
     }
   }, [isOpen]);
+
+  // Pre-call compatibility & permissions check
+  const runPreflightCheck = useCallback(async () => {
+    if (preflightDone) return;
+
+    try {
+      if (typeof window === "undefined" || typeof navigator === "undefined") {
+        toast.error("Calling is only supported in a browser environment.");
+        setPreflightDone(true);
+        setPreflightPassed(false);
+        if (socket && id) {
+          socket.emit("CLIENT_PRECALL_CHECK", {
+            sessionId: id,
+            role: accountType === AccountType.TRAINER ? "trainer" : "trainee",
+            passed: false,
+            reason: "NO_BROWSER_ENV",
+          });
+        }
+        return;
+      }
+
+      const hasRTCPeer =
+        typeof window.RTCPeerConnection === "function" ||
+        typeof window.webkitRTCPeerConnection === "function" ||
+        typeof window.mozRTCPeerConnection === "function";
+
+      if (!hasRTCPeer) {
+        setPermissionModal(true);
+        setErrorMessageForPermission(
+          "Your browser does not support video calls. Please use the latest version of Chrome, Safari, Firefox, or Edge."
+        );
+        setPreflightDone(true);
+        setPreflightPassed(false);
+        if (socket && id) {
+          socket.emit("CLIENT_PRECALL_CHECK", {
+            sessionId: id,
+            role: accountType === AccountType.TRAINER ? "trainer" : "trainee",
+            passed: false,
+            reason: "NO_RTCPeerConnection",
+          });
+        }
+        return;
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        setPermissionModal(true);
+        setErrorMessageForPermission(
+          "Your device does not expose camera/microphone controls required for video calls."
+        );
+        setPreflightDone(true);
+        setPreflightPassed(false);
+        if (socket && id) {
+          socket.emit("CLIENT_PRECALL_CHECK", {
+            sessionId: id,
+            role: accountType === AccountType.TRAINER ? "trainer" : "trainee",
+            passed: false,
+            reason: "NO_MEDIA_DEVICES",
+          });
+        }
+        return;
+      }
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameraDevices = devices.filter((d) => d.kind === "videoinput");
+      const micDevices = devices.filter((d) => d.kind === "audioinput");
+
+      if (cameraDevices.length === 0) {
+        setPermissionModal(true);
+        setErrorMessageForPermission(
+          "No camera device detected. Please connect or enable a camera before joining the session."
+        );
+        setPreflightDone(true);
+        setPreflightPassed(false);
+        if (socket && id) {
+          socket.emit("CLIENT_PRECALL_CHECK", {
+            sessionId: id,
+            role: accountType === AccountType.TRAINER ? "trainer" : "trainee",
+            passed: false,
+            reason: "NO_CAMERA",
+          });
+        }
+        return;
+      }
+
+      if (micDevices.length === 0) {
+        setPermissionModal(true);
+        setErrorMessageForPermission(
+          "No microphone detected. Please connect or enable a microphone before joining the session."
+        );
+        setPreflightDone(true);
+        setPreflightPassed(false);
+        if (socket && id) {
+          socket.emit("CLIENT_PRECALL_CHECK", {
+            sessionId: id,
+            role: accountType === AccountType.TRAINER ? "trainer" : "trainee",
+            passed: false,
+            reason: "NO_MICROPHONE",
+          });
+        }
+        return;
+      }
+
+      // Permissions API is not available everywhere, so treat errors as "we'll prompt later"
+      try {
+        if (navigator.permissions && navigator.permissions.query) {
+          const [cameraPerm, micPerm] = await Promise.allSettled([
+            navigator.permissions.query({ name: "camera" }),
+            navigator.permissions.query({ name: "microphone" }),
+          ]);
+
+          const camState =
+            cameraPerm.status === "fulfilled" ? cameraPerm.value.state : "prompt";
+          const micState =
+            micPerm.status === "fulfilled" ? micPerm.value.state : "prompt";
+
+          if (camState === "denied" && micState === "denied") {
+            setPermissionModal(true);
+            setErrorMessageForPermission(
+              "Camera and microphone permissions are blocked. Please enable them in your browser settings and reload."
+            );
+            setPreflightDone(true);
+            setPreflightPassed(false);
+            if (socket && id) {
+              socket.emit("CLIENT_PRECALL_CHECK", {
+                sessionId: id,
+                role: accountType === AccountType.TRAINER ? "trainer" : "trainee",
+                passed: false,
+                reason: "PERMISSIONS_BLOCKED",
+              });
+            }
+            return;
+          }
+        }
+      } catch (err) {
+        // Ignore permissions API errors; we'll handle actual denial in handleStartCall
+        console.warn("[VideoCallUI] Preflight permissions check failed, continuing:", err);
+      }
+
+      setPreflightDone(true);
+      setPreflightPassed(true);
+      if (socket && id) {
+        socket.emit("CLIENT_PRECALL_CHECK", {
+          sessionId: id,
+          role: accountType === AccountType.TRAINER ? "trainer" : "trainee",
+          passed: true,
+          reason: "OK",
+        });
+      }
+    } catch (err) {
+      console.error("[VideoCallUI] Preflight check error:", err);
+      toast.error("We couldn't verify your device for video calling. Please try again.");
+      setPreflightDone(true);
+      setPreflightPassed(false);
+      if (socket && id) {
+        socket.emit("CLIENT_PRECALL_CHECK", {
+          sessionId: id,
+          role: accountType === AccountType.TRAINER ? "trainer" : "trainee",
+          passed: false,
+          reason: "UNKNOWN_ERROR",
+        });
+      }
+    }
+  }, [preflightDone, socket, id, accountType]);
+
+  // Step 1: Emit lightweight diagnostics once per session to understand
+  // real-world environments (browser/OS/WebRTC support/network hints)
+  // without changing existing call behavior.
+  const hasSentDiagnosticsRef = useRef(false);
+
+  useEffect(() => {
+    if (!socket || !id || hasSentDiagnosticsRef.current) return;
+
+    sendCallDiagnostics({
+      socket,
+      sessionId: id,
+      role: accountType === AccountType.TRAINER ? "trainer" : "trainee",
+    });
+
+    hasSentDiagnosticsRef.current = true;
+  }, [socket, id, accountType]);
 
   // Add this function to extend the session time
   const extendSessionTime = async () => {
@@ -448,6 +636,12 @@ const VideoCallUI = ({
   // Define cutCall early using useCallback so it can be used in useEffect hooks
   const cutCall = useCallback((manually) => {
     try {
+      // Stop quality monitoring
+      if (qualityMonitorIntervalRef.current) {
+        clearInterval(qualityMonitorIntervalRef.current);
+        qualityMonitorIntervalRef.current = null;
+      }
+
       // Clean up active call
       if (activeCallRef.current?.call) {
         try {
@@ -458,6 +652,7 @@ const VideoCallUI = ({
         activeCallRef.current = null;
       }
       isConnectingRef.current = false;
+      setCallState("ended");
 
       if (!userAlreadyInCall && socket) {
         socket.emit(EVENTS.VIDEO_CALL.ON_CLOSE, {
@@ -927,6 +1122,7 @@ const VideoCallUI = ({
    
   const handleStartCall = async () => {
     try {
+      setCallState("connecting");
 
       const checkIPVersion = async () => {
         try {
@@ -1007,8 +1203,8 @@ const VideoCallUI = ({
       }
 
       socket.on('disconnect', (reason) => {
-        toast.error("You have been disconnected from the server. Please reconnect.");
-        // Additional logic to handle the disconnect (e.g., retry connection or show UI)
+        toast.error("You have been disconnected from the server. Attempting to reconnect...");
+        setCallState((prev) => (prev === "ended" ? prev : "reconnecting"));
       });
 
       socket.on('connect_error', (err) => {
@@ -1026,85 +1222,65 @@ const VideoCallUI = ({
         toast.error("Reconnection to the server failed. Please check your internet and try again.");
       });
 
-      // Generate unique Peer ID per session/device to allow same user from multiple devices
-      // Format: userId_sessionId_timestamp_random
-      // This ensures each device/session combination gets a unique Peer ID
-      // This fixes the issue where same user joining from 2 different devices causes 'unavailable-id' error
-      const uniquePeerId = `${fromUser._id}_${id}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      
-      const peer = new Peer(uniquePeerId, {
-        config: { iceServers: startMeeting.iceServers },
-      });
-
-      peer.on("error", (error) => {
-        console.error("Peer error:", error);
-         
-
-        switch (error.type) {
-          case 'browser-incompatible':
-            toast.error("The browser does not support some or all WebRTC features.");
-            break;
-          case 'disconnected':
-            toast.error("You have been disconnected from the server. No new connections can be made.");
-            break;
-          case 'invalid-id':
-            toast.error("The ID contains illegal characters.");
-            break;
-          case 'invalid-key':
-            toast.error("The API key contains illegal characters or is not recognized.");
-            break;
-          case 'network':
-            toast.error("Lost or unable to establish a connection to the signaling server.");
-            break;
-          case 'peer-unavailable':
-            toast.error("The peer you're trying to connect to does not exist.");
-            break;
-          case 'ssl-unavailable':
-            toast.error("SSL is unavailable on the server. Consider using a custom PeerServer.");
-            break;
-          case 'server-error':
-            toast.error("Unable to reach the server. Please try again later.");
-            break;
-          case 'socket-error':
-            toast.error("A socket error occurred.");
-            break;
-          case 'socket-closed':
-            toast.error("The underlying socket was closed unexpectedly.");
-            break;
-          case 'unavailable-id':
-            // This should rarely happen now with unique Peer IDs, but keep the error handling
-            // It might occur if there's a race condition or if cleanup didn't happen properly
-            console.warn("Peer ID unavailable - this might be a cleanup issue. Retrying with new ID...");
-            // Don't set userAlreadyInCall to true immediately - allow retry
-            toast.error("Connection issue detected. Please try refreshing the page.");
-            break;
-          case 'webrtc':
-            toast.error("A native WebRTC error occurred.");
-            break;
-          default:
-            toast.error("An error occurred while trying to start the call.");
-        }
-      });
-
-      peerRef.current = peer;
-
-      // Handle Peer events
-      peer.on("open", (peerId) => {
-        if (socket) {
-          // Send both user IDs (for backend matching) and the actual Peer ID (for peer-to-peer connection)
+      socket.on('connect', () => {
+        // If we were in a reconnecting state and still have an active peer,
+        // re-emit ON_CALL_JOIN so backend can re-bind this socket to the session room.
+        if (callState === "reconnecting" && peerRef.current && fromUser && toUser && id) {
           socket.emit("ON_CALL_JOIN", {
-            userInfo: { 
-              from_user: fromUser._id, 
+            userInfo: {
+              from_user: fromUser._id,
               to_user: toUser._id,
               sessionId: id,
-              peerId: peerId  // Send the actual Peer ID so backend can route connections correctly
+              peerId: peerRef.current.id,
             },
           });
+          setCallState("connecting");
         }
       });
 
+      // Start heartbeat: emit every 10 seconds to prove we're alive
+      const heartbeatInterval = setInterval(() => {
+        if (socket && socket.connected) {
+          socket.emit("HEARTBEAT");
+        }
+      }, 10000);
 
+      // Cleanup heartbeat on unmount
+      return () => {
+        clearInterval(heartbeatInterval);
+      };
 
+      // Initialize CallEngine wrapper around PeerJS so we centralize
+      // Peer config, error handling and connection timeouts.
+      const engine = new CallEngine({
+        PeerLib: Peer,
+        socket,
+        fromUser,
+        toUser,
+        sessionId: id,
+        startMeeting,
+      });
+      callEngineRef.current = engine;
+
+      // Mark that we're attempting to connect and set up a safety timeout
+      // so "stuck" connections surface clearly to the user instead of hanging.
+      engine.isConnecting = true;
+      engine.setupConnectionTimeout({
+        timeoutMs: 20000,
+        onTimeout: () => {
+          engine.isConnecting = false;
+          engine.cleanup();
+          setDisplayMsg({
+            show: true,
+            msg: "We could not establish the call. Please check your connection and try rejoining.",
+          });
+        },
+      });
+
+      const peer = engine.initPeerAndSignal({ localStream: stream });
+      peerRef.current = peer;
+
+      // Keep track of the underlying PeerJS call so existing logic continues to work.
       peer.on("call", (call) => {
         try {
           // Track incoming call
@@ -1119,6 +1295,10 @@ const VideoCallUI = ({
 
           activeCallRef.current = { call, peer: call.peer };
           isConnectingRef.current = false;
+          if (callEngineRef.current) {
+            callEngineRef.current.isConnecting = false;
+            callEngineRef.current.clearConnectionTimeout();
+          }
 
           call.answer(stream);
           
@@ -1133,6 +1313,7 @@ const VideoCallUI = ({
           call.on("stream", (remoteStream) => {
             try {
               setIsTraineeJoined(true);
+              setCallState("connected");
               // Check if both users are now joined (local user + remote user)
               // For trainer: they joined when handleStartCall ran, trainee joins here
               // For trainee: they joined when handleStartCall ran, trainer joins here
@@ -1145,6 +1326,21 @@ const VideoCallUI = ({
               }
               setDisplayMsg({ show: false, msg: "" });
               setRemoteStream(remoteStream);
+
+              // Start quality monitoring once we have an active call
+              if (peer && call && socket && id) {
+                if (qualityMonitorIntervalRef.current) {
+                  clearInterval(qualityMonitorIntervalRef.current);
+                }
+                qualityMonitorIntervalRef.current = startQualityMonitoring({
+                  peer,
+                  call,
+                  socket,
+                  sessionId: id,
+                  role: accountType === AccountType.TRAINER ? "trainer" : "trainee",
+                  intervalMs: 10000, // Collect stats every 10 seconds
+                });
+              }
             } catch (error) {
               console.error('[VideoCall] Error handling incoming stream:', error);
             }
@@ -1507,8 +1703,22 @@ const VideoCallUI = ({
       });
     };
 
+    const handleParticipantStale = ({ socketId, timestamp }) => {
+      // Backend detected that a participant's connection went stale (no heartbeat)
+      // This doesn't necessarily mean they left - they might be reconnecting
+      if (callState === "connected") {
+        setDisplayMsg({
+          show: true,
+          msg: `${toUser?.fullname || "The other participant"} appears to have lost connection. Waiting for them to reconnect...`,
+        });
+        // Don't set callState to "reconnecting" here - that's for OUR connection
+        // But we can show a message that the other side is having issues
+      }
+    };
+
     // Register event listeners
     socket.on("ON_CALL_JOIN", handleCallJoin);
+    socket.on("PARTICIPANT_STALE", handleParticipantStale);
     socket.on(EVENTS.VIDEO_CALL.ON_OFFER, handleOffer);
     socket.on(EVENTS.VIDEO_CALL.ON_ANSWER, handleAnswer);
     socket.on(EVENTS.VIDEO_CALL.ON_ICE_CANDIDATE, handleIceCandidate);
@@ -1519,6 +1729,7 @@ const VideoCallUI = ({
     return () => {
       if (socket) {
         socket.off("ON_CALL_JOIN", handleCallJoin);
+        socket.off("PARTICIPANT_STALE", handleParticipantStale);
         socket.off(EVENTS.VIDEO_CALL.ON_OFFER, handleOffer);
         socket.off(EVENTS.VIDEO_CALL.ON_ANSWER, handleAnswer);
         socket.off(EVENTS.VIDEO_CALL.ON_ICE_CANDIDATE, handleIceCandidate);
@@ -1527,6 +1738,10 @@ const VideoCallUI = ({
       }
       // Reset connection state on cleanup
       isConnectingRef.current = false;
+      if (callEngineRef.current) {
+        callEngineRef.current.cleanup();
+        callEngineRef.current = null;
+      }
     };
   }, [socket, toUser, connectToPeer]);
 
@@ -1571,35 +1786,72 @@ const VideoCallUI = ({
   const width1200 = useMediaQuery("(max-width:1200px)")
 
   useEffect(() => {
-    if (fromUser && toUser && startMeeting?.iceServers && accountType) {
-      if (typeof navigator !== "undefined") {
-        Peer = require("peerjs").default;
-      }
-      handleStartCall();
-      // listenSocketEvents() is now handled in useEffect above with proper cleanup
-      window.addEventListener("offline", handleOffline);
-      window.addEventListener("beforeunload", handelTabClose);
+    if (!fromUser || !toUser || !startMeeting?.iceServers || !accountType) return;
 
-      return () => {
-        window.removeEventListener("beforeunload", handelTabClose);
-        window.removeEventListener("offline", handleOffline);
-
-        // cutCall();
-      };
+    // Run preflight first; only start call once we've passed compatibility checks.
+    if (!preflightDone) {
+      runPreflightCheck();
+      return;
     }
-  }, [startMeeting, accountType]);
-   
-  // Add this useEffect to handle session extension when both parties join
+
+    if (!preflightPassed) {
+      return;
+    }
+
+    if (typeof navigator !== "undefined") {
+      Peer = require("peerjs").default;
+    }
+    handleStartCall();
+    // listenSocketEvents() is now handled in useEffect above with proper cleanup
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("beforeunload", handelTabClose);
+
+    return () => {
+      window.removeEventListener("beforeunload", handelTabClose);
+      window.removeEventListener("offline", handleOffline);
+
+      // cutCall();
+    };
+  }, [
+    startMeeting,
+    accountType,
+    fromUser,
+    toUser,
+    preflightDone,
+    preflightPassed,
+    runPreflightCheck,
+  ]);
   useEffect(() => {
+    if (sessionEndTime) return;
+
     if (extended_session_end_time) {
       setSessionEndTime(extended_session_end_time);
-    } else {
-      if (isTraineeJoined && accountType === AccountType.TRAINEE && session_start_time && session_end_time && id) {
-        extendSessionTime();
-        setIsSessionExtended(true);
-      }
+      return;
     }
-  }, [isTraineeJoined, extended_session_end_time, session_start_time, session_end_time, id, accountType]);
+
+   if (
+      isTraineeJoined &&
+      accountType === AccountType.TRAINEE &&
+      session_start_time &&
+      session_end_time &&
+      id
+    ) {
+      extendSessionTime();
+      setIsSessionExtended(true);
+      return;
+    }
+    if (accountType === AccountType.TRAINER && session_end_time) {
+      setSessionEndTime(session_end_time);
+    }
+  }, [
+    isTraineeJoined,
+    extended_session_end_time,
+    session_start_time,
+    session_end_time,
+    id,
+    accountType,
+    sessionEndTime,
+  ]);
 
   // Keep numeric countdown in sync with the current session end time,
   // and only start counting down once both users have joined.
@@ -1651,6 +1903,30 @@ const VideoCallUI = ({
 
    
    
+  // Sync callState to displayMsg so users see connection status
+  useEffect(() => {
+    if (callState === "connecting" && !displayMsg?.show) {
+      setDisplayMsg({
+        show: true,
+        msg: `Connecting to ${toUser?.fullname || "the other participant"}...`,
+      });
+    } else if (callState === "reconnecting") {
+      setDisplayMsg({
+        show: true,
+        msg: "Connection lost. Reconnecting...",
+      });
+    } else if (callState === "connected" && displayMsg?.show && displayMsg?.msg?.includes("Connecting")) {
+      setDisplayMsg({ show: false, msg: "" });
+    } else if (callState === "failed") {
+      setDisplayMsg({
+        show: true,
+        msg: "Call connection failed. Please try refreshing the page.",
+      });
+    } else if (callState === "ended") {
+      setDisplayMsg({ show: false, msg: "" });
+    }
+  }, [callState, toUser?.fullname, displayMsg?.show, displayMsg?.msg]);
+
   return (
     <div
       className="video-call-container"
@@ -1859,8 +2135,7 @@ const VideoCallUI = ({
                       marginBottom: "0.5rem",
                       lineHeight: "1.4"
                     }}>
-                      Select one video to do a full-screen analysis or select
-                      two videos to do a comparison.
+                      Select The Videos.
                     </h2>
                     {selectClips.length > 0 && (
                       <div style={{ 
@@ -1879,16 +2154,23 @@ const VideoCallUI = ({
                 </div>
               </div>
               <div className="theme-tab">
-                <Nav tabs className="clip-selection-tabs" style={{
+              <Nav 
+                tabs 
+                className="clip-selection-tabs" 
+                style={{
                   justifyContent: 'center',
-                  flexWrap: width1200 ? "wrap" : "nowrap",
+                  flexWrap: "nowrap",
                   gap: "8px",
-                  marginBottom: "1.5rem"
-                }}>
-                  <NavItem className="mb-2" style={{
-                    width: width1200 ? "100%" : "auto",
-                    flex: width1200 ? "1 1 100%" : "1 1 auto"
-                  }}>
+                  marginBottom: "1.5rem",
+                  overflowX: "auto"
+                }}
+              >
+                  <NavItem 
+                    className="mb-2" 
+                    style={{
+                      flex: "0 0 auto"
+                    }}
+                  >
                     <NavLink
                       className={`button-effect ${videoActiveTab === "media" ? "active" : ""
                         } select-clip-width`}
@@ -1908,10 +2190,12 @@ const VideoCallUI = ({
                       My Videos
                     </NavLink>
                   </NavItem>
-                  <NavItem className="mb-2" style={{
-                    width: width1200 ? "100%" : "auto",
-                    flex: width1200 ? "1 1 100%" : "1 1 auto"
-                  }}>
+                  <NavItem 
+                    className="mb-2" 
+                    style={{
+                      flex: "0 0 auto"
+                    }}
+                  >
                     <NavLink
                       className={`button-effect ${videoActiveTab === "trainee" ? "active" : ""
                         } select-clip-width`}
@@ -1931,10 +2215,12 @@ const VideoCallUI = ({
                       Enthusiasts
                     </NavLink>
                   </NavItem>
-                  <NavItem className="mb-2" style={{
-                    width: width1200 ? "100%" : "auto",
-                    flex: width1200 ? "1 1 100%" : "1 1 auto"
-                  }}>
+                  <NavItem 
+                    className="mb-2" 
+                    style={{
+                      flex: "0 0 auto"
+                    }}
+                  >
                     <NavLink
                       className={`button-effect ${videoActiveTab === "docs" ? "active" : ""
                         } select-clip-width`}
@@ -1957,6 +2243,40 @@ const VideoCallUI = ({
                 </Nav>
               </div>
               <div className="file-tab">
+                {(
+                  (videoActiveTab === "media" && clips && clips.length !== 0) ||
+                  (videoActiveTab === "trainee" && traineeClip && traineeClip.length !== 0) ||
+                  (videoActiveTab === "docs" && netquixVideos && netquixVideos && netquixVideos.length !== 0)
+                ) && (
+                  <div 
+                    className="d-flex justify-content-center w-100 p-3" 
+                    style={{
+                      borderBottom: "1px solid #e0e0e0",
+                      gap: "1rem"
+                    }}
+                  >
+                    <Button
+                      color="success"
+                      onClick={() => {
+                        if (selectClips && selectClips?.length) {
+                          setSelectedClips(selectClips);
+                          setClipSelectNote(false);
+                        }
+                        setIsOpen(false);
+                      }}
+                      disabled={selectClips.length === 0}
+                      style={{
+                        minWidth: "120px",
+                        padding: "0.75rem 2rem",
+                        fontSize: "16px",
+                        fontWeight: "600",
+                        minHeight: "44px"
+                      }}
+                    >
+                      Select {selectClips.length > 0 && `(${selectClips.length})`}
+                    </Button>
+                  </div>
+                )}
                 <TabContent
                   activeTab={videoActiveTab}
                   className="custom-scroll"
@@ -2159,33 +2479,6 @@ const VideoCallUI = ({
                         </div>
                       )}
                     </div>
-                    {clips && clips.length !== 0 && (
-                      <div className="d-flex justify-content-center w-100 p-3" style={{
-                        borderTop: "1px solid #e0e0e0",
-                        gap: "1rem"
-                      }}>
-                        <Button
-                          color="success"
-                          onClick={() => {
-                            if (selectClips && selectClips?.length) {
-                              setSelectedClips(selectClips);
-                              setClipSelectNote(false);
-                            }
-                            setIsOpen(false);
-                          }}
-                          disabled={selectClips.length === 0}
-                          style={{
-                            minWidth: "120px",
-                            padding: "0.75rem 2rem",
-                            fontSize: "16px",
-                            fontWeight: "600",
-                            minHeight: "44px"
-                          }}
-                        >
-                          Select {selectClips.length > 0 && `(${selectClips.length})`}
-                        </Button>
-                      </div>
-                    )}
                   </TabPane>
                   <TabPane tabId="trainee">
                     <div
@@ -2390,33 +2683,6 @@ const VideoCallUI = ({
                         </div>
                       )}
                     </div>
-                    {traineeClip && traineeClip.length !== 0 && (
-                      <div className="d-flex justify-content-center w-100 p-3" style={{
-                        borderTop: "1px solid #e0e0e0",
-                        gap: "1rem"
-                      }}>
-                        <Button
-                          color="success"
-                          onClick={() => {
-                            if (selectClips && selectClips?.length) {
-                              setSelectedClips(selectClips);
-                              setClipSelectNote(false);
-                            }
-                            setIsOpen(false);
-                          }}
-                          disabled={selectClips.length === 0}
-                          style={{
-                            minWidth: "120px",
-                            padding: "0.75rem 2rem",
-                            fontSize: "16px",
-                            fontWeight: "600",
-                            minHeight: "44px"
-                          }}
-                        >
-                          Select {selectClips.length > 0 && `(${selectClips.length})`}
-                        </Button>
-                      </div>
-                    )}
                   </TabPane>
                   <TabPane tabId="docs">
                     <div
@@ -2574,33 +2840,6 @@ const VideoCallUI = ({
                         </div>
                       </div>
                     </div>
-                    {netquixVideos && netquixVideos?.length !== 0 && (
-                      <div className="d-flex justify-content-center w-100 p-3" style={{
-                        borderTop: "1px solid #e0e0e0",
-                        gap: "1rem"
-                      }}>
-                        <Button
-                          color="success"
-                          onClick={() => {
-                            if (selectClips && selectClips?.length) {
-                              setSelectedClips(selectClips);
-                              setClipSelectNote(false);
-                            }
-                            setIsOpen(false);
-                          }}
-                          disabled={selectClips.length === 0}
-                          style={{
-                            minWidth: "120px",
-                            padding: "0.75rem 2rem",
-                            fontSize: "16px",
-                            fontWeight: "600",
-                            minHeight: "44px"
-                          }}
-                        >
-                          Select {selectClips.length > 0 && `(${selectClips.length})`}
-                        </Button>
-                      </div>
-                    )}
                   </TabPane>
                 </TabContent>
               </div>

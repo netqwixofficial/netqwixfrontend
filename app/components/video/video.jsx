@@ -918,6 +918,26 @@ useEffect(() => {
       cleanupFunction();
     });
 
+    // Handle backend-detected stale participant connections
+    socket.on("PARTICIPANT_STALE", ({ socketId, timestamp }) => {
+      if (isTraineeJoined) {
+        setDisplayMsg({
+          showMsg: true,
+          msg: `${toUser?.fullname || "The other participant"} appears to have lost connection. Waiting for them to reconnect...`,
+        });
+      }
+    });
+
+    // Start heartbeat: emit every 10 seconds to prove we're alive
+    const heartbeatInterval = setInterval(() => {
+      if (socket && socket.connected) {
+        socket.emit("HEARTBEAT");
+      }
+    }, 10000);
+
+    // Store interval ID for cleanup
+    (socket as any)._heartbeatInterval = heartbeatInterval;
+
     // Additional socket event listeners for video controls
     socket.on(EVENTS.ON_VIDEO_SELECT, ({ type, videos, mainScreen }) => {
       if (type === "clips") {
@@ -1066,6 +1086,11 @@ useEffect(() => {
       return () => {
         window.removeEventListener("beforeunload", handelTabClose);
         window.removeEventListener("offline", handleOffline);
+        // Clean up heartbeat interval if it exists
+        if (socket && (socket as any)._heartbeatInterval) {
+          clearInterval((socket as any)._heartbeatInterval);
+          (socket as any)._heartbeatInterval = null;
+        }
         cutCall();
       };
     }
