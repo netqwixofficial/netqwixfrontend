@@ -699,7 +699,7 @@ const SchedulePage = () => {
             gap: "8px",
             padding: width600 ? "12px 24px" : "14px 32px",
             backgroundColor: isSaving ? "#94a3b8" : "#000080",
-            color: "#fff",
+            color: "#fff !important",
             border: "none",
             borderRadius: "8px",
             fontSize: width600 ? "14px" : "15px",
