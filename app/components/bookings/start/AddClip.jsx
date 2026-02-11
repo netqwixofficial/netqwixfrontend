@@ -240,11 +240,11 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
               }}
             >
               {/* Header */}
-              <div className="d-flex justify-content-between align-items-center mb-3">
+              <div className="d-flex justify-content-between align-items-center mb-2">
                 <h2
                   className="mb-0"
                   style={{
-                    fontSize: isMobileScreen ? "18px" : "24px",
+                    fontSize: isMobileScreen ? "16px" : "18px",
                     fontWeight: "600",
                   }}
                 >
@@ -260,10 +260,10 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
               </div>
 
               {/* "Please select the clips" text */}
-              <div className="w-100 mb-3" style={{ textAlign: "center" }}>
+              <div className="w-100 mb-2" style={{ textAlign: "center" }}>
                 <p
                   style={{
-                    fontSize: isMobileScreen ? "14px" : "16px",
+                    fontSize: isMobileScreen ? "12px" : "13px",
                     fontWeight: "500",
                     color: "#666",
                     margin: 0,
@@ -320,9 +320,9 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                     onClick={handleShare}
                     disabled={selectedClipsCopy.length === 0}
                     style={{
-                      minWidth: "120px",
-                      padding: "10px 30px",
-                      fontSize: "16px",
+                      minWidth: "100px",
+                      padding: "8px 20px",
+                      fontSize: isMobileScreen ? "13px" : "14px",
                       fontWeight: "600",
                     }}
                   >
@@ -345,7 +345,7 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                 >
                   <h5
                     className="mb-2"
-                    style={{ fontSize: "14px", fontWeight: "600" }}
+                    style={{ fontSize: isMobileScreen ? "12px" : "13px", fontWeight: "600" }}
                   >
                     Selected Clips ({selectedClipsCopy.length}/2)
                   </h5>
@@ -354,14 +354,14 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                       <div
                         key={clip._id}
                         style={{
-                          padding: "8px 12px",
+                          padding: "6px 10px",
                           backgroundColor: "#28a745",
                           color: "white",
                           borderRadius: "6px",
-                          fontSize: "12px",
+                          fontSize: isMobileScreen ? "10px" : "11px",
                           display: "flex",
                           alignItems: "center",
-                          gap: "8px",
+                          gap: "6px",
                         }}
                       >
                         <span>{clip.title || "Untitled"}</span>
@@ -395,9 +395,9 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                     className="mb-4"
                   >
                     {category._id && (
-                      <h5 className="block-title mb-3" style={{ fontSize: "16px", fontWeight: "600" }}>
+                      <h5 className="block-title mb-2" style={{ fontSize: isMobileScreen ? "13px" : "14px", fontWeight: "600" }}>
                         {category._id}
-                        <label className="badge badge-primary sm ml-2">
+                        <label className="badge badge-primary sm ml-2" style={{ fontSize: "11px" }}>
                           {category.clips?.length || 0}
                         </label>
                       </h5>
@@ -406,7 +406,7 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                       style={{
                         display: "grid",
                         gridTemplateColumns: isMobileScreen ? "repeat(2, 1fr)" : "repeat(3, 1fr)",
-                        gap: isMobileScreen ? "10px" : "12px",
+                        gap: isMobileScreen ? "8px" : "10px",
                         width: "100%"
                       }}
                     >
@@ -440,13 +440,13 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
                               <h6
                                 className="text-truncate mb-2"
                                 style={{
-                                  fontSize: isMobileScreen ? "11px" : "12px",
+                                  fontSize: isMobileScreen ? "10px" : "11px",
                                   fontWeight: "500",
                                   textAlign: "center",
                                   padding: "0 4px",
-                                  marginBottom: "6px",
+                                  marginBottom: "4px",
                                   maxWidth: "100%",
-                                  lineHeight: "1.3"
+                                  lineHeight: "1.2"
                                 }}
                               >
                                 {clip?.title && clip.title.length > MY_CLIPS_LABEL_LIMIT 

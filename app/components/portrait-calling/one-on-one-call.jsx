@@ -350,7 +350,7 @@ const OneOnOneCall = ({
           boxSizing: "border-box",
         }}
       >
-        {timeRemaining && (
+        {timeRemaining !== null && timeRemaining !== undefined && (
           <TimeRemaining
             timeRemaining={timeRemaining}
             bothUsersJoined={bothUsersJoined}

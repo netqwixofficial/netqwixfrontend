@@ -812,26 +812,64 @@ const VideoContainer = ({
       index,
       accountType
     });
-    setIsVideoLoading(true);
     
     // Check if video is already ready when clip changes
     const checkVideoReady = () => {
       const video = videoRef?.current;
-      if (video && video.readyState >= 2) { // HAVE_CURRENT_DATA or higher
-        console.log("✅ [VideoContainer] Video already ready, clearing loading state", {
-          clipId: clip?._id,
-          readyState: video.readyState,
-          index
-        });
-        setIsVideoLoading(false);
+      if (video) {
+        if (video.readyState >= 3) { // HAVE_FUTURE_DATA or higher - video can play
+          console.log("✅ [VideoContainer] Video already ready, no loading needed", {
+            clipId: clip?._id,
+            readyState: video.readyState,
+            index
+          });
+          setIsVideoLoading(false);
+        } else if (video.readyState >= 2) { // HAVE_CURRENT_DATA - has some data
+          console.log("⏳ [VideoContainer] Video has some data, checking if more needed", {
+            clipId: clip?._id,
+            readyState: video.readyState,
+            index
+          });
+          // Only show loading if video is not already playing
+          if (video.paused) {
+            setIsVideoLoading(true);
+          } else {
+            setIsVideoLoading(false);
+          }
+        } else {
+          // Video has no data yet
+          setIsVideoLoading(true);
+        }
+      } else {
+        // Video element not ready yet
+        setIsVideoLoading(true);
       }
     };
     
-    // Check immediately and after a short delay
+    // Check immediately
     checkVideoReady();
-    const timeoutId = setTimeout(checkVideoReady, 100);
     
-    return () => clearTimeout(timeoutId);
+    // Also check after video element is available
+    const timeoutId = setTimeout(checkVideoReady, 200);
+    
+    // Safety timeout: Clear loading after 10 seconds to prevent infinite loading
+    const safetyTimeout = setTimeout(() => {
+      const video = videoRef?.current;
+      if (video) {
+        console.warn("⚠️ [VideoContainer] Loading timeout - clearing loading state", {
+          clipId: clip?._id,
+          index,
+          readyState: video.readyState,
+          networkState: video.networkState
+        });
+        setIsVideoLoading(false);
+      }
+    }, 10000);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      clearTimeout(safetyTimeout);
+    };
   }, [clip?._id, index, accountType, videoRef]);
 
   // Calculate responsive height based on device and state
@@ -906,16 +944,6 @@ const VideoContainer = ({
           overflow: "hidden",
         }}
       >
-        {isVideoLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 z-10">
-            <div className="flex flex-col items-center gap-3">
-              <div className="spinner-border spinner-border-sm text-white" role="status" style={{ width: "3rem", height: "3rem" }}>
-                <span className="sr-only">Loading...</span>
-              </div>
-              <div className="text-white text-sm">Loading video...</div>
-            </div>
-          </div>
-        )}
         {drawingMode && accountType === AccountType.TRAINER && (
           <div
             className="absolute hide-in-screenshot"
@@ -1067,13 +1095,42 @@ const VideoContainer = ({
                     console.log("⏳ [VideoContainer] Video waiting for data", {
                       clipId: clip?._id,
                       index,
-                      currentTime: e?.currentTarget?.currentTime
+                      currentTime: e?.currentTarget?.currentTime,
+                      readyState: e?.currentTarget?.readyState
                     });
-                    setIsVideoLoading(true);
+                    // Only show loading if video doesn't have enough data
+                    if (e?.currentTarget?.readyState < 3) {
+                      setIsVideoLoading(true);
+                    }
                   } catch (error) {
                     console.error("❌ [VideoContainer] Error in onWaiting event", error);
                   }
-                
+                }}
+                onStalled={(e) => {
+                  try {
+                    console.warn("⚠️ [VideoContainer] Video stalled", {
+                      clipId: clip?._id,
+                      index,
+                      networkState: e?.currentTarget?.networkState
+                    });
+                    // Show loading only if network state indicates issue
+                    if (e?.currentTarget?.networkState === 2) {
+                      setIsVideoLoading(true);
+                    }
+                  } catch (error) {
+                    console.error("❌ [VideoContainer] Error in onStalled event", error);
+                  }
+                }}
+                onSuspend={(e) => {
+                  try {
+                    console.log("⏸️ [VideoContainer] Video suspended", {
+                      clipId: clip?._id,
+                      index
+                    });
+                    // Don't show loading on suspend - video is just paused by browser
+                  } catch (error) {
+                    console.error("❌ [VideoContainer] Error in onSuspend event", error);
+                  }
                 }} 
                 onPlay={(e) => {
                   try {
@@ -1089,12 +1146,39 @@ const VideoContainer = ({
                     console.error("❌ [VideoContainer] Error in onPlay event", error);
                   }
                 }}
+                onError={(e) => {
+                  try {
+                    console.error("❌ [VideoContainer] Video error occurred", {
+                      clipId: clip?._id,
+                      index,
+                      error: e.currentTarget.error,
+                      networkState: e.currentTarget.networkState
+                    });
+                    setIsVideoLoading(false);
+                    // Show error message to user
+                    if (e.currentTarget.error) {
+                      const errorCode = e.currentTarget.error.code;
+                      let errorMessage = "Video failed to load";
+                      if (errorCode === 4) {
+                        errorMessage = "Video format not supported or connection error";
+                      } else if (errorCode === 2) {
+                        errorMessage = "Network error - please check your connection";
+                      } else if (errorCode === 3) {
+                        errorMessage = "Video decoding error";
+                      }
+                      toast.error(errorMessage);
+                    }
+                  } catch (error) {
+                    console.error("❌ [VideoContainer] Error in onError event handler", error);
+                  }
+                }}
                 onClick={handleVideoClick}
               >
                 <source src={Utils?.generateVideoURL(clip)} type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
               
+              {/* Single loader - only shows when video is actually loading */}
               {isVideoLoading && (
                 <div
                   style={{
@@ -1102,44 +1186,59 @@ const VideoContainer = ({
                     top: "50%",
                     left: "50%",
                     transform: "translate(-50%, -50%)",
-                    background: "rgba(0, 0, 0, 0.7)",
+                    background: "rgba(0, 0, 0, 0.75)",
                     borderRadius: "8px",
-                    padding: "12px",
+                    padding: "16px 20px",
                     color: "white",
                     textAlign: "center",
-                    minWidth: "80px",
-                    zIndex: 10,
+                    zIndex: 15,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "8px",
+                    minWidth: "120px"
                   }}
                 >
-                  <div className="spinner-border spinner-border-sm" role="status">
+                  <div className="spinner-border spinner-border-sm text-white" role="status" style={{ width: "2rem", height: "2rem" }}>
                     <span className="sr-only">Loading...</span>
                   </div>
-                  {/* <div style={{ fontSize: "12px", marginTop: "4px" }}>
-                    {videoProgress}%
-                  </div> */}
+                  <div style={{ fontSize: "12px", fontWeight: "500" }}>Loading video...</div>
                 </div>
               )}
-              {/* Video Controls - Inside video frame */}
+              {/* Video Controls - Inside video frame, positioned relative to video element */}
               {!isLock && (
-                <CustomVideoControls
-                  handleSeek={handleSeek}
-                  isFullscreen={isFullscreen}
-                  isPlaying={isPlaying}
-                  toggleFullscreen={toggleFullscreen}
-                  togglePlayPause={togglePlayPause}
-                  videoRef={videoRef}
-                  setIsPlaying={setIsPlaying}
-                  setCurrentTime={setCurrentTime}
-                  isLock={isLock}
-                  lockPoint={lockPoint}
-                  videoRef2={null}
-                  handleSeekMouseDown={() => {}}
-                  handleSeekMouseUp={() => {}}
-                  volume={1}
-                  changeVolume={() => {}}
-                  currentTime={currentTime}
-                  controlsVisible={controlsVisible}
-                />
+                <div
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    width: "100%",
+                    height: "auto",
+                    pointerEvents: "none",
+                    zIndex: 20
+                  }}
+                >
+                  <CustomVideoControls
+                    handleSeek={handleSeek}
+                    isFullscreen={isFullscreen}
+                    isPlaying={isPlaying}
+                    toggleFullscreen={toggleFullscreen}
+                    togglePlayPause={togglePlayPause}
+                    videoRef={videoRef}
+                    setIsPlaying={setIsPlaying}
+                    setCurrentTime={setCurrentTime}
+                    isLock={isLock}
+                    lockPoint={lockPoint}
+                    videoRef2={null}
+                    handleSeekMouseDown={() => {}}
+                    handleSeekMouseUp={() => {}}
+                    volume={1}
+                    changeVolume={() => {}}
+                    currentTime={currentTime}
+                    controlsVisible={controlsVisible}
+                  />
+                </div>
               )}
             </div>
           </div>
@@ -2384,7 +2483,7 @@ const ClipModeCall = ({
           position: "relative",
         }}
       >
-        {timeRemaining && (
+        {timeRemaining !== null && timeRemaining !== undefined && (
           <TimeRemaining
             timeRemaining={timeRemaining}
             bothUsersJoined={bothUsersJoined}
