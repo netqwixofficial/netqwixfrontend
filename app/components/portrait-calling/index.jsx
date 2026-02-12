@@ -48,6 +48,17 @@ import { sendCallDiagnostics } from "../video/callDiagnostics";
 import { CallEngine } from "../video/callEngine";
 import { startQualityMonitoring } from "../video/callQualityMonitor";
 import { getTraineeClips } from "../NavHomePage/navHomePage.api";
+import {
+  getUserMedia,
+  getDisplayMedia,
+  getUserFriendlyError,
+  retryWithBackoff,
+  getOptimalVideoConstraints,
+  checkBrowserCompatibility,
+  hasGetUserMedia,
+  hasRTCPeerConnection,
+  enumerateDevices
+} from "../../utils/webrtcCompatibility";
 import PermissionModal from "../video/PermissionModal";
 import ReactStrapModal from "../../common/modal";
 import Ratings from "../bookings/ratings";
@@ -205,12 +216,26 @@ const VideoCallUI = ({
         return;
       }
 
-      const hasRTCPeer =
-        typeof window.RTCPeerConnection === "function" ||
-        typeof window.webkitRTCPeerConnection === "function" ||
-        typeof window.mozRTCPeerConnection === "function";
+      // Check browser compatibility using utility
+      const compatibility = checkBrowserCompatibility();
+      if (!compatibility.supported) {
+        const errorMsg = compatibility.errors.join(' ') || 'Your browser does not support video calls.';
+        setPermissionModal(true);
+        setErrorMessageForPermission(errorMsg);
+        setPreflightDone(true);
+        setPreflightPassed(false);
+        if (socket && id) {
+          socket.emit("CLIENT_PRECALL_CHECK", {
+            sessionId: id,
+            role: accountType === AccountType.TRAINER ? "trainer" : "trainee",
+            passed: false,
+            reason: !hasRTCPeerConnection() ? "NO_RTCPeerConnection" : "NO_GETUSERMEDIA",
+          });
+        }
+        return;
+      }
 
-      if (!hasRTCPeer) {
+      if (!hasRTCPeerConnection()) {
         setPermissionModal(true);
         setErrorMessageForPermission(
           "Your browser does not support video calls. Please use the latest version of Chrome, Safari, Firefox, or Edge."
@@ -228,7 +253,7 @@ const VideoCallUI = ({
         return;
       }
 
-      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+      if (!hasGetUserMedia()) {
         setPermissionModal(true);
         setErrorMessageForPermission(
           "Your device does not expose camera/microphone controls required for video calls."
@@ -246,7 +271,7 @@ const VideoCallUI = ({
         return;
       }
 
-      const devices = await navigator.mediaDevices.enumerateDevices();
+      const devices = await enumerateDevices();
       const cameraDevices = devices.filter((d) => d.kind === "videoinput");
       const micDevices = devices.filter((d) => d.kind === "audioinput");
 
@@ -1180,10 +1205,13 @@ const VideoCallUI = ({
       }
 
       // If permissions are granted, proceed with starting the call
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
+      // Use optimal constraints based on device capabilities
+      const optimalConstraints = getOptimalVideoConstraints();
+      const stream = await retryWithBackoff(
+        () => getUserMedia(optimalConstraints),
+        3,
+        1000
+      );
 
       setPermissionModal(false);
       setLocalStream(stream);

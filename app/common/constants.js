@@ -85,13 +85,32 @@ export const debouncedConfigs = {
   oneSec: 1000,
   towSec: 2000,
 };
+// Legacy routing paths - kept for backward compatibility
+// New code should use ROUTES from '../config/routes.config'
 export const routingPaths = {
   landing: "/",
   dashboard: "/dashboard",
   signUp: "/auth/signUp",
   signIn: "/auth/signIn",
+  signUpClassic: "/auth/signUpClassic",
+  signInClassic: "/auth/signInClassic",
   forgetPassword: "/auth/forgetPassword",
   verifiedForgetPassword: "/auth/verified-forget-password",
+  meeting: "/meeting",
+  messenger: "/messenger",
+  // Blog routes
+  blogDetailSidebar: "/blog/detailSidebar",
+  blogLeftSidebar: "/blog/leftSidebar",
+  blogNoSidebar: "/blog/noSidebar",
+  blogRightSidebar: "/blog/rightSidebar",
+  blogSidebar: "/blog/sidebar",
+  // Bonus routes
+  bonusAbout: "/bonus/about",
+  bonusElements: "/bonus/elements",
+  bonusFaq: "/bonus/faq",
+  bonusPrice: "/bonus/price",
+  // Error routes
+  notFound: "/404",
 };
 
 export const params = {

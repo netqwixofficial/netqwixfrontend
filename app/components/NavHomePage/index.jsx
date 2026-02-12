@@ -1046,7 +1046,8 @@ const NavHomePage = () => {
                 <div
                   className="card-body"
                   style={{
-                    padding: width600 ? "15px" : "20px"
+                    padding: 0,
+                    margin: 0
                   }}
                 >
                   <UserInfoCard />

@@ -62,6 +62,16 @@ import { getInitials } from "../../../utils/videoCall";
 import Timer from "./Timer";
 import { isMobile } from 'react-device-detect';
 import OrientationModal from "../modalComponent/OrientationModal";
+import {
+  getUserMedia,
+  getDisplayMedia,
+  getUserFriendlyError,
+  retryWithBackoff,
+  getOptimalVideoConstraints,
+  checkBrowserCompatibility,
+  hasGetUserMedia,
+  hasRTCPeerConnection
+} from "../../utils/webrtcCompatibility";
 import MobileDetect from 'mobile-detect';
 import { isIOS } from 'react-device-detect';
 import Script from 'next/script'
@@ -585,7 +595,7 @@ useEffect(() => {
 
     const mixedAudioStream = await setupAudioMixing();
 
-    const screenStr = await navigator.mediaDevices.getDisplayMedia({
+    const screenStr = await getDisplayMedia({
       video: true,
       preferCurrentTab: true,
     });
@@ -693,13 +703,27 @@ useEffect(() => {
         return;
       }
 
-      // Request access to media devices
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
+      // Check browser compatibility first
+      const compatibility = checkBrowserCompatibility();
+      if (!compatibility.supported) {
+        const errorMsg = compatibility.errors.join(' ') || 'Your browser does not support video calls.';
+        errorHandling(errorMsg);
+        setPermissionModal(true);
+        return;
+      }
 
-      //  
+      // Show warnings if any
+      if (compatibility.warnings.length > 0) {
+        console.warn('Browser compatibility warnings:', compatibility.warnings);
+      }
+
+      // Request access to media devices with optimal constraints and retry logic
+      const optimalConstraints = getOptimalVideoConstraints();
+      const stream = await retryWithBackoff(
+        () => getUserMedia(optimalConstraints),
+        3,
+        1000
+      );
 
       // Update state and UI
       setPermissionModal(false);
@@ -767,9 +791,10 @@ useEffect(() => {
 
       //  
     } catch (err) {
-      // console.error("Media permission error:", err);
+      console.error("Media permission error:", err);
       setPermissionModal(true);
-      errorHandling("Please allow media permission to microphone and camera for video call...");
+      const friendlyError = getUserFriendlyError(err);
+      errorHandling(friendlyError);
     }
   };
 
