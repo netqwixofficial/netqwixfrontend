@@ -1056,6 +1056,27 @@ useEffect(() => {
     // return () => window.removeEventListener('resize', adjustCanvasSize);
   }, []);
 
+  // Once we clearly have the other side connected, clear any "waiting" style messages
+  useEffect(() => {
+    const hasRemote =
+      !!remoteStream || isTraineeJoined;
+
+    if (
+      hasRemote &&
+      displayMsg?.showMsg &&
+      typeof displayMsg?.msg === "string" &&
+      displayMsg.msg.toLowerCase().includes("waiting for")
+    ) {
+      // eslint-disable-next-line no-console
+      console.log("[HandleVideoCall] Auto-clearing waiting message because remote side is connected", {
+        msg: displayMsg.msg,
+        isTraineeJoined,
+        hasRemoteStream: !!remoteStream,
+      });
+      setDisplayMsg({ showMsg: false, msg: "" });
+    }
+  }, [remoteStream, isTraineeJoined, displayMsg?.showMsg, displayMsg?.msg]);
+
   // NOTE - call end
   const cutCall = () => {
     //  

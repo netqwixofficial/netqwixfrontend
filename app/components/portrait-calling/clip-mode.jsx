@@ -95,7 +95,7 @@ const VideoContainer = ({
   // const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   // const [videoProgress, setVideoProgress] = useState(0);
-  const { accountType } = useAppSelector(authState);
+  const { accountType, userInfo } = useAppSelector(authState);
   const socket = useContext(SocketContext);
   // const videoContainerRef = useRef(null);
   const movingVideoContainerRef = useRef(null);
@@ -305,18 +305,36 @@ const VideoContainer = ({
       const video = videoRef?.current;
       const currentClipId = clip?._id ? String(clip._id) : null;
       const incomingVideoId = data?.videoId != null ? String(data.videoId) : null;
+      const myUserId = userInfo?._id ? String(userInfo._id) : null;
+      const fromUserId = data?.userInfo?.from_user ? String(data.userInfo.from_user) : null;
+      const toUserId = data?.userInfo?.to_user ? String(data.userInfo.to_user) : null;
 
       console.log("📡 [VideoContainer] Received ON_VIDEO_PLAY_PAUSE event", {
         receivedData: data,
         clipId: clip?._id,
         incomingVideoId,
+        fromUserId,
+        toUserId,
+        myUserId,
+        isTarget: myUserId && toUserId && myUserId === toUserId,
+        isSender: myUserId && fromUserId && myUserId === fromUserId,
         isMatch: currentClipId && incomingVideoId && incomingVideoId === currentClipId,
         shouldPlay: data?.isPlaying,
         videoPaused: video?.paused,
         index,
       });
-      // Ignore events for other clips
-      if (!currentClipId || !incomingVideoId || incomingVideoId !== currentClipId) return;
+      // Ignore events for other clips or if this event is not meant for this user
+      if (
+        !currentClipId ||
+        !incomingVideoId ||
+        incomingVideoId !== currentClipId ||
+        !myUserId ||
+        !toUserId ||
+        myUserId !== toUserId || // only the target (not sender) should react
+        (fromUserId && myUserId === fromUserId)
+      ) {
+        return;
+      }
 
       // If video element is not ready yet on the trainee side, store desired state
       if (!video) {
@@ -360,13 +378,20 @@ const VideoContainer = ({
       const video = videoRef?.current;
       const currentClipId = clip?._id ? String(clip._id) : null;
       const incomingVideoId = data?.videoId != null ? String(data.videoId) : null;
+      const myUserId = userInfo?._id ? String(userInfo._id) : null;
+      const fromUserId = data?.userInfo?.from_user ? String(data.userInfo.from_user) : null;
+      const toUserId = data?.userInfo?.to_user ? String(data.userInfo.to_user) : null;
 
       console.log("📡 [VideoContainer] Received ON_VIDEO_TIME event", {
         receivedData: data,
         clipId: clip?._id,
         incomingVideoId,
+        fromUserId,
+        toUserId,
+        myUserId,
+        isTarget: myUserId && toUserId && myUserId === toUserId,
+        isSender: myUserId && fromUserId && myUserId === fromUserId,
         isMatch: currentClipId && incomingVideoId && incomingVideoId === currentClipId,
-        isTrainee: accountType === AccountType.TRAINEE,
         currentTime: video?.currentTime,
         newTime: data?.progress,
         index,
@@ -375,7 +400,10 @@ const VideoContainer = ({
         currentClipId &&
         incomingVideoId &&
         incomingVideoId === currentClipId &&
-        accountType === AccountType.TRAINEE
+        myUserId &&
+        toUserId &&
+        myUserId === toUserId && // only the target applies time sync
+        (!fromUserId || myUserId !== fromUserId)
       ) {
         // If video element not ready, remember the desired time and apply once loaded
         if (!video || video.readyState < (typeof HTMLMediaElement !== "undefined" ? HTMLMediaElement.HAVE_METADATA : 1)) {
