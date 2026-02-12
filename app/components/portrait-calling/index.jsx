@@ -2069,7 +2069,13 @@ const VideoCallUI = ({
         alignItems: isMaximized ? "flex-start" : "center",
       }}
     >
-      {displayMsg?.show && displayMsg?.msg && (
+      {/* 
+        Show the center waiting/connection message ONLY while the call is still
+        being established. Once both parties have clearly joined the call,
+        we hide this overlay so it never blocks the UI even if some internal
+        callState or timers briefly say "connecting"/"waiting".
+      */}
+      {displayMsg?.show && displayMsg?.msg && !bothUsersJoined && (
         <CenterMessage
           message={displayMsg.msg}
           type="waiting"
