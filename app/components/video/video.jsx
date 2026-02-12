@@ -851,43 +851,17 @@ useEffect(() => {
       return;
     }
 
-    // once user joins the call - ENHANCED with sessionId validation
+    // once user joins the call
     socket.on("ON_CALL_JOIN", ({ userInfo }) => {
-      console.log("[HandleVideoCall] Received ON_CALL_JOIN event", {
-        userInfo,
-        hasPeer: !!(peerRef && peerRef.current),
-        peerId: peerRef?.current?.id,
-        fromUser: fromUser?._id,
-        toUser: toUser?._id,
-      });
-      
-      if (!userInfo) {
-        console.error("[HandleVideoCall] Missing userInfo in ON_CALL_JOIN");
-        return;
-      }
-      
-      const { to_user, from_user, sessionId } = userInfo;
-      
-      if (!(peerRef && peerRef.current)) {
-        console.warn("[HandleVideoCall] Peer ref not available when ON_CALL_JOIN received");
-        return;
-      }
-      
-      // Ensure we have sessionId for proper backend tracking
-      if (!sessionId && startMeeting?.id) {
-        console.log("[HandleVideoCall] Missing sessionId in ON_CALL_JOIN, re-emitting with sessionId", {
-          sessionId: startMeeting.id,
-        });
-        socket.emit("ON_CALL_JOIN", {
-          userInfo: {
-            from_user: fromUser._id,
-            to_user: toUser._id,
-            sessionId: startMeeting.id,
-            peerId: peerRef.current.id,
-          },
-        });
-      }
-      
+      // console.log(
+      //   ` end user join --- `,
+      //   userInfo,
+      //   peerRef.current,
+      //   fromUser,
+      //   toUser
+      // );
+      const { to_user, from_user } = userInfo;
+      if (!(peerRef && peerRef.current)) return;
       connectToPeer(peerRef.current, from_user);
     });
 
@@ -1081,27 +1055,6 @@ useEffect(() => {
     // window.addEventListener('resize', adjustCanvasSize);
     // return () => window.removeEventListener('resize', adjustCanvasSize);
   }, []);
-
-  // Once we clearly have the other side connected, clear any "waiting" style messages
-  useEffect(() => {
-    const hasRemote =
-      !!remoteStream || isTraineeJoined;
-
-    if (
-      hasRemote &&
-      displayMsg?.showMsg &&
-      typeof displayMsg?.msg === "string" &&
-      displayMsg.msg.toLowerCase().includes("waiting for")
-    ) {
-      // eslint-disable-next-line no-console
-      console.log("[HandleVideoCall] Auto-clearing waiting message because remote side is connected", {
-        msg: displayMsg.msg,
-        isTraineeJoined,
-        hasRemoteStream: !!remoteStream,
-      });
-      setDisplayMsg({ showMsg: false, msg: "" });
-    }
-  }, [remoteStream, isTraineeJoined, displayMsg?.showMsg, displayMsg?.msg]);
 
   // NOTE - call end
   const cutCall = () => {

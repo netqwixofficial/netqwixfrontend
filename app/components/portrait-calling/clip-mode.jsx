@@ -95,7 +95,7 @@ const VideoContainer = ({
   // const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   // const [videoProgress, setVideoProgress] = useState(0);
-  const { accountType, userInfo } = useAppSelector(authState);
+  const { accountType } = useAppSelector(authState);
   const socket = useContext(SocketContext);
   // const videoContainerRef = useRef(null);
   const movingVideoContainerRef = useRef(null);
@@ -113,11 +113,6 @@ const VideoContainer = ({
   // Queue for remote sync events that may arrive before the student's video is ready
   const pendingPlayStateRef = useRef(null);
   const pendingTimeRef = useRef(null);
-  // Retry mechanism for failed sync events
-  const syncRetryCountRef = useRef(0);
-  const lastSyncEventRef = useRef(null);
-  const MAX_RETRY_ATTEMPTS = 3;
-  const RETRY_DELAY_MS = 500;
 
   // Zoom logic
   const onWheel = (e) => {
@@ -303,244 +298,94 @@ const VideoContainer = ({
     }
   };
 
-  // Enhanced play/pause handler with retry mechanism - defined outside useEffect
-  const applyPlayPauseWithRetry = useCallback((shouldPlay, retryCount = 0) => {
-    const video = videoRef?.current;
-    if (!video) {
-      if (accountType === AccountType.TRAINEE && retryCount < MAX_RETRY_ATTEMPTS) {
-        console.log(`⏳ [VideoContainer] Video not ready, queuing play state (retry ${retryCount + 1}/${MAX_RETRY_ATTEMPTS})`, {
-          clipId: clip?._id,
-          shouldPlay,
-          index,
-        });
-        pendingPlayStateRef.current = shouldPlay;
-        setTimeout(() => {
-          applyPlayPauseWithRetry(shouldPlay, retryCount + 1);
-        }, RETRY_DELAY_MS);
-      }
-      return;
-    }
-
-    try {
-      if (shouldPlay && video.paused) {
-        console.log("▶️ [VideoContainer] Applying play from socket event", {
-          clipId: clip?._id,
-          currentTime: video.currentTime,
-          duration: video.duration,
-          readyState: video.readyState,
-          retryCount,
-          index,
-        });
-        video
-          .play()
-          .then(() => {
-            setIsPlaying(true);
-            syncRetryCountRef.current = 0;
-            pendingPlayStateRef.current = null;
-            console.log("✅ [VideoContainer] Play successful", { clipId: clip?._id, index });
-          })
-          .catch((err) => {
-            console.warn("⚠️ [VideoContainer] Play failed, will retry", {
-              clipId: clip?._id,
-              error: err.message,
-              retryCount,
-              index,
-            });
-            if (retryCount < MAX_RETRY_ATTEMPTS) {
-              setTimeout(() => {
-                applyPlayPauseWithRetry(shouldPlay, retryCount + 1);
-              }, RETRY_DELAY_MS);
-            } else {
-              pendingPlayStateRef.current = shouldPlay; // Keep queued for later
-            }
-          });
-      } else if (!shouldPlay && !video.paused) {
-        console.log("⏸️ [VideoContainer] Applying pause from socket event", {
-          clipId: clip?._id,
-          currentTime: video.currentTime,
-          retryCount,
-          index,
-        });
-        video.pause();
-        setIsPlaying(false);
-        syncRetryCountRef.current = 0;
-        pendingPlayStateRef.current = null;
-      }
-    } catch (err) {
-      console.error("❌ [VideoContainer] Error applying play/pause", {
-        clipId: clip?._id,
-        error: err,
-        retryCount,
-        index,
-      });
-    }
-  }, [videoRef, clip?._id, accountType, index, setIsPlaying]);
-
-  // Enhanced time sync handler with retry mechanism - defined outside useEffect
-  const applyTimeSyncWithRetry = useCallback((targetTime, retryCount = 0) => {
-    const video = videoRef?.current;
-    const minReadyState = typeof HTMLMediaElement !== "undefined" ? HTMLMediaElement.HAVE_METADATA : 1;
-    
-    if (!video || video.readyState < minReadyState) {
-      if (accountType === AccountType.TRAINEE && retryCount < MAX_RETRY_ATTEMPTS) {
-        console.log(`⏳ [VideoContainer] Video not ready for time sync, queuing (retry ${retryCount + 1}/${MAX_RETRY_ATTEMPTS})`, {
-          clipId: clip?._id,
-          targetTime,
-          readyState: video?.readyState,
-          index,
-        });
-        pendingTimeRef.current = targetTime;
-        setTimeout(() => {
-          applyTimeSyncWithRetry(targetTime, retryCount + 1);
-        }, RETRY_DELAY_MS);
-      }
-      return;
-    }
-
-    try {
-      const oldTime = video.currentTime;
-      video.currentTime = targetTime;
-      console.log("⏩ [VideoContainer] Video time synced from socket", {
-        clipId: clip?._id,
-        from: oldTime,
-        to: targetTime,
-        readyState: video.readyState,
-        retryCount,
-        index,
-      });
-      pendingTimeRef.current = null;
-      syncRetryCountRef.current = 0;
-    } catch (err) {
-      console.warn("⚠️ [VideoContainer] Time sync failed, will retry", {
-        clipId: clip?._id,
-        targetTime,
-        error: err.message,
-        retryCount,
-        index,
-      });
-      if (retryCount < MAX_RETRY_ATTEMPTS) {
-        pendingTimeRef.current = targetTime;
-        setTimeout(() => {
-          applyTimeSyncWithRetry(targetTime, retryCount + 1);
-        }, RETRY_DELAY_MS);
-      }
-    }
-  }, [videoRef, clip?._id, accountType, index]);
-
   useEffect(() => {
     if (!socket) return;
 
     const handlePlayPause = (data) => {
       const video = videoRef?.current;
-      const currentClipId = clip?._id ? String(clip._id) : null;
-      const incomingVideoId = data?.videoId != null ? String(data.videoId) : null;
-      const myUserId = userInfo?._id ? String(userInfo._id) : null;
-      const fromUserId = data?.userInfo?.from_user ? String(data.userInfo.from_user) : null;
-      const toUserId = data?.userInfo?.to_user ? String(data.userInfo.to_user) : null;
 
       console.log("📡 [VideoContainer] Received ON_VIDEO_PLAY_PAUSE event", {
         receivedData: data,
         clipId: clip?._id,
-        incomingVideoId,
-        fromUserId,
-        toUserId,
-        myUserId,
-        isTarget: myUserId && toUserId && myUserId === toUserId,
-        isSender: myUserId && fromUserId && myUserId === fromUserId,
-        isMatch: currentClipId && incomingVideoId && incomingVideoId === currentClipId,
+        isMatch: data?.videoId === clip?._id,
         shouldPlay: data?.isPlaying,
         videoPaused: video?.paused,
-        videoReady: video?.readyState >= 2,
         index,
-        timestamp: new Date().toISOString(),
       });
-      
-      // Ignore events for other clips or if this event is not meant for this user
-      if (
-        !currentClipId ||
-        !incomingVideoId ||
-        incomingVideoId !== currentClipId ||
-        !myUserId ||
-        !toUserId ||
-        myUserId !== toUserId || // only the target (not sender) should react
-        (fromUserId && myUserId === fromUserId)
-      ) {
-        console.log("🚫 [VideoContainer] Ignoring play/pause event - not for this clip/user", {
-          currentClipId,
-          incomingVideoId,
-          myUserId,
-          toUserId,
-          fromUserId,
-          isMatch: currentClipId === incomingVideoId,
-          isTarget: myUserId === toUserId,
-          isSender: myUserId === fromUserId,
-        });
+
+      if (data?.videoId !== clip?._id) return;
+
+      // If video element is not ready yet on the trainee side, store desired state
+      if (!video) {
+        if (accountType === AccountType.TRAINEE) {
+          pendingPlayStateRef.current = data.isPlaying;
+        }
         return;
       }
 
-      // Store last event for retry purposes
-      lastSyncEventRef.current = { type: 'playPause', data, timestamp: Date.now() };
+      if (data.isPlaying) {
+        if (video.paused) {
+          console.log("▶️ [VideoContainer] Playing video from socket event", {
+            clipId: clip?._id,
+            currentTime: video.currentTime,
+            index,
+          });
+          video
+            .play()
+            .then(() => setIsPlaying(true))
+            .catch((err) =>
+              console.warn("VideoContainer play error from socket", err)
+            );
+        }
+      } else {
+        if (!video.paused) {
+          console.log("⏸️ [VideoContainer] Pausing video from socket event", {
+            clipId: clip?._id,
+            currentTime: video.currentTime,
+            index,
+          });
+          video.pause();
+          setIsPlaying(false);
+        }
+      }
 
-      // Use enhanced retry mechanism
-      applyPlayPauseWithRetry(data.isPlaying, 0);
+      // Clear any pending play state since we've just applied the latest one
+      pendingPlayStateRef.current = null;
     };
 
     const handleTime = (data) => {
       const video = videoRef?.current;
-      const currentClipId = clip?._id ? String(clip._id) : null;
-      const incomingVideoId = data?.videoId != null ? String(data.videoId) : null;
-      const myUserId = userInfo?._id ? String(userInfo._id) : null;
-      const fromUserId = data?.userInfo?.from_user ? String(data.userInfo.from_user) : null;
-      const toUserId = data?.userInfo?.to_user ? String(data.userInfo.to_user) : null;
 
       console.log("📡 [VideoContainer] Received ON_VIDEO_TIME event", {
         receivedData: data,
         clipId: clip?._id,
-        incomingVideoId,
-        fromUserId,
-        toUserId,
-        myUserId,
-        isTarget: myUserId && toUserId && myUserId === toUserId,
-        isSender: myUserId && fromUserId && myUserId === fromUserId,
-        isMatch: currentClipId && incomingVideoId && incomingVideoId === currentClipId,
+        isMatch: data?.videoId === clip?._id,
+        isTrainee: accountType === AccountType.TRAINEE,
         currentTime: video?.currentTime,
         newTime: data?.progress,
-        videoReady: video?.readyState >= 1,
         index,
-        timestamp: new Date().toISOString(),
       });
-      
-      if (
-        currentClipId &&
-        incomingVideoId &&
-        incomingVideoId === currentClipId &&
-        myUserId &&
-        toUserId &&
-        myUserId === toUserId && // only the target applies time sync
-        (!fromUserId || myUserId !== fromUserId)
-      ) {
-        // Store last event for retry purposes
-        lastSyncEventRef.current = { type: 'time', data, timestamp: Date.now() };
-        
-        // Use enhanced retry mechanism
-        applyTimeSyncWithRetry(data.progress, 0);
-      } else {
-        console.log("🚫 [VideoContainer] Ignoring time sync event - not for this clip/user", {
-          currentClipId,
-          incomingVideoId,
-          myUserId,
-          toUserId,
-          fromUserId,
-          isMatch: currentClipId === incomingVideoId,
-          isTarget: myUserId === toUserId,
+
+      if (data?.videoId === clip?._id && accountType === AccountType.TRAINEE) {
+        // If video element not ready, remember the desired time and apply once loaded
+        if (!video || video.readyState < (typeof HTMLMediaElement !== "undefined" ? HTMLMediaElement.HAVE_METADATA : 1)) {
+          pendingTimeRef.current = data.progress;
+          return;
+        }
+
+        const oldTime = video.currentTime;
+        video.currentTime = data.progress;
+        console.log("⏩ [VideoContainer] Video time synced from socket", {
+          clipId: clip?._id,
+          from: oldTime,
+          to: data.progress,
+          index,
         });
+        pendingTimeRef.current = null;
       }
     };
     const handleZoomPanChange = (data) => {
-      const currentClipId = clip?._id ? String(clip._id) : null;
-      const incomingVideoId = data?.videoId != null ? String(data.videoId) : null;
-
-      if (currentClipId && incomingVideoId && incomingVideoId === currentClipId) {
+      if (data?.videoId === clip?._id) {
         // On trainee side, only follow zoom; ignore pan so clips stay in place
         if (accountType === AccountType.TRAINEE && typeof data.zoom === "number") {
           if (data.zoom !== scale) {
@@ -561,9 +406,9 @@ const VideoContainer = ({
       socket?.off(EVENTS?.ON_VIDEO_TIME, handleTime);
       socket?.off(EVENTS?.ON_VIDEO_ZOOM_PAN, handleZoomPanChange);
     };
-  }, [socket, clip?._id, videoRef, accountType, scale, translate, applyPlayPauseWithRetry, applyTimeSyncWithRetry, userInfo?._id]);
+  }, [socket, clip?._id, videoRef, accountType, scale, translate]);
 
-  // Apply any queued remote sync events once the trainee's video is ready - ENHANCED with retry
+  // Apply any queued remote sync events once the trainee's video is ready
   useEffect(() => {
     const video = videoRef?.current;
     if (!video || accountType !== AccountType.TRAINEE) return;
@@ -571,89 +416,49 @@ const VideoContainer = ({
     // Only attempt to apply when we've finished the initial loading state
     if (isVideoLoading) return;
 
-    // Check if video is ready (at least HAVE_METADATA)
-    const minReadyState = typeof HTMLMediaElement !== "undefined" ? HTMLMediaElement.HAVE_METADATA : 1;
-    if (video.readyState < minReadyState) {
-      // Video not ready yet, will retry when readyState changes
-      return;
-    }
-
     const applyPending = () => {
       try {
-        // Apply queued time sync
         if (pendingTimeRef.current != null) {
           const targetTime = pendingTimeRef.current;
           const oldTime = video.currentTime;
-          
-          try {
-            video.currentTime = targetTime;
-            console.log("⏩ [VideoContainer] Applied queued time sync", {
-              clipId: clip?._id,
-              from: oldTime,
-              to: targetTime,
-              readyState: video.readyState,
-              index,
-            });
-            pendingTimeRef.current = null;
-          } catch (err) {
-            console.warn("⚠️ [VideoContainer] Failed to apply queued time sync, will retry", {
-              clipId: clip?._id,
-              targetTime,
-              error: err.message,
-              index,
-            });
-            // Keep pendingTimeRef.current set so we retry on next effect run
-          }
+          video.currentTime = targetTime;
+          console.log("⏩ [VideoContainer] Applying queued time sync", {
+            clipId: clip?._id,
+            from: oldTime,
+            to: targetTime,
+            index,
+          });
+          pendingTimeRef.current = null;
         }
 
-        // Apply queued play/pause state
         if (pendingPlayStateRef.current != null) {
           const shouldPlay = pendingPlayStateRef.current;
           console.log("▶️ [VideoContainer] Applying queued play/pause sync", {
             clipId: clip?._id,
             shouldPlay,
             currentPaused: video.paused,
-            readyState: video.readyState,
             index,
           });
-          
           if (shouldPlay && video.paused) {
             video
               .play()
-              .then(() => {
-                setIsPlaying(true);
-                pendingPlayStateRef.current = null;
-                console.log("✅ [VideoContainer] Queued play successful", { clipId: clip?._id, index });
-              })
-              .catch((err) => {
-                console.warn("⚠️ [VideoContainer] Queued play failed, keeping queued", {
-                  clipId: clip?._id,
-                  error: err.message,
-                  index,
-                });
-                // Keep pendingPlayStateRef.current set so we retry
-              });
+              .then(() => setIsPlaying(true))
+              .catch((err) =>
+                console.warn("VideoContainer play error from queued state", err)
+              );
           } else if (!shouldPlay && !video.paused) {
             video.pause();
             setIsPlaying(false);
-            pendingPlayStateRef.current = null;
-            console.log("✅ [VideoContainer] Queued pause successful", { clipId: clip?._id, index });
-          } else {
-            // State already matches, clear queue
-            pendingPlayStateRef.current = null;
           }
+          pendingPlayStateRef.current = null;
         }
       } catch (err) {
-        console.warn("❌ [VideoContainer] Error applying queued sync state", {
-          clipId: clip?._id,
-          error: err,
-          index,
-        });
+        console.warn("VideoContainer failed to apply queued sync state", err);
       }
     };
 
     applyPending();
-  }, [videoRef, accountType, isVideoLoading, clip?._id, setIsPlaying, videoRef?.current?.readyState]);
+  }, [videoRef, accountType, isVideoLoading, clip?._id, setIsPlaying]);
   //  
   // useEffect(() => {
   //   const video = videoRef?.current;
