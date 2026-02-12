@@ -113,6 +113,9 @@ const VideoContainer = ({
   // Queue for remote sync events that may arrive before the student's video is ready
   const pendingPlayStateRef = useRef(null);
   const pendingTimeRef = useRef(null);
+  // BUG 1 FIX: Track pending timeouts for cleanup to prevent memory leaks
+  // If retry functions are added, they should store timeout IDs here for cleanup
+  const pendingTimeoutRefs = useRef([]);
 
   // Zoom logic
   const onWheel = (e) => {

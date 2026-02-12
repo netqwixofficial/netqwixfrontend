@@ -1932,6 +1932,8 @@ const VideoCallUI = ({
    
    
   // Sync callState to displayMsg so users see connection status
+  // BUG 3 PREVENTION: If periodic validation is added, ensure displayMsg?.show and displayMsg?.msg
+  // are NOT in the dependency array of the setInterval effect. Instead, read them inside the interval callback.
   useEffect(() => {
     if (callState === "connecting" && !displayMsg?.show) {
       setDisplayMsg({
