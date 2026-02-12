@@ -943,12 +943,25 @@ const VideoCallUI = ({
   // Once we clearly have the other side connected, clear any "waiting for ..."
   // style messages so users are not stuck with a stale banner.
   // FIX: Also check remoteVideoRef to catch cases where stream exists but state hasn't updated
+  // ENHANCED: Also set bothUsersJoined if we have remote stream but flag isn't set yet
   useEffect(() => {
     const hasRemoteStream = !!remoteStream;
     const hasRemoteVideoElement = !!remoteVideoRef?.current?.srcObject;
     const hasRemoteConnection = !!isTraineeJoined || !!bothUsersJoined;
 
     const hasRemote = hasRemoteStream || hasRemoteVideoElement || hasRemoteConnection;
+
+    // FALLBACK: If we have a remote stream but bothUsersJoined isn't set, set it now
+    // This handles cases where backend doesn't emit ON_BOTH_JOIN but WebRTC stream is active
+    if ((hasRemoteStream || hasRemoteVideoElement) && !bothUsersJoined) {
+      console.log("[VideoCallUI] Fallback: Setting bothUsersJoined=true (remote stream detected but flag not set)", {
+        hasRemoteStream,
+        hasRemoteVideoElement,
+        isTraineeJoined,
+        bothUsersJoined,
+      });
+      setBothUsersJoined(true);
+    }
 
     if (
       hasRemote &&
@@ -1447,6 +1460,11 @@ const VideoCallUI = ({
 
           call.on("stream", (remoteStream) => {
             try {
+              console.log("[VideoCallUI] Received remote stream via call.on('stream')", {
+                accountType,
+                hasStream: !!remoteStream,
+                currentBothUsersJoined: bothUsersJoined,
+              });
               setIsTraineeJoined(true);
               setCallState("connected");
               // Check if both users are now joined (local user + remote user)
@@ -1454,9 +1472,11 @@ const VideoCallUI = ({
               // For trainee: they joined when handleStartCall ran, trainer joins here
               if (accountType === AccountType.TRAINER) {
                 // Trainer is already in call, trainee just joined
+                console.log("[VideoCallUI] Trainer: Setting bothUsersJoined to true (trainee stream received)");
                 setBothUsersJoined(true);
               } else {
                 // Trainee is already in call, trainer just joined
+                console.log("[VideoCallUI] Trainee: Setting bothUsersJoined to true (trainer stream received)");
                 setBothUsersJoined(true);
               }
               setDisplayMsg({ show: false, msg: "" });
@@ -1614,11 +1634,17 @@ const VideoCallUI = ({
       // Handle successful stream
       call.on("stream", (remoteStream) => {
         try {
+          console.log("[VideoCallUI] Received remote stream via connectToPeer", {
+            accountType,
+            hasStream: !!remoteStream,
+            currentBothUsersJoined: bothUsersJoined,
+          });
           setDisplayMsg({ show: false, msg: "" });
           if (timeoutId) {
             clearTimeout(timeoutId);
           }
           setIsTraineeJoined(true);
+          console.log("[VideoCallUI] Setting bothUsersJoined to true (remote stream received)");
           setBothUsersJoined(true);
           
           if (remoteVideoRef?.current) {
@@ -1694,10 +1720,15 @@ const VideoCallUI = ({
     if (!socket) return;
 
     const handleBothJoin = (data) => {
-        setDisplayMsg({
-        show: true,
-        msg: "Both participants joined. Session timer starting...",
+      console.log("[VideoCallUI] Received ON_BOTH_JOIN event from backend", {
+        data,
+        accountType,
+        currentBothUsersJoined: bothUsersJoined,
       });
+
+      // CRITICAL FIX: Clear waiting messages when both users join, don't set a new message
+      // The backend confirms both users are in the session, so hide any waiting/connecting messages
+      setDisplayMsg({ show: false, msg: "" });
 
       // Mark that both users have joined - timer can now start
       setBothUsersJoined(true);
@@ -2074,8 +2105,28 @@ const VideoCallUI = ({
         being established. Once both parties have clearly joined the call,
         we hide this overlay so it never blocks the UI even if some internal
         callState or timers briefly say "connecting"/"waiting".
+        
+        CRITICAL: Check bothUsersJoined AND remoteStream to ensure we hide the message
+        when either backend confirms both joined OR WebRTC stream is active.
       */}
-      {displayMsg?.show && displayMsg?.msg && !bothUsersJoined && (
+      {(() => {
+        const shouldShowMessage = 
+          displayMsg?.show && 
+          displayMsg?.msg && 
+          !bothUsersJoined && 
+          !remoteStream && 
+          !remoteVideoRef?.current?.srcObject;
+        
+        if (shouldShowMessage) {
+          console.log("[VideoCallUI] Showing waiting message", {
+            displayMsg: displayMsg.msg,
+            bothUsersJoined,
+            hasRemoteStream: !!remoteStream,
+            hasRemoteVideoSrc: !!remoteVideoRef?.current?.srcObject,
+          });
+        }
+        return shouldShowMessage;
+      })() && (
         <CenterMessage
           message={displayMsg.msg}
           type="waiting"
