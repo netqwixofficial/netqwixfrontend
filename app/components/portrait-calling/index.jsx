@@ -2035,12 +2035,17 @@ const VideoCallUI = ({
         />
       )}
       {/* Debug: Log selectedClips state for troubleshooting */}
-      {process.env.NODE_ENV === 'development' && console.log("[VideoCallUI] Render check", {
-        selectedClipsLength: selectedClips?.length,
-        selectedClipsIsArray: Array.isArray(selectedClips),
-        willShowClipMode: selectedClips && Array.isArray(selectedClips) && selectedClips.length > 0,
-        clipIds: selectedClips?.map(c => c?._id),
-      })}
+      {(() => {
+        const willShowClipMode = selectedClips && Array.isArray(selectedClips) && selectedClips.length > 0;
+        console.log("[VideoCallUI] Render check", {
+          selectedClipsLength: selectedClips?.length,
+          selectedClipsIsArray: Array.isArray(selectedClips),
+          willShowClipMode,
+          clipIds: selectedClips?.map(c => c?._id),
+          renderingComponent: willShowClipMode ? 'ClipModeCall' : 'OneOnOneCall',
+        });
+        return null;
+      })()}
       {selectedClips && Array.isArray(selectedClips) && selectedClips.length > 0 ? (
         <ClipModeCall
           timeRemaining={timeRemaining}
