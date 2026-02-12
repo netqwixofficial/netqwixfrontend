@@ -96,6 +96,7 @@ const VideoCallUI = ({
   const peerRef = useRef(null);
   const activeCallRef = useRef(null); // Track active call to prevent duplicates
   const isConnectingRef = useRef(false); // Prevent multiple simultaneous connection attempts
+  const clipsLoadedRef = useRef(false); // Track if clips have been loaded to prevent race conditions
   const localVideoRef = useRef(null);
   const canvasRef = useRef(null);
   const canvasRef2 = useRef(null);
@@ -852,6 +853,8 @@ const VideoCallUI = ({
   // or legacy `trainee_clip`. We support both for backward compatibility.
   // FIX: Load clips as soon as startMeeting is available, not waiting for trainee to join.
   // This ensures clips are visible from the start of the session.
+  // IMPORTANT: Use a ref to track if clips have been loaded to prevent clearing them
+  // during subsequent startMeeting updates (race condition prevention).
   useEffect(() => {
     if (!startMeeting) return;
 
@@ -863,20 +866,34 @@ const VideoCallUI = ({
           : [];
 
     if (bookingTraineeClips.length > 0) {
-      console.log("[VideoCallUI] Loading trainee clips from booking", {
-        clipCount: bookingTraineeClips.length,
-        clipIds: bookingTraineeClips.map(c => c._id),
-      });
-      setSelectedClips(bookingTraineeClips);
+      // Always load clips if backend provides them, even if we already have some
+      // This handles cases where startMeeting updates with clips after initial load
+      const currentClipIds = selectedClips.map(c => c?._id).filter(Boolean).sort().join(',');
+      const newClipIds = bookingTraineeClips.map(c => c?._id).filter(Boolean).sort().join(',');
+      
+      if (currentClipIds !== newClipIds) {
+        console.log("[VideoCallUI] Loading trainee clips from booking", {
+          clipCount: bookingTraineeClips.length,
+          clipIds: bookingTraineeClips.map(c => c._id),
+          previousClipIds: selectedClips.map(c => c?._id),
+          clipsLoadedBefore: clipsLoadedRef.current,
+        });
+        setSelectedClips(bookingTraineeClips);
+        clipsLoadedRef.current = true;
+      }
     } else {
-      // Only clear clips if we explicitly have empty arrays from backend
-      // Don't clear if the field is missing (might be loading)
+      // Only clear clips if we explicitly have empty arrays from backend AND
+      // clips were previously loaded (prevents clearing during initial load when field might be missing)
       const hasEmptyClips = 
         (Array.isArray(startMeeting.trainee_clips) && startMeeting.trainee_clips.length === 0) ||
         (Array.isArray(startMeeting.trainee_clip) && startMeeting.trainee_clip.length === 0);
       
-      if (hasEmptyClips) {
+      // Only clear if backend explicitly says "no clips" AND we previously loaded clips
+      // This prevents clearing clips during initial load when startMeeting might not have the field yet
+      if (hasEmptyClips && clipsLoadedRef.current && selectedClips.length > 0) {
+        console.log("[VideoCallUI] Backend sent empty clips array, clearing selected clips");
         setSelectedClips([]);
+        clipsLoadedRef.current = false;
       }
     }
   }, [startMeeting]);
@@ -2017,7 +2034,14 @@ const VideoCallUI = ({
           showSpinner={true}
         />
       )}
-      {selectedClips && selectedClips.length > 0 ? (
+      {/* Debug: Log selectedClips state for troubleshooting */}
+      {process.env.NODE_ENV === 'development' && console.log("[VideoCallUI] Render check", {
+        selectedClipsLength: selectedClips?.length,
+        selectedClipsIsArray: Array.isArray(selectedClips),
+        willShowClipMode: selectedClips && Array.isArray(selectedClips) && selectedClips.length > 0,
+        clipIds: selectedClips?.map(c => c?._id),
+      })}
+      {selectedClips && Array.isArray(selectedClips) && selectedClips.length > 0 ? (
         <ClipModeCall
           timeRemaining={timeRemaining}
           bothUsersJoined={bothUsersJoined}
