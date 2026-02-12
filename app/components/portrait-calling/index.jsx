@@ -97,6 +97,8 @@ const VideoCallUI = ({
   const activeCallRef = useRef(null); // Track active call to prevent duplicates
   const isConnectingRef = useRef(false); // Prevent multiple simultaneous connection attempts
   const clipsLoadedRef = useRef(false); // Track if clips have been loaded to prevent race conditions
+  const selectedClipsRef = useRef([]); // Track current clips for socket handler to access latest value
+  const hasEmittedClipsRef = useRef(false); // Track if we've emitted clips to prevent duplicate emissions
   const localVideoRef = useRef(null);
   const canvasRef = useRef(null);
   const canvasRef2 = useRef(null);
@@ -711,7 +713,39 @@ const VideoCallUI = ({
         // Handle both empty array and array with clips
         // Empty array means exit clip mode and return to default camera view
         const newClips = Array.isArray(videos) ? [...videos] : [];
+        
+        // CRITICAL FIX: Prevent socket events from clearing clips that were loaded from booking
+        // Only update clips from socket if:
+        // 1. We're receiving clips (not empty), OR
+        // 2. We don't have clips loaded from booking (clipsLoadedRef.current is false)
+        // This prevents race conditions where socket events clear pre-loaded clips
+        const currentClipsLength = selectedClipsRef.current.length;
+        const hasClipsFromBooking = clipsLoadedRef.current && currentClipsLength > 0;
+        const isReceivingEmptyClips = newClips.length === 0;
+        
+        if (hasClipsFromBooking && isReceivingEmptyClips) {
+          console.log("[VideoCallUI] Ignoring socket event that would clear booking clips", {
+            receivedClips: newClips.length,
+            currentClips: currentClipsLength,
+            clipsLoadedFromBooking: clipsLoadedRef.current,
+          });
+          return; // Don't clear clips that were loaded from booking
+        }
+        
+        console.log("[VideoCallUI] Updating clips from socket event", {
+          receivedClips: newClips.length,
+          currentClips: currentClipsLength,
+          clipIds: newClips.map(c => c?._id),
+        });
         setSelectedClips(newClips);
+        selectedClipsRef.current = newClips; // Update ref for future handler calls
+        
+        // Update clipsLoadedRef if we're receiving clips
+        if (newClips.length > 0) {
+          clipsLoadedRef.current = true;
+        } else {
+          clipsLoadedRef.current = false;
+        }
         
         // Clear annotations when switching between clip mode and default mode
         // This ensures clean state when mode changes
@@ -740,7 +774,7 @@ const VideoCallUI = ({
         socket.off(EVENTS.CALL_END, handleCallEnd);
       }
     };
-  }, [socket, accountType, cutCall]);
+  }, [socket, accountType, cutCall, fromUser?._id, toUser?._id]);
 
   // Listen for LESSON_TIME_WARNING event (30 seconds remaining)
   // Backend emits this when exactly 30 seconds remain in the session
@@ -843,9 +877,14 @@ const VideoCallUI = ({
   };
 
   //NOTE - emit event after selecting the clips
+  // CRITICAL FIX: Only emit when clips are actually set (not during initial empty state)
+  // This prevents emitting empty arrays that would trigger socket handlers to clear clips
   useEffect(() => {
-    // Emit event whenever selectedClips changes (including when it becomes empty)
-    emitVideoSelectEvent("clips", selectedClips);
+    // Only emit if we have clips OR if clips were explicitly cleared (not during initial load)
+    // Use clipsLoadedRef to distinguish between "never loaded" vs "explicitly cleared"
+    if (clipsLoadedRef.current || selectedClips.length > 0) {
+      emitVideoSelectEvent("clips", selectedClips);
+    }
   }, [selectedClips?.length, socket, fromUser?._id, toUser?._id]);
 
   // Select trainee clips that were attached to the booking before the session.
@@ -878,8 +917,10 @@ const VideoCallUI = ({
           previousClipIds: selectedClips.map(c => c?._id),
           clipsLoadedBefore: clipsLoadedRef.current,
         });
-        setSelectedClips(bookingTraineeClips);
-        clipsLoadedRef.current = true;
+        // CRITICAL: Set refs BEFORE setting state to ensure socket handler has correct values
+        selectedClipsRef.current = bookingTraineeClips; // Update ref for socket handler FIRST
+        clipsLoadedRef.current = true; // Mark as loaded BEFORE state update
+        setSelectedClips(bookingTraineeClips); // Then update state (this will trigger emit)
       }
     } else {
       // Only clear clips if we explicitly have empty arrays from backend AND
@@ -893,6 +934,7 @@ const VideoCallUI = ({
       if (hasEmptyClips && clipsLoadedRef.current && selectedClips.length > 0) {
         console.log("[VideoCallUI] Backend sent empty clips array, clearing selected clips");
         setSelectedClips([]);
+        selectedClipsRef.current = []; // Update ref
         clipsLoadedRef.current = false;
       }
     }
@@ -2149,6 +2191,8 @@ const VideoCallUI = ({
             setIsOpenConfirm(false);
             // Clear clips and emit socket event to sync with student
             setSelectedClips([]);
+            selectedClipsRef.current = []; // Update ref
+            clipsLoadedRef.current = false; // Reset flag
             emitVideoSelectEvent("clips", []);
           }}
           close={() => <></>}
@@ -2189,6 +2233,8 @@ const VideoCallUI = ({
             onClick={() => {
               // Clear clips and emit socket event to sync with student
               setSelectedClips([]);
+              selectedClipsRef.current = []; // Update ref
+              clipsLoadedRef.current = false; // Reset flag
               // Explicitly emit the event to ensure student receives it immediately
               emitVideoSelectEvent("clips", []);
               setIsOpenConfirm(false);
