@@ -759,10 +759,17 @@ useEffect(() => {
       
       // Handle Peer events
       peer.on("open", (id) => {
-        //  
+        // Notify backend that this user joined the call for a specific session
+        // so that timer / "both joined" logic can work reliably.
         if (socket) {
           socket.emit("ON_CALL_JOIN", {
-            userInfo: { from_user: fromUser._id, to_user: toUser._id },
+            userInfo: { 
+              from_user: fromUser._id, 
+              to_user: toUser._id,
+              // Include sessionId (booked_session._id) when available so
+              // backend can track coachJoined/userJoined correctly.
+              sessionId: meetingId || id || startMeeting?.id,
+            },
           });
         } else {
           console.error('[HandleVideoCall] Socket is not available when peer opened');
@@ -771,7 +778,6 @@ useEffect(() => {
             msg: 'Unable to connect to the server. Please refresh the page and try again.',
           });
         }
-         
       });
 
       peer.on("error", (error) => {
