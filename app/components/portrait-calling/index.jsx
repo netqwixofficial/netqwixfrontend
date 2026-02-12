@@ -847,17 +847,65 @@ const VideoCallUI = ({
     emitVideoSelectEvent("clips", selectedClips);
   }, [selectedClips?.length, socket, fromUser?._id, toUser?._id]);
 
-  // selects trainee clips on load
-
+  // Select trainee clips that were attached to the booking before the session.
+  // Backend can send this field as either `trainee_clips` (array of populated clip docs)
+  // or legacy `trainee_clip`. We support both for backward compatibility.
+  // FIX: Load clips as soon as startMeeting is available, not waiting for trainee to join.
+  // This ensures clips are visible from the start of the session.
   useEffect(() => {
-    if (isTraineeJoined) {
-      if (startMeeting?.trainee_clip?.length > 0) {
-        setSelectedClips(startMeeting.trainee_clip);
-      } else {
+    if (!startMeeting) return;
+
+    const bookingTraineeClips =
+      Array.isArray(startMeeting.trainee_clips) && startMeeting.trainee_clips.length > 0
+        ? startMeeting.trainee_clips
+        : Array.isArray(startMeeting.trainee_clip) && startMeeting.trainee_clip.length > 0
+          ? startMeeting.trainee_clip
+          : [];
+
+    if (bookingTraineeClips.length > 0) {
+      console.log("[VideoCallUI] Loading trainee clips from booking", {
+        clipCount: bookingTraineeClips.length,
+        clipIds: bookingTraineeClips.map(c => c._id),
+      });
+      setSelectedClips(bookingTraineeClips);
+    } else {
+      // Only clear clips if we explicitly have empty arrays from backend
+      // Don't clear if the field is missing (might be loading)
+      const hasEmptyClips = 
+        (Array.isArray(startMeeting.trainee_clips) && startMeeting.trainee_clips.length === 0) ||
+        (Array.isArray(startMeeting.trainee_clip) && startMeeting.trainee_clip.length === 0);
+      
+      if (hasEmptyClips) {
         setSelectedClips([]);
-      } // Set the selected clips immediately
+      }
     }
-  }, [accountType, startMeeting, isTraineeJoined]); // Dependencies to ensure it updates correctly
+  }, [startMeeting]);
+
+  // Once we clearly have the other side connected, clear any "waiting for ..."
+  // style messages so users are not stuck with a stale banner.
+  // FIX: Also check remoteVideoRef to catch cases where stream exists but state hasn't updated
+  useEffect(() => {
+    const hasRemoteStream = !!remoteStream;
+    const hasRemoteVideoElement = !!remoteVideoRef?.current?.srcObject;
+    const hasRemoteConnection = !!isTraineeJoined || !!bothUsersJoined;
+
+    const hasRemote = hasRemoteStream || hasRemoteVideoElement || hasRemoteConnection;
+
+    if (
+      hasRemote &&
+      displayMsg?.show &&
+      typeof displayMsg?.msg === "string" &&
+      displayMsg.msg.toLowerCase().includes("waiting for")
+    ) {
+      console.log("[VideoCallUI] Clearing waiting message - remote side connected", {
+        hasRemoteStream,
+        hasRemoteVideoElement,
+        hasRemoteConnection,
+        msg: displayMsg.msg,
+      });
+      setDisplayMsg({ show: false, msg: "" });
+    }
+  }, [remoteStream, isTraineeJoined, bothUsersJoined, displayMsg?.show, displayMsg?.msg, remoteVideoRef?.current?.srcObject]);
 
    
 
@@ -1932,8 +1980,6 @@ const VideoCallUI = ({
    
    
   // Sync callState to displayMsg so users see connection status
-  // BUG 3 PREVENTION: If periodic validation is added, ensure displayMsg?.show and displayMsg?.msg
-  // are NOT in the dependency array of the setInterval effect. Instead, read them inside the interval callback.
   useEffect(() => {
     if (callState === "connecting" && !displayMsg?.show) {
       setDisplayMsg({
