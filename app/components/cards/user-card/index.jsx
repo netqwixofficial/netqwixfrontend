@@ -103,21 +103,18 @@ const UserInfoCard = () => {
   }, [getTraineeSlots]);
 
   useEffect(() => {
-    const searchTerm = profile && profile?.fullname;
-    const filterParams = {
-      date: new Date(),
-      day: new Date().getDay(),
-      time: new Date().getTime(),
+    // Prefetch trainer slots once per trainer (by id), not on every re-render
+    if (!profile || !profile._id || !profile.fullname) return;
+
+    const now = new Date();
+    const filterPayload = {
+      time: now.getTime(),
+      day: now.getDay(),
+      search: profile.fullname,
     };
-    if (searchTerm && filterParams) {
-      const filterPayload = {
-        time: filterParams.time,
-        day: filterParams.day,
-        search: searchTerm,
-      };
-      dispatch(getTraineeWithSlotsAsync(filterPayload));
-    }
-  }, [profile]);
+
+    dispatch(getTraineeWithSlotsAsync(filterPayload));
+  }, [dispatch, profile?._id, profile?.fullname]);
 
 
   return (
@@ -129,7 +126,7 @@ const UserInfoCard = () => {
         flexDirection: width600 ? "column" : "row",
         alignItems: width600 ? "center" : "flex-start",
         gap: width600 ? "15px" : "18px",
-        padding: 0,
+        padding: "10px 10px 10px 10px",
         backgroundColor: "#ffffff",
         borderRadius: "12px",
         boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",

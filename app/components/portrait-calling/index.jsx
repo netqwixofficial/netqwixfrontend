@@ -847,17 +847,20 @@ const VideoCallUI = ({
     emitVideoSelectEvent("clips", selectedClips);
   }, [selectedClips?.length, socket, fromUser?._id, toUser?._id]);
 
-  // selects trainee clips on load
-
+  // Prefill selectedClips from booking data when meeting starts.
+  // This ensures that clips pre-shared by the trainee (via dashboard/booking)
+  // automatically appear in clip mode for BOTH trainer and trainee when they join.
   useEffect(() => {
-    if (isTraineeJoined) {
-      if (startMeeting?.trainee_clip?.length > 0) {
-        setSelectedClips(startMeeting.trainee_clip);
-      } else {
-        setSelectedClips([]);
-      } // Set the selected clips immediately
+    const bookingClips = startMeeting?.trainee_clip;
+
+    if (Array.isArray(bookingClips) && bookingClips.length > 0) {
+      // Only auto-fill from booking if we don't already have clips selected.
+      // This prevents overwriting clips that were chosen live during the call.
+      if (!selectedClips || selectedClips.length === 0) {
+        setSelectedClips(bookingClips);
+      }
     }
-  }, [accountType, startMeeting, isTraineeJoined]); // Dependencies to ensure it updates correctly
+  }, [startMeeting?.trainee_clip, selectedClips?.length]);
 
    
 
@@ -1931,6 +1934,25 @@ const VideoCallUI = ({
 
    
    
+  // When both users have joined and we have streams, ensure state is in sync
+  useEffect(() => {
+    if (localStream && remoteStream && !bothUsersJoined) {
+      setBothUsersJoined(true);
+    }
+  }, [localStream, remoteStream, bothUsersJoined]);
+
+  // Once both users have joined, clear any "waiting" style messages
+  useEffect(() => {
+    if (
+      bothUsersJoined &&
+      displayMsg?.show &&
+      typeof displayMsg?.msg === "string" &&
+      displayMsg.msg.toLowerCase().includes("waiting for")
+    ) {
+      setDisplayMsg({ show: false, msg: "" });
+    }
+  }, [bothUsersJoined, displayMsg?.show, displayMsg?.msg]);
+
   // Sync callState to displayMsg so users see connection status
   useEffect(() => {
     if (callState === "connecting" && !displayMsg?.show) {

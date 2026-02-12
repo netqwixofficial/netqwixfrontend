@@ -224,6 +224,7 @@ export const authSlice = createSlice({
       })
       .addCase(getMeAsync.fulfilled, (state, action) => {
         state.userInfo = action.payload.userInfo;
+        state.isUserLoggedIn = true;
         state.status = "fulfilled";
       })
       .addCase(getMeAsync.rejected, (state) => {
