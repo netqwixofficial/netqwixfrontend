@@ -1941,17 +1941,28 @@ const VideoCallUI = ({
     }
   }, [localStream, remoteStream, bothUsersJoined]);
 
-  // Once both users have joined, clear any "waiting" style messages
+  // Once we clearly have the other side connected, clear any "waiting" style messages
   useEffect(() => {
+    const hasRemote = !!remoteStream || !!isTraineeJoined || bothUsersJoined;
+
     if (
-      bothUsersJoined &&
+      hasRemote &&
       displayMsg?.show &&
       typeof displayMsg?.msg === "string" &&
       displayMsg.msg.toLowerCase().includes("waiting for")
     ) {
+      // Helpful debug log to trace when we auto-clear the waiting banner
+      // (safe in production; does not affect behavior)
+      // eslint-disable-next-line no-console
+      console.log("[VideoCallUI] Auto-clearing waiting message because remote side is connected", {
+        msg: displayMsg.msg,
+        bothUsersJoined,
+        isTraineeJoined,
+        hasRemoteStream: !!remoteStream,
+      });
       setDisplayMsg({ show: false, msg: "" });
     }
-  }, [bothUsersJoined, displayMsg?.show, displayMsg?.msg]);
+  }, [remoteStream, isTraineeJoined, bothUsersJoined, displayMsg?.show, displayMsg?.msg]);
 
   // Sync callState to displayMsg so users see connection status
   useEffect(() => {

@@ -303,17 +303,20 @@ const VideoContainer = ({
 
     const handlePlayPause = (data) => {
       const video = videoRef?.current;
+      const currentClipId = clip?._id ? String(clip._id) : null;
+      const incomingVideoId = data?.videoId != null ? String(data.videoId) : null;
 
       console.log("📡 [VideoContainer] Received ON_VIDEO_PLAY_PAUSE event", {
         receivedData: data,
         clipId: clip?._id,
-        isMatch: data?.videoId === clip?._id,
+        incomingVideoId,
+        isMatch: currentClipId && incomingVideoId && incomingVideoId === currentClipId,
         shouldPlay: data?.isPlaying,
         videoPaused: video?.paused,
         index,
       });
-
-      if (data?.videoId !== clip?._id) return;
+      // Ignore events for other clips
+      if (!currentClipId || !incomingVideoId || incomingVideoId !== currentClipId) return;
 
       // If video element is not ready yet on the trainee side, store desired state
       if (!video) {
@@ -355,18 +358,25 @@ const VideoContainer = ({
 
     const handleTime = (data) => {
       const video = videoRef?.current;
+      const currentClipId = clip?._id ? String(clip._id) : null;
+      const incomingVideoId = data?.videoId != null ? String(data.videoId) : null;
 
       console.log("📡 [VideoContainer] Received ON_VIDEO_TIME event", {
         receivedData: data,
         clipId: clip?._id,
-        isMatch: data?.videoId === clip?._id,
+        incomingVideoId,
+        isMatch: currentClipId && incomingVideoId && incomingVideoId === currentClipId,
         isTrainee: accountType === AccountType.TRAINEE,
         currentTime: video?.currentTime,
         newTime: data?.progress,
         index,
       });
-
-      if (data?.videoId === clip?._id && accountType === AccountType.TRAINEE) {
+      if (
+        currentClipId &&
+        incomingVideoId &&
+        incomingVideoId === currentClipId &&
+        accountType === AccountType.TRAINEE
+      ) {
         // If video element not ready, remember the desired time and apply once loaded
         if (!video || video.readyState < (typeof HTMLMediaElement !== "undefined" ? HTMLMediaElement.HAVE_METADATA : 1)) {
           pendingTimeRef.current = data.progress;
@@ -385,7 +395,10 @@ const VideoContainer = ({
       }
     };
     const handleZoomPanChange = (data) => {
-      if (data?.videoId === clip?._id) {
+      const currentClipId = clip?._id ? String(clip._id) : null;
+      const incomingVideoId = data?.videoId != null ? String(data.videoId) : null;
+
+      if (currentClipId && incomingVideoId && incomingVideoId === currentClipId) {
         // On trainee side, only follow zoom; ignore pan so clips stay in place
         if (accountType === AccountType.TRAINEE && typeof data.zoom === "number") {
           if (data.zoom !== scale) {
