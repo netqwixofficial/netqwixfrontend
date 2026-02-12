@@ -1343,20 +1343,29 @@ const VideoCallUI = ({
 
           call.on("stream", (remoteStream) => {
             try {
+              console.log("[VideoCall] ✅ Incoming call stream received - updating join states", {
+                accountType,
+                hasStream: !!remoteStream,
+                trackCount: remoteStream?.getTracks()?.length,
+                timestamp: new Date().toISOString(),
+              });
+              
               setIsTraineeJoined(true);
               setCallState("connected");
-              // Check if both users are now joined (local user + remote user)
-              // For trainer: they joined when handleStartCall ran, trainee joins here
-              // For trainee: they joined when handleStartCall ran, trainer joins here
-              if (accountType === AccountType.TRAINER) {
-                // Trainer is already in call, trainee just joined
-                setBothUsersJoined(true);
-              } else {
-                // Trainee is already in call, trainer just joined
-                setBothUsersJoined(true);
-              }
+              setBothUsersJoined(true); // Both users are now joined regardless of account type
+              
+              // Clear waiting message immediately
               setDisplayMsg({ show: false, msg: "" });
               setRemoteStream(remoteStream);
+              
+              // Additional delayed check to ensure state consistency
+              setTimeout(() => {
+                if (remoteStream && !bothUsersJoined) {
+                  console.log("[VideoCall] 🔄 Incoming call delayed check: Correcting state");
+                  setBothUsersJoined(true);
+                  setIsTraineeJoined(true);
+                }
+              }, 500);
 
               // Start quality monitoring once we have an active call
               if (peer && call && socket && id) {
@@ -1507,22 +1516,58 @@ const VideoCallUI = ({
         }
       });
 
-      // Handle successful stream
+      // Handle successful stream - ENHANCED with comprehensive state updates
       call.on("stream", (remoteStream) => {
         try {
+          console.log("[VideoCall] ✅ Remote stream received - updating all join states", {
+            hasStream: !!remoteStream,
+            trackCount: remoteStream?.getTracks()?.length,
+            videoTracks: remoteStream?.getVideoTracks()?.length,
+            audioTracks: remoteStream?.getAudioTracks()?.length,
+            accountType,
+            timestamp: new Date().toISOString(),
+          });
+          
+          // Clear waiting message immediately
           setDisplayMsg({ show: false, msg: "" });
+          
+          // Clear any timeouts
           if (timeoutId) {
             clearTimeout(timeoutId);
+            timeoutId = null;
           }
+          
+          // Update join states - multiple flags for redundancy
           setIsTraineeJoined(true);
           setBothUsersJoined(true);
+          setCallState("connected");
           
+          // Set remote stream and video element
           if (remoteVideoRef?.current) {
             remoteVideoRef.current.srcObject = remoteStream;
+            console.log("[VideoCall] ✅ Remote video element updated", {
+              hasSrcObject: !!remoteVideoRef.current.srcObject,
+            });
           }
+          
           setRemoteStream(remoteStream);
           accountType === AccountType.TRAINEE ? setIsModelOpen(true) : null;
           isConnectingRef.current = false;
+          
+          // Double-check state after a brief delay to catch any race conditions
+          setTimeout(() => {
+            if (remoteStream && !bothUsersJoined) {
+              console.log("[VideoCall] 🔄 Delayed state check: Setting bothUsersJoined=true", {
+                hasRemoteStream: !!remoteStream,
+              });
+              setBothUsersJoined(true);
+              setIsTraineeJoined(true);
+            }
+            if (displayMsg?.show && displayMsg?.msg?.toLowerCase().includes("waiting")) {
+              console.log("[VideoCall] 🔄 Delayed state check: Clearing stale waiting message");
+              setDisplayMsg({ show: false, msg: "" });
+            }
+          }, 500);
         } catch (error) {
           console.error('[VideoCall] Error handling remote stream:', error);
           isConnectingRef.current = false;
@@ -1934,35 +1979,101 @@ const VideoCallUI = ({
 
    
    
-  // When both users have joined and we have streams, ensure state is in sync
+  // ROBUST JOIN STATE MANAGEMENT - Multiple layers of validation
+  // Layer 1: When both users have joined and we have streams, ensure state is in sync
   useEffect(() => {
     if (localStream && remoteStream && !bothUsersJoined) {
+      console.log("[VideoCallUI] ✅ Detected both streams, setting bothUsersJoined=true", {
+        hasLocalStream: !!localStream,
+        hasRemoteStream: !!remoteStream,
+        localStreamTracks: localStream?.getTracks()?.length,
+        remoteStreamTracks: remoteStream?.getTracks()?.length,
+      });
       setBothUsersJoined(true);
+      setIsTraineeJoined(true);
     }
   }, [localStream, remoteStream, bothUsersJoined]);
 
-  // Once we clearly have the other side connected, clear any "waiting" style messages
+  // Layer 2: Check remote video element state as additional validation
+  useEffect(() => {
+    if (!remoteVideoRef?.current) return;
+    
+    const videoElement = remoteVideoRef.current;
+    const hasSrcObject = !!videoElement.srcObject;
+    const hasActiveTracks = videoElement.srcObject?.getTracks?.()?.some(track => track.readyState === 'live');
+    
+    if (hasSrcObject && hasActiveTracks && !bothUsersJoined) {
+      console.log("[VideoCallUI] ✅ Remote video element has active stream, updating join state", {
+        hasSrcObject,
+        hasActiveTracks,
+        trackCount: videoElement.srcObject?.getTracks()?.length,
+      });
+      setBothUsersJoined(true);
+      setIsTraineeJoined(true);
+    }
+  }, [remoteVideoRef?.current?.srcObject, bothUsersJoined]);
+
+  // Layer 3: Periodic validation check to catch any state inconsistencies
+  useEffect(() => {
+    if (!localStream) return; // Only run when call has started
+    
+    const validationInterval = setInterval(() => {
+      const hasRemoteStream = !!remoteStream;
+      const hasRemoteVideoSrc = !!remoteVideoRef?.current?.srcObject;
+      const remoteVideoReady = remoteVideoRef?.current?.readyState >= 2; // HAVE_CURRENT_DATA or better
+      
+      const shouldBeJoined = hasRemoteStream || hasRemoteVideoSrc || remoteVideoReady;
+      
+      if (shouldBeJoined && !bothUsersJoined) {
+        console.log("[VideoCallUI] 🔄 Periodic check: Remote side detected, correcting state", {
+          hasRemoteStream,
+          hasRemoteVideoSrc,
+          remoteVideoReady,
+          currentBothUsersJoined: bothUsersJoined,
+        });
+        setBothUsersJoined(true);
+        setIsTraineeJoined(true);
+      }
+      
+      // Also clear waiting messages if we have remote connection
+      if (shouldBeJoined && displayMsg?.show && typeof displayMsg?.msg === "string" && displayMsg.msg.toLowerCase().includes("waiting for")) {
+        console.log("[VideoCallUI] 🔄 Periodic check: Clearing stale waiting message", {
+          msg: displayMsg.msg,
+        });
+        setDisplayMsg({ show: false, msg: "" });
+      }
+    }, 2000); // Check every 2 seconds
+    
+    return () => clearInterval(validationInterval);
+  }, [localStream, remoteStream, bothUsersJoined, displayMsg?.show, displayMsg?.msg]);
+
+  // Layer 4: Aggressive waiting message clearing - multiple triggers
   useEffect(() => {
     const hasRemote = !!remoteStream || !!isTraineeJoined || bothUsersJoined;
+    const hasRemoteVideo = !!remoteVideoRef?.current?.srcObject;
+    const remoteVideoActive = remoteVideoRef?.current?.readyState >= 2;
+
+    const shouldClearMessage = hasRemote || hasRemoteVideo || remoteVideoActive;
 
     if (
-      hasRemote &&
+      shouldClearMessage &&
       displayMsg?.show &&
       typeof displayMsg?.msg === "string" &&
-      displayMsg.msg.toLowerCase().includes("waiting for")
+      (displayMsg.msg.toLowerCase().includes("waiting for") ||
+       displayMsg.msg.toLowerCase().includes("connecting to"))
     ) {
-      // Helpful debug log to trace when we auto-clear the waiting banner
-      // (safe in production; does not affect behavior)
-      // eslint-disable-next-line no-console
-      console.log("[VideoCallUI] Auto-clearing waiting message because remote side is connected", {
+      console.log("[VideoCallUI] ✅ Auto-clearing waiting message - remote side connected", {
         msg: displayMsg.msg,
         bothUsersJoined,
         isTraineeJoined,
         hasRemoteStream: !!remoteStream,
+        hasRemoteVideo,
+        remoteVideoActive,
+        timestamp: new Date().toISOString(),
       });
       setDisplayMsg({ show: false, msg: "" });
     }
-  }, [remoteStream, isTraineeJoined, bothUsersJoined, displayMsg?.show, displayMsg?.msg]);
+  }, [remoteStream, isTraineeJoined, bothUsersJoined, displayMsg?.show, displayMsg?.msg, remoteVideoRef?.current?.srcObject, remoteVideoRef?.current?.readyState]);
 
   // Sync callState to displayMsg so users see connection status
   useEffect(() => {

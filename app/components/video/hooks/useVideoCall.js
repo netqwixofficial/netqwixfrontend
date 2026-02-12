@@ -42,14 +42,25 @@ export const useVideoCall = ({
 
     peer.on('open', (peerId) => {
       // Notify server that this user joined the call for a specific session
-      socket.emit('ON_CALL_JOIN', {
+      // ENHANCED: Always include sessionId and peerId for proper backend tracking
+      const joinPayload = {
         userInfo: {
           // REQUIRED: booked_sessions Mongo _id
-          sessionId: id,
+          sessionId: id || startMeeting?.id,
           from_user: fromUser._id,
           to_user: toUser._id,
+          peerId: peerId, // Include peerId for unique device tracking
         },
+      };
+      
+      console.log('[useVideoCall] Emitting ON_CALL_JOIN', {
+        sessionId: joinPayload.userInfo.sessionId,
+        from_user: joinPayload.userInfo.from_user,
+        to_user: joinPayload.userInfo.to_user,
+        peerId: joinPayload.userInfo.peerId,
       });
+      
+      socket.emit('ON_CALL_JOIN', joinPayload);
     });
 
     peer.on('error', (error) => {

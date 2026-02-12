@@ -851,17 +851,43 @@ useEffect(() => {
       return;
     }
 
-    // once user joins the call
+    // once user joins the call - ENHANCED with sessionId validation
     socket.on("ON_CALL_JOIN", ({ userInfo }) => {
-      // console.log(
-      //   ` end user join --- `,
-      //   userInfo,
-      //   peerRef.current,
-      //   fromUser,
-      //   toUser
-      // );
-      const { to_user, from_user } = userInfo;
-      if (!(peerRef && peerRef.current)) return;
+      console.log("[HandleVideoCall] Received ON_CALL_JOIN event", {
+        userInfo,
+        hasPeer: !!(peerRef && peerRef.current),
+        peerId: peerRef?.current?.id,
+        fromUser: fromUser?._id,
+        toUser: toUser?._id,
+      });
+      
+      if (!userInfo) {
+        console.error("[HandleVideoCall] Missing userInfo in ON_CALL_JOIN");
+        return;
+      }
+      
+      const { to_user, from_user, sessionId } = userInfo;
+      
+      if (!(peerRef && peerRef.current)) {
+        console.warn("[HandleVideoCall] Peer ref not available when ON_CALL_JOIN received");
+        return;
+      }
+      
+      // Ensure we have sessionId for proper backend tracking
+      if (!sessionId && startMeeting?.id) {
+        console.log("[HandleVideoCall] Missing sessionId in ON_CALL_JOIN, re-emitting with sessionId", {
+          sessionId: startMeeting.id,
+        });
+        socket.emit("ON_CALL_JOIN", {
+          userInfo: {
+            from_user: fromUser._id,
+            to_user: toUser._id,
+            sessionId: startMeeting.id,
+            peerId: peerRef.current.id,
+          },
+        });
+      }
+      
       connectToPeer(peerRef.current, from_user);
     });
 
