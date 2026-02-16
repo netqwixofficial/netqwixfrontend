@@ -2068,10 +2068,12 @@ const VideoCallUI = ({
   }, [bothUsersJoined, sessionEndTime]);
 
    
-   
+
+  const waitingMessageSuppressedRef = useRef(false);
+
   // Sync callState to displayMsg so users see connection status
   useEffect(() => {
-    if (callState === "connecting" && !displayMsg?.show) {
+    if (callState === "connecting" && !displayMsg?.show && !waitingMessageSuppressedRef.current) {
       setDisplayMsg({
         show: true,
         msg: `Connecting to ${toUser?.fullname || "the other participant"}...`,
@@ -2095,7 +2097,6 @@ const VideoCallUI = ({
   }, [callState, toUser?.fullname, displayMsg?.show, displayMsg?.msg]);
 
   // Auto-hide "Waiting for..." / "Connecting to..." after 20s so users aren't stuck
-  // when both are on the call but WebRTC/backend hasn't set bothUsersJoined or remoteStream
   const WAITING_MESSAGE_TIMEOUT_MS = 20000;
   useEffect(() => {
     const isWaitingMsg =
@@ -2105,6 +2106,7 @@ const VideoCallUI = ({
     if (!isWaitingMsg) return;
     const t = setTimeout(() => {
       console.log("[VideoCallUI] Auto-hiding waiting message after timeout", { msg: displayMsg?.msg });
+      waitingMessageSuppressedRef.current = true;
       setDisplayMsg({ show: false, msg: "" });
     }, WAITING_MESSAGE_TIMEOUT_MS);
     return () => clearTimeout(t);
@@ -2127,7 +2129,11 @@ const VideoCallUI = ({
         when either backend confirms both joined OR WebRTC stream is active.
       */}
       {(() => {
+        const clipModeActive =
+          selectedClips && Array.isArray(selectedClips) && selectedClips.length > 0;
+
         const shouldShowMessage = 
+          !clipModeActive && // Never show waiting/connecting overlay when we're in ClipMode review
           displayMsg?.show && 
           displayMsg?.msg && 
           !bothUsersJoined && 
