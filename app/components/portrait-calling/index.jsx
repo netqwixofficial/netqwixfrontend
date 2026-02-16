@@ -2081,7 +2081,8 @@ const VideoCallUI = ({
         show: true,
         msg: "Connection lost. Reconnecting...",
       });
-    } else if (callState === "connected" && displayMsg?.show && displayMsg?.msg?.includes("Connecting")) {
+    } else if (callState === "connected" && displayMsg?.show) {
+      // Clear any waiting/connecting message when we're connected (not just "Connecting...")
       setDisplayMsg({ show: false, msg: "" });
     } else if (callState === "failed") {
       setDisplayMsg({
@@ -2092,6 +2093,22 @@ const VideoCallUI = ({
       setDisplayMsg({ show: false, msg: "" });
     }
   }, [callState, toUser?.fullname, displayMsg?.show, displayMsg?.msg]);
+
+  // Auto-hide "Waiting for..." / "Connecting to..." after 20s so users aren't stuck
+  // when both are on the call but WebRTC/backend hasn't set bothUsersJoined or remoteStream
+  const WAITING_MESSAGE_TIMEOUT_MS = 20000;
+  useEffect(() => {
+    const isWaitingMsg =
+      displayMsg?.show &&
+      typeof displayMsg?.msg === "string" &&
+      (displayMsg.msg.toLowerCase().includes("waiting for") || displayMsg.msg.toLowerCase().includes("connecting to"));
+    if (!isWaitingMsg) return;
+    const t = setTimeout(() => {
+      console.log("[VideoCallUI] Auto-hiding waiting message after timeout", { msg: displayMsg?.msg });
+      setDisplayMsg({ show: false, msg: "" });
+    }, WAITING_MESSAGE_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [displayMsg?.show, displayMsg?.msg]);
 
   return (
     <div
