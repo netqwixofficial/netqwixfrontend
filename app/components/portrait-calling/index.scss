@@ -328,6 +328,18 @@
 }
 
 // Video container responsive styles for clip mode
+// Clip mode: each clip is a "player" with a thin white frame; video on top, controls bar at bottom
+.clip-player-frame {
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.clip-player-controls {
+  box-sizing: border-box;
+}
+
 .video-container-clip {
   // Base styles for all containers
   flex: 1;

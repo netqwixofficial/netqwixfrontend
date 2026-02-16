@@ -71,6 +71,10 @@ let extraStream;
 let localVideoRef;
 let Peer;
 
+// Clip playback: we handle video.play() as a Promise so that devices/browsers that block
+// programmatic play (e.g. iOS autoplay policy) don't leave UI out of sync; on reject we set
+// isPlaying false and log so the user can tap Play again (user gesture often unblocks).
+
 const VideoContainer = ({
   drawingMode,
   isMaximized,
@@ -273,13 +277,27 @@ const VideoContainer = ({
           duration: video.duration,
           index
         });
-        video.play();
-        setIsPlaying(true);
-        socket?.emit(EVENTS?.ON_VIDEO_PLAY_PAUSE, {
-          videoId: clip?._id,
-          userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
-          isPlaying: true,
-        });
+        const p = video.play();
+        if (p && typeof p.then === "function") {
+          p.then(() => {
+            setIsPlaying(true);
+            socket?.emit(EVENTS?.ON_VIDEO_PLAY_PAUSE, {
+              videoId: clip?._id,
+              userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
+              isPlaying: true,
+            });
+          }).catch((err) => {
+            console.warn("VideoContainer play() failed (e.g. policy or device)", { clipId: clip?._id, index, err: err?.message || err });
+            setIsPlaying(false);
+          });
+        } else {
+          setIsPlaying(true);
+          socket?.emit(EVENTS?.ON_VIDEO_PLAY_PAUSE, {
+            videoId: clip?._id,
+            userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
+            isPlaying: true,
+          });
+        }
       } else {
         console.log("⏸️ [VideoContainer] Pausing video", {
           clipId: clip?._id,
@@ -340,12 +358,15 @@ const VideoContainer = ({
             currentTime: video.currentTime,
             index,
           });
-          video
-            .play()
-            .then(() => setIsPlaying(true))
-            .catch((err) =>
-              console.warn("VideoContainer play error from socket", err)
-            );
+          const p = video.play();
+          if (p && typeof p.then === "function") {
+            p.then(() => setIsPlaying(true)).catch((err) => {
+              console.warn("VideoContainer play error from socket", { clipId: clip?._id, err: err?.message || err });
+              setIsPlaying(false);
+            });
+          } else {
+            setIsPlaying(true);
+          }
         }
       } else {
         if (!video.paused) {
@@ -377,14 +398,21 @@ const VideoContainer = ({
       });
 
       if (data?.videoId === clip?._id && accountType === AccountType.TRAINEE) {
-        // If video element not ready, remember the desired time and apply once loaded
-        if (!video || video.readyState < (typeof HTMLMediaElement !== "undefined" ? HTMLMediaElement.HAVE_METADATA : 1)) {
+        // If video not ready (need at least HAVE_CURRENT_DATA for reliable seek on some devices), queue and apply when ready
+        const minReady = typeof HTMLMediaElement !== "undefined" ? HTMLMediaElement.HAVE_CURRENT_DATA : 2;
+        if (!video || video.readyState < minReady) {
           pendingTimeRef.current = data.progress;
           return;
         }
 
         const oldTime = video.currentTime;
-        video.currentTime = data.progress;
+        try {
+          video.currentTime = data.progress;
+        } catch (seekErr) {
+          console.warn("VideoContainer seek failed, queuing for later", { clipId: clip?._id, progress: data.progress, err: seekErr?.message });
+          pendingTimeRef.current = data.progress;
+          return;
+        }
         console.log("⏩ [VideoContainer] Video time synced from socket", {
           clipId: clip?._id,
           from: oldTime,
@@ -426,12 +454,20 @@ const VideoContainer = ({
     // Only attempt to apply when we've finished the initial loading state
     if (isVideoLoading) return;
 
+    const minReady = typeof HTMLMediaElement !== "undefined" ? HTMLMediaElement.HAVE_CURRENT_DATA : 2;
+    if (video.readyState < minReady) return;
+
     const applyPending = () => {
       try {
         if (pendingTimeRef.current != null) {
           const targetTime = pendingTimeRef.current;
           const oldTime = video.currentTime;
-          video.currentTime = targetTime;
+          try {
+            video.currentTime = targetTime;
+          } catch (e) {
+            console.warn("VideoContainer queued time apply failed", { clipId: clip?._id, targetTime, err: e?.message });
+            return;
+          }
           console.log("⏩ [VideoContainer] Applying queued time sync", {
             clipId: clip?._id,
             from: oldTime,
@@ -450,12 +486,15 @@ const VideoContainer = ({
             index,
           });
           if (shouldPlay && video.paused) {
-            video
-              .play()
-              .then(() => setIsPlaying(true))
-              .catch((err) =>
-                console.warn("VideoContainer play error from queued state", err)
-              );
+            const p = video.play();
+            if (p && typeof p.then === "function") {
+              p.then(() => setIsPlaying(true)).catch((err) => {
+                console.warn("VideoContainer play error from queued state", { clipId: clip?._id, err: err?.message || err });
+                setIsPlaying(false);
+              });
+            } else {
+              setIsPlaying(true);
+            }
           } else if (!shouldPlay && !video.paused) {
             video.pause();
             setIsPlaying(false);
@@ -947,15 +986,16 @@ const VideoContainer = ({
       <div
         id="video-container"
         ref={videoContainerRef}
-        className={`relative overflow-hidden video-container-clip ${isSingle ? 'video-container-single' : 'video-container-dual'} ${isMaximized ? 'video-container-maximized' : 'video-container-normal'}`}
+        className={`clip-player-frame relative overflow-hidden video-container-clip ${isSingle ? 'video-container-single' : 'video-container-dual'} ${isMaximized ? 'video-container-maximized' : 'video-container-normal'}`}
         style={{
           height: getVideoContainerHeight(),
           width: "100%",
           maxWidth: "100%",
           maxHeight: "100%",
           display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
+          flexDirection: "column",
+          justifyContent: "stretch",
+          alignItems: "stretch",
           background: "#fff",
           position: "relative",
           minHeight: 0,
@@ -1002,31 +1042,43 @@ const VideoContainer = ({
             </div>
           </div>
         )}
+        {/* Video area: fills frame; controls sit in a bar below */}
         <div
-          onWheel={onWheel}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
           style={{
-            ...transformStyle,
-            width: "fit-content",
-            height: "100%",
-            touchAction: "none", // Prevent default touch actions like scrolling
+            flex: 1,
+            minHeight: 0,
+            overflow: "hidden",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            position: "relative",
           }}
-          ref={movingVideoContainerRef}
         >
           <div
+            onWheel={onWheel}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
             style={{
-              position: "relative",
+              ...transformStyle,
               width: "fit-content",
               height: "100%",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              overflow: "hidden"
+              touchAction: "none",
             }}
+            ref={movingVideoContainerRef}
           >
-            <div style={{ position: "relative", width: "100%", height: "100%" }}>
+            <div
+              style={{
+                position: "relative",
+                width: "fit-content",
+                height: "100%",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                overflow: "hidden"
+              }}
+            >
+              <div style={{ position: "relative", width: "100%", height: "100%" }}>
               <video
                 controls={false}
                 ref={videoRef}
@@ -1223,41 +1275,6 @@ const VideoContainer = ({
                   <div style={{ fontSize: "12px", fontWeight: "500" }}>Loading video...</div>
                 </div>
               )}
-              {/* Video Controls - Inside video frame, positioned relative to video element */}
-              {(
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    width: "100%",
-                    height: "auto",
-                    pointerEvents: "none",
-                    zIndex: 20
-                  }}
-                >
-                  <CustomVideoControls
-                    handleSeek={handleSeek}
-                    isFullscreen={isFullscreen}
-                    isPlaying={isPlaying}
-                    toggleFullscreen={toggleFullscreen}
-                    togglePlayPause={togglePlayPause}
-                    videoRef={videoRef}
-                    setIsPlaying={setIsPlaying}
-                    setCurrentTime={setCurrentTime}
-                    isLock={isLock}
-                    lockPoint={lockPoint}
-                    videoRef2={null}
-                    handleSeekMouseDown={() => {}}
-                    handleSeekMouseUp={() => {}}
-                    volume={1}
-                    changeVolume={() => {}}
-                    currentTime={currentTime}
-                    controlsVisible={controlsVisible}
-                  />
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -1272,6 +1289,7 @@ const VideoContainer = ({
             width: "100%",
             height: "100%",
             display: drawingMode ? "block" : "none",
+            pointerEvents: drawingMode ? "auto" : "none",
           }}
         />
         {drawingMode && accountType === AccountType.TRAINER && (
@@ -1295,6 +1313,42 @@ const VideoContainer = ({
             </div>
           </div>
         )}
+        </div>
+        {/* Controls bar attached at bottom of frame (like a real media player) */}
+        <div
+          className="clip-player-controls"
+          style={{
+            flexShrink: 0,
+            width: "100%",
+            minHeight: 48,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "6px 10px",
+            background: "rgba(0, 0, 0, 0.75)",
+            borderTop: "1px solid rgba(255, 255, 255, 0.15)",
+          }}
+        >
+          <CustomVideoControls
+            handleSeek={handleSeek}
+            isFullscreen={isFullscreen}
+            isPlaying={isPlaying}
+            toggleFullscreen={toggleFullscreen}
+            togglePlayPause={togglePlayPause}
+            videoRef={videoRef}
+            setIsPlaying={setIsPlaying}
+            setCurrentTime={setCurrentTime}
+            isLock={isLock}
+            lockPoint={lockPoint}
+            videoRef2={null}
+            handleSeekMouseDown={() => {}}
+            handleSeekMouseUp={() => {}}
+            volume={1}
+            changeVolume={() => {}}
+            currentTime={currentTime}
+            controlsVisible={controlsVisible}
+          />
+        </div>
       </div>
     </>
   );
@@ -1447,9 +1501,17 @@ const ClipModeCall = ({
 
       if (data.isPlaying) {
         console.log("▶️ [ClipModeCall] Playing both videos from socket event");
-        video1.play()?.catch((err) => console.warn("Video1 play error", err));
-        video2.play()?.catch((err) => console.warn("Video2 play error", err));
-        setIsPlayingBoth(true);
+        const p1 = video1.play();
+        const p2 = video2.play();
+        const all = [p1, p2].every((p) => p && typeof p.then === "function")
+          ? Promise.all([p1, p2])
+          : Promise.resolve();
+        all
+          .then(() => setIsPlayingBoth(true))
+          .catch((err) => {
+            console.warn("ClipModeCall socket play() failed", { err: err?.message || err });
+            setIsPlayingBoth(false);
+          });
       } else {
         console.log("⏸️ [ClipModeCall] Pausing both videos from socket event");
         video1.pause();
@@ -1478,8 +1540,13 @@ const ClipModeCall = ({
       const oldTime1 = video1.currentTime;
       const oldTime2 = video2.currentTime;
 
-      video1.currentTime = data.progress;
-      video2.currentTime = data.progress;
+      try {
+        video1.currentTime = data.progress;
+        video2.currentTime = data.progress;
+      } catch (e) {
+        console.warn("ClipModeCall dual time sync failed", { progress: data.progress, err: e?.message });
+        return;
+      }
 
       console.log("⏩ [ClipModeCall] Both videos synced from socket", {
         from: { video1: oldTime1, video2: oldTime2 },
@@ -1605,14 +1672,24 @@ const ClipModeCall = ({
           video1Time: video1.currentTime,
           video2Time: video2.currentTime
         });
-        video1.play();
-        video2.play();
-        setIsPlayingBoth(true);
-        socket?.emit(EVENTS?.ON_VIDEO_PLAY_PAUSE, {
-          both: true,
-          userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
-          isPlaying: true,
-        });
+        const p1 = video1.play();
+        const p2 = video2.play();
+        const all = [p1, p2].every((p) => p && typeof p.then === "function")
+          ? Promise.all([p1, p2])
+          : Promise.resolve();
+        all
+          .then(() => {
+            setIsPlayingBoth(true);
+            socket?.emit(EVENTS?.ON_VIDEO_PLAY_PAUSE, {
+              both: true,
+              userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
+              isPlaying: true,
+            });
+          })
+          .catch((err) => {
+            console.warn("ClipModeCall play() failed on one or both videos", { err: err?.message || err });
+            setIsPlayingBoth(false);
+          });
       } else {
         console.log("⏸️ [ClipModeCall] Pausing both videos", {
           video1Time: video1.currentTime,

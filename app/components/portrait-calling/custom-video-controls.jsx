@@ -65,21 +65,16 @@ const CustomVideoControls = ({
   return (
     <div
       style={{
-        position: "absolute",
-        bottom: "10px", // Sit close to the bottom edge of the clip
-        left: "50%",
-        transform: "translateX(-50%)",
         display: "flex",
-        alignItems: "Center",
+        alignItems: "center",
         justifyContent: "center",
-        gap: "5px",
-        width: "95%",
-        maxWidth: "600px",
-        padding: "8px 12px",
-        zIndex: 100,
+        gap: "6px",
+        width: "100%",
+        padding: "4px 8px",
         pointerEvents: "auto",
+        boxSizing: "border-box",
       }}
-      className="hide-in-screenshot"
+      className="hide-in-screenshot clip-video-controls-inline"
     >
       {/* Toggle Controls Button */}
 
@@ -94,15 +89,12 @@ const CustomVideoControls = ({
             style={{
               display: "flex",
               alignItems: "center",
-              backgroundColor: "rgba(0, 0, 0, 0.85)",
-              backdropFilter: "blur(10px)",
-              padding: "8px 16px",
+              backgroundColor: "rgba(0, 0, 0, 0.6)",
+              padding: "6px 12px",
               width: "100%",
-              maxWidth: "95%",
               gap: "10px",
-              borderRadius: "50px",
-              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
+              borderRadius: "8px",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
             }}
           >
             {/* Play/Pause Button */}
