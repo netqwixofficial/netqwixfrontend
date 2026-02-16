@@ -70,7 +70,6 @@ const CustomVideoControls = ({
         left: "50%",
         transform: "translateX(-50%)",
         display: "flex",
-        visibility:accountType === AccountType.TRAINER ?"visible":"hidden", 
         alignItems: "Center",
         justifyContent: "center",
         gap: "5px",
@@ -211,6 +210,18 @@ const CustomVideoControls = ({
                
               return (
                 <>
+                {/* Time labels */}
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "#e0e0e0",
+                    minWidth: 48,
+                    textAlign: "right",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {formatSecondsToLabel(currentValue)}
+                </span>
                 <input
                   type="range"
                   min={isLock ? lockPoint : 0}
@@ -239,6 +250,17 @@ const CustomVideoControls = ({
                     e.currentTarget.style.height = "6px";
                   }}
                 />
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "#b0b0b0",
+                      minWidth: 48,
+                      textAlign: "left",
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {formatSecondsToLabel(maxValue || 0)}
+                  </span>
                   {isLock && (
                     <span
                       style={{
