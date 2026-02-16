@@ -47,6 +47,23 @@ export const getScheduledMeetingDetails = async (payload) => {
       return { ...response.data, data: [] };
     }
 
+    // For upcoming: remove sessions whose end_time has already passed (use raw API end_time before any conversion)
+    if (payload?.status === "upcoming") {
+      const now = new Date();
+      filteredData = filteredData.filter((item) => {
+        const isBookedOrConfirmed = item?.status === "booked" || item?.status === "confirmed";
+        if (!isBookedOrConfirmed) return false;
+        const rawEndTime = item?.end_time;
+        if (!rawEndTime) return false;
+        try {
+          return new Date(rawEndTime) > now;
+        } catch (e) {
+          console.warn("Error checking end_time for upcoming filter:", item?._id, e);
+          return false;
+        }
+      });
+    }
+
     // Convert times for the filtered data
     filteredData = convertTimesForDataArray(filteredData);
 
@@ -111,19 +128,8 @@ export const getScheduledMeetingDetails = async (payload) => {
     });
 
     if (payload?.status === "upcoming") {
-      const now = new Date();
-      filteredData = filteredData.filter((item) => {
-        const isBookedOrConfirmed = item.status === "booked" || item.status === "confirmed";
-        let hasNotEnded = false;
-        if (item.end_time) {
-          try {
-            hasNotEnded = new Date(item.end_time) > now;
-          } catch (e) {
-            console.warn("Error checking end_time for upcoming filter:", item._id, e);
-          }
-        }
-        return isBookedOrConfirmed && hasNotEnded;
-      });
+      // After map, drop any item that was marked "completed" (e.g. has rating + time passed)
+      filteredData = filteredData.filter((item) => item.status === "booked" || item.status === "confirmed");
     } else if (payload?.status === "canceled") {
       filteredData = filteredData.filter((item) => item.status === "canceled");
     } else if (payload?.status === "completed") {
