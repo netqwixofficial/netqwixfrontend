@@ -90,7 +90,9 @@ const VideoContainer = ({
   undoDrawing,
   isLandscape,
   videoContainerRef,
-  lockPoint = 0
+  lockPoint = 0,
+  sharedTogglePlayPause,
+  sharedHandleSeek,
 }) => {
   // const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [isVideoLoading, setIsVideoLoading] = useState(true);
@@ -113,8 +115,6 @@ const VideoContainer = ({
   // Queue for remote sync events that may arrive before the student's video is ready
   const pendingPlayStateRef = useRef(null);
   const pendingTimeRef = useRef(null);
-  // BUG 1 FIX: Track pending timeouts for cleanup to prevent memory leaks
-  // If retry functions are added, they should store timeout IDs here for cleanup
   const pendingTimeoutRefs = useRef([]);
 
   // Zoom logic
@@ -252,8 +252,7 @@ const VideoContainer = ({
   };
 
   // const [cu,setCurrentTime]
-  // Play/pause video
-  const togglePlayPause = () => {
+  const togglePlayPauseLocal = () => {
     const video = videoRef?.current;
     console.log("🎬 [VideoContainer] togglePlayPause called", {
       videoExists: !!video,
@@ -299,6 +298,14 @@ const VideoContainer = ({
     } else {
       console.warn("⚠️ [VideoContainer] Video not loaded yet", { clipId: clip?._id, index });
     }
+  };
+
+  const togglePlayPause = () => {
+    if (isLock && typeof sharedTogglePlayPause === "function") {
+      sharedTogglePlayPause();
+      return;
+    }
+    togglePlayPauseLocal();
   };
 
   useEffect(() => {
@@ -703,8 +710,7 @@ const VideoContainer = ({
     setIsFullscreen(!isFullscreen);
   };
 
-  // Handle seeking
-  const handleSeek = (e) => {
+  const handleSeekLocal = (e) => {
     const video = videoRef?.current;
     const progress = parseFloat(e.target.value);
     
@@ -741,6 +747,15 @@ const VideoContainer = ({
         index
       });
     }
+  };
+
+  // Wrapper used by controls: in lock mode, delegate to shared dual-video handler
+  const handleSeek = (e) => {
+    if (isLock && typeof sharedHandleSeek === "function") {
+      sharedHandleSeek(e);
+      return;
+    }
+    handleSeekLocal(e);
   };
 
   const [aspectRatio, setAspectRatio] = useState("16 / 9");
@@ -1209,7 +1224,7 @@ const VideoContainer = ({
                 </div>
               )}
               {/* Video Controls - Inside video frame, positioned relative to video element */}
-              {!isLock && (
+              {(
                 <div
                   style={{
                     position: "absolute",
@@ -2900,6 +2915,8 @@ const ClipModeCall = ({
               videoContainerRef={videoContainerRef}
               lockPoint={lockPoint}
               videoRef2={videoRef2}
+              sharedTogglePlayPause={isLock ? togglePlayPause : undefined}
+              sharedHandleSeek={isLock ? handleSeek : undefined}
             />
             <VideoContainer
               drawingMode={drawingMode}
@@ -2930,41 +2947,9 @@ const ClipModeCall = ({
               isLandscape={isLandscape}
               videoContainerRef={videoContainerRef2}
               lockPoint={lockPoint}
-
+              sharedTogglePlayPause={isLock ? togglePlayPause : undefined}
+              sharedHandleSeek={isLock ? handleSeek : undefined}
             />
-
-            {/* Lock mode controls - positioned between videos but inside the clip container */}
-            {isLock && (
-              <div style={{ 
-                position: "absolute", 
-                bottom: "20px", 
-                left: "50%", 
-                transform: "translateX(-50%)",
-                zIndex: 100,
-                width: "95%",
-                maxWidth: "600px"
-              }}>
-                <CustomVideoControls
-                  handleSeek={handleSeek}
-                  isPlaying={isPlayingBoth}
-                  togglePlayPause={togglePlayPause}
-                  videoRef={videoRef}
-                  videoRef2={videoRef2}
-                  setIsPlaying={setIsPlayingBoth}
-                  isLock={isLock}
-                  setCurrentTime={setCurrentTime}
-                  lockPoint={lockPoint}
-                  handleSeekMouseDown={() => {}}
-                  handleSeekMouseUp={() => {}}
-                  volume={1}
-                  changeVolume={() => {}}
-                  currentTime={videoRef?.current?.currentTime || 0}
-                  isFullscreen={false}
-                  toggleFullscreen={() => {}}
-                  controlsVisible={true}
-                />
-              </div>
-            )}
           </div>
         ) : (
           <VideoContainer
