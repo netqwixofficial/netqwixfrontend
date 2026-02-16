@@ -27,7 +27,7 @@ import BookingCardSkeleton from "../common/BookingCardSkeleton";
 const UpcomingSession = ({ accountType = null }) => {
   const dispatch = useAppDispatch();
   const [activeTabs, setActiveTab] = useState(bookingButton[0]);
-  const { scheduledMeetingDetails, isMeetingLoading } = useAppSelector(bookingsState);
+  const { scheduledMeetingDetails, scheduledMeetingDetailsByStatus, isMeetingLoading } = useAppSelector(bookingsState);
   const { userInfo } = useAppSelector(authState);
   const { newBookingData } = useAppSelector(traineeState);
   const { removeNewBookingData } = traineeAction;
@@ -228,9 +228,23 @@ const UpcomingSession = ({ accountType = null }) => {
               </Nav>
               <TabContent activeTab={activeTabs}>
                 {
-                  Array(bookingButton.length).fill().map((_, index) => <TabPane key={`tab-pane-${bookingButton[index]}`} tabId={bookingButton[index]}>
-                    <BookingList key={`${bookingButton[index]}`} activeCenterContainerTab="upcomingLesson" bookings={scheduledMeetingDetails} activeTabs={bookingButton[index]}/>
-                  </TabPane>)
+                  Array(bookingButton.length).fill().map((_, index) => {
+                    const tabId = bookingButton[index];
+                    // Use status-specific list when available (upcoming is already filtered by end_time in API layer)
+                    const bookingsForTab = Array.isArray(scheduledMeetingDetailsByStatus?.[tabId])
+                      ? scheduledMeetingDetailsByStatus[tabId]
+                      : scheduledMeetingDetails;
+                    return (
+                      <TabPane key={`tab-pane-${tabId}`} tabId={tabId}>
+                        <BookingList
+                          key={`${tabId}`}
+                          activeCenterContainerTab="upcomingLesson"
+                          bookings={bookingsForTab}
+                          activeTabs={tabId}
+                        />
+                      </TabPane>
+                    );
+                  })
                 }
               </TabContent>
             </div>

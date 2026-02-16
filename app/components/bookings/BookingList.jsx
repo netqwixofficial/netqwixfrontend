@@ -40,7 +40,7 @@ import BookingCardSkeleton from "../common/BookingCardSkeleton";
 
 export var meetingRoom = () => <></>;
 
-const BookingList = ({ activeCenterContainerTab, activeTabs }) => {
+const BookingList = ({ activeCenterContainerTab, activeTabs, bookings: bookingsProp }) => {
   const [selectedClips, setSelectedClips] = useState([]);
   const [isOpenID, setIsOpenID] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -214,7 +214,7 @@ const BookingList = ({ activeCenterContainerTab, activeTabs }) => {
     } = availabilityInfo;
 
     const isMeetingDone =
-      isMeetingCompleted(scheduledMeetingDetails[booking_index]) ||
+      isMeetingCompleted(bookingInfo) ||
       has24HoursPassedSinceBooking;
 
     switch (accountType) {
@@ -450,7 +450,7 @@ const BookingList = ({ activeCenterContainerTab, activeTabs }) => {
       accountType={accountType}
       traineeInfo={startMeeting.traineeInfo}
       trainerInfo={startMeeting.trainerInfo}
-      session_end_time={scheduledMeetingDetails[bIndex]?.session_end_time}
+      session_end_time={filteredMeetings[bIndex]?.session_end_time}
       isClose={() => {
         MeetingSetter({
           ...startMeeting,
@@ -540,35 +540,34 @@ const BookingList = ({ activeCenterContainerTab, activeTabs }) => {
     );
   };
 
-  const filteredMeetings =
-    scheduledMeetingDetails?.filter((booking) => {
-      const isCompleted = isMeetingCompleted(booking);
-      const isCancelled = booking?.status === BookedSession.canceled;
+  // When parent passes tab-specific bookings (e.g. scheduledMeetingDetailsByStatus[tab]), use them directly.
+  // Otherwise filter from merged scheduledMeetingDetails (backward compatibility).
+  const filteredMeetings = Array.isArray(bookingsProp)
+      ? bookingsProp
+      : (scheduledMeetingDetails?.filter((booking) => {
+          const isCompleted = isMeetingCompleted(booking);
+          const isCancelled = booking?.status === BookedSession.canceled;
 
-      switch (activeTabs) {
-        case "upcoming":
-          // Align with API semantics: show all meetings whose status is booked/confirmed.
-          // Time-based logic (isUpcomingSession/has24HoursPassed) was hiding valid rows.
-          return (
-            booking?.status === BookedSession.confirmed ||
-            booking?.status === BookedSession.booked
-          );
+          switch (activeTabs) {
+            case "upcoming":
+              return (
+                booking?.status === BookedSession.confirmed ||
+                booking?.status === BookedSession.booked
+              );
 
-        case "canceled":
-          return isCancelled;
+            case "canceled":
+              return isCancelled;
 
-        case "completed":
-          // Completed if API marks it so or we detect completion from ratings.
-          return isCompleted || booking?.status === BookedSession.completed;
+            case "completed":
+              return isCompleted || booking?.status === BookedSession.completed;
 
-        default:
-          // Fallback: never surface cancelled sessions in generic filters
-          return (
-            booking?.status === activeTabs &&
-            booking?.status !== BookedSession.canceled
-          );
-      }
-    }) || [];
+            default:
+              return (
+                booking?.status === activeTabs &&
+                booking?.status !== BookedSession.canceled
+              );
+          }
+        }) || []);
 
   const emptyLabel =
     not_data_for_booking?.[activeTabs] || "No sessions found for this filter";
@@ -596,7 +595,7 @@ const BookingList = ({ activeCenterContainerTab, activeTabs }) => {
         // Render filtered scheduled meetings
         filteredMeetings.map((bookingInfo, filteredIndex) => {
           const originalIndex =
-            scheduledMeetingDetails?.findIndex(
+            filteredMeetings?.findIndex(
               (booking) => booking?._id === bookingInfo?._id
             ) ?? -1;
 
