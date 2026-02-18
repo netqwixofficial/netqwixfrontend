@@ -6,7 +6,6 @@ import { authAction, authState } from '../../app/components/auth/auth.slice';
 import { topNavbarOptions } from '../../app/common/constants';
 import MyCommunity from '../../app/components/myCommunity';
 import CircleLoader from '../../app/common/CircleLoader';
-import DashboardLayout from '../../app/components/dashboard/DashboardLayout';
 
 const DashboardMyCommunityPage = () => {
   const router = useRouter();
