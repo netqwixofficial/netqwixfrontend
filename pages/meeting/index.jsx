@@ -20,11 +20,9 @@ const RenderVideoCall = ({height,width,isRotatedInitally}) => {
   const router = useRouter();
   const id = router?.query?.id;
 
-  // Get the state slices
   const { scheduledMeetingDetails, loading ,startMeeting} = useAppSelector(bookingsState); // Assuming `loading` indicates the fetching state
   const { accountType } = useAppSelector(authState);
 
-  // Find the meeting details using the id
   const meetingDetails = scheduledMeetingDetails?.find(
     (meeting) => meeting._id === id
   );

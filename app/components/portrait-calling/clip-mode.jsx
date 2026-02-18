@@ -1314,41 +1314,43 @@ const VideoContainer = ({
           </div>
         )}
         </div>
-        {/* Controls bar attached at bottom of frame (like a real media player) */}
-        <div
-          className="clip-player-controls"
-          style={{
-            flexShrink: 0,
-            width: "100%",
-            minHeight: 48,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "6px 10px",
-            background: "rgba(0, 0, 0, 0.75)",
-            borderTop: "1px solid rgba(255, 255, 255, 0.15)",
-          }}
-        >
-          <CustomVideoControls
-            handleSeek={handleSeek}
-            isFullscreen={isFullscreen}
-            isPlaying={isPlaying}
-            toggleFullscreen={toggleFullscreen}
-            togglePlayPause={togglePlayPause}
-            videoRef={videoRef}
-            setIsPlaying={setIsPlaying}
-            setCurrentTime={setCurrentTime}
-            isLock={isLock}
-            lockPoint={lockPoint}
-            videoRef2={null}
-            handleSeekMouseDown={() => {}}
-            handleSeekMouseUp={() => {}}
-            volume={1}
-            changeVolume={() => {}}
-            currentTime={currentTime}
-            controlsVisible={controlsVisible}
-          />
-        </div>
+        {/* Controls bar (timeline, play/pause) only for trainer; trainee has no clip controls */}
+        {accountType === AccountType.TRAINER && (
+          <div
+            className="clip-player-controls"
+            style={{
+              flexShrink: 0,
+              width: "100%",
+              minHeight: 48,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "6px 10px",
+              background: "rgba(0, 0, 0, 0.75)",
+              borderTop: "1px solid rgba(255, 255, 255, 0.15)",
+            }}
+          >
+            <CustomVideoControls
+              handleSeek={handleSeek}
+              isFullscreen={isFullscreen}
+              isPlaying={isPlaying}
+              toggleFullscreen={toggleFullscreen}
+              togglePlayPause={togglePlayPause}
+              videoRef={videoRef}
+              setIsPlaying={setIsPlaying}
+              setCurrentTime={setCurrentTime}
+              isLock={isLock}
+              lockPoint={lockPoint}
+              videoRef2={null}
+              handleSeekMouseDown={() => {}}
+              handleSeekMouseUp={() => {}}
+              volume={1}
+              changeVolume={() => {}}
+              currentTime={currentTime}
+              controlsVisible={controlsVisible}
+            />
+          </div>
+        )}
       </div>
     </>
   );

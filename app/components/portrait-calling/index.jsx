@@ -1480,6 +1480,7 @@ const VideoCallUI = ({
                 setBothUsersJoined(true);
               }
               setDisplayMsg({ show: false, msg: "" });
+              if (remoteVideoRef?.current) remoteVideoRef.current.srcObject = remoteStream;
               setRemoteStream(remoteStream);
 
               // Start quality monitoring once we have an active call
@@ -1520,17 +1521,16 @@ const VideoCallUI = ({
   };
 
 
-  useMemo(() => {
-    if (
-      remoteVideoRef.current &&
-      remoteStream &&
-      !remoteVideoRef.current.srcObject
-    ) {
+  // Sync remote stream to video element so both trainer and trainee see the other's video
+  useEffect(() => {
+    if (!remoteVideoRef?.current) return;
+    if (remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
-      accountType === AccountType.TRAINEE ? setIsModelOpen(true) : null;
+      if (accountType === AccountType.TRAINEE) setIsModelOpen(true);
+    } else {
+      remoteVideoRef.current.srcObject = null;
     }
-
-  }, [remoteStream]);
+  }, [remoteStream, accountType]);
 
   const connectToPeer = useCallback((peer, peerId) => {
     try {
@@ -2019,16 +2019,11 @@ const VideoCallUI = ({
     sessionEndTime,
   ]);
 
-  // Keep numeric countdown in sync with the current session end time,
-  // and only start counting down once both users have joined.
+  // Keep numeric countdown in sync with the current session end time.
+  // Show timer for both trainer and trainee whenever sessionEndTime is set (no bothUsersJoined gate).
   useEffect(() => {
-    // Reset when users are not both joined
-    if (!bothUsersJoined) {
-      setTimeRemaining(null);
-      return;
-    }
-
     if (typeof sessionEndTime !== "string" || !sessionEndTime.includes(":")) {
+      setTimeRemaining(null);
       return;
     }
 
@@ -2041,6 +2036,7 @@ const VideoCallUI = ({
       endMinutes < 0 ||
       endMinutes > 59
     ) {
+      setTimeRemaining(null);
       return;
     }
 
@@ -2058,14 +2054,13 @@ const VideoCallUI = ({
       setTimeRemaining(remainingSeconds);
     };
 
-    // Initial compute and interval
     updateRemaining();
     const intervalId = setInterval(updateRemaining, 1000);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [bothUsersJoined, sessionEndTime]);
+  }, [sessionEndTime]);
 
    
 
