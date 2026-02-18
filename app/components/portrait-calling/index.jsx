@@ -2006,7 +2006,7 @@ const VideoCallUI = ({
       setIsSessionExtended(true);
       return;
     }
-    if (accountType === AccountType.TRAINER && session_end_time) {
+    if (session_end_time) {
       setSessionEndTime(session_end_time);
     }
   }, [

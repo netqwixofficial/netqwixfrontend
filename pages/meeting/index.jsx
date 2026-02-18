@@ -14,7 +14,7 @@ import { LOCAL_STORAGE_KEYS, topNavbarOptions } from "../../app/common/constants
 import { useMediaQuery } from "usehooks-ts";
 import { useWindowDimensions } from "../../app/hook/useWindowDimensions";
 import OrientationModal from "../../app/components/modalComponent/OrientationModal";
-import VideoCallUI from "../../app/components/portrait-calling";
+import VideoCallUI from "../../app/features/meeting";
 const RenderVideoCall = ({height,width,isRotatedInitally}) => {
   const dispatch = useAppDispatch();
   const router = useRouter();
