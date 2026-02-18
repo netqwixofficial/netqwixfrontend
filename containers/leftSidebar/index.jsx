@@ -533,6 +533,7 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                 {/* Locker / Home */}
                 <li
                   onClick={() => {
+                    router.push(routingPaths.dashboardHome);
                     setActiveTab(topNavbarOptions?.HOME);
                     dispatch(
                       authAction?.setTopNavbarActiveTab(topNavbarOptions?.HOME)
@@ -555,6 +556,7 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                 {accountType === AccountType.TRAINEE && (
                   <li
                     onClick={() => {
+                      router.push(routingPaths.dashboardUpcomingSessions);
                       setActiveTab(topNavbarOptions?.UPCOMING_SESSION);
                       dispatch(
                         authAction?.setTopNavbarActiveTab(
@@ -594,6 +596,7 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                 {accountType === AccountType?.TRAINEE && (
                   <li
                     onClick={() => {
+                      router.push(routingPaths.dashboardBookLesson);
                       setActiveTab(topNavbarOptions?.BOOK_LESSON);
                       dispatch(
                         authAction?.setTopNavbarActiveTab(
@@ -738,6 +741,7 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                 {accountType === AccountType?.TRAINER && (
                   <li
                     onClick={() => {
+                      router.push(routingPaths.dashboardSchedule);
                       ToggleTab(leftSideBarOptions.SCHEDULE_TRAINING);
                     }}
                   >

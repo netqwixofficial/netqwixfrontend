@@ -90,13 +90,29 @@ export const debouncedConfigs = {
 export const routingPaths = {
   landing: "/",
   dashboard: "/dashboard",
+  // Dashboard sub-routes
+  dashboardHome: "/dashboard/home",
+  dashboardChats: "/dashboard/chats",
+  dashboardSchedule: "/dashboard/schedule",
+  dashboardBookLesson: "/dashboard/book-lesson",
+  dashboardUpcomingSessions: "/dashboard/upcoming-sessions",
+  dashboardMyCommunity: "/dashboard/my-community",
+  dashboardAboutUs: "/dashboard/about-us",
+  dashboardContactUs: "/dashboard/contact-us",
+  dashboardStudent: "/dashboard/student",
+  dashboardFriends: "/dashboard/friends",
+  dashboardPracticeSession: "/dashboard/practice-session",
+  dashboardMeetingRoom: "/dashboard/meeting-room",
+  // Auth routes
   signUp: "/auth/signUp",
   signIn: "/auth/signIn",
   signUpClassic: "/auth/signUpClassic",
   signInClassic: "/auth/signInClassic",
   forgetPassword: "/auth/forgetPassword",
   verifiedForgetPassword: "/auth/verified-forget-password",
+  // Meeting routes
   meeting: "/meeting",
+  meetingWithId: "/meeting/[id]",
   messenger: "/messenger",
   // Blog routes
   blogDetailSidebar: "/blog/detailSidebar",
