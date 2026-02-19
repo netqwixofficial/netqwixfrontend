@@ -1,4 +1,5 @@
 import React, { Fragment, useState, useEffect, useRef } from "react";
+import { useRouter } from "next/router";
 
 // Loading Skeleton Component for Book Expert
 const BookExpertLoadingSkeleton = () => {
@@ -182,6 +183,7 @@ import CircleLoader from "../../common/CircleLoader";
 
 const DashboardPage = () => {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const { sidebarActiveTab, topNavbarActiveTab, userInfo } =
     useAppSelector(authState);
   const { status: masterStatus } = useAppSelector(masterState);
@@ -325,6 +327,12 @@ const DashboardPage = () => {
   };
 
   const getActiveTabs = () => {
+    // Don't show schedule content if we're on the schedule route (it has its own page)
+    // Only show content based on sidebarActiveTab when on the main dashboard route
+    if (router.pathname === '/dashboard/schedule') {
+      return null; // Schedule has its own route page
+    }
+
     switch (sidebarActiveTab) {
       case leftSideBarOptions.CHATS:
         return (
@@ -347,7 +355,12 @@ const DashboardPage = () => {
       }
 
       case leftSideBarOptions.SCHEDULE_TRAINING:
-        return getScheduledInventory();
+        // Only show schedule content if we're on the main dashboard route
+        // If we're on /dashboard/schedule, that route has its own page
+        if (router.pathname === '/dashboard') {
+          return getScheduledInventory();
+        }
+        return null;
       default:
         break;
     }

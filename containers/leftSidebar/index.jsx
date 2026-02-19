@@ -745,14 +745,14 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                 {accountType === AccountType?.TRAINER && (
                   <li
                     onClick={() => {
+                      // Navigate to schedule page route
                       router.push(routingPaths.dashboardSchedule);
-                      // Also set the active tab for visual feedback
-                      dispatch(authAction.setActiveTab(leftSideBarOptions.SCHEDULE_TRAINING));
                     }}
                   >
                     <NavLink
                       id="sidebar-item-schedule"
                       className={`icon-btn btn-light button-effect step2 ${
+                        router.pathname === routingPaths.dashboardSchedule || 
                         activeTab === leftSideBarOptions.SCHEDULE_TRAINING ? "active" : ""
                       }`}
                       data-intro=""
