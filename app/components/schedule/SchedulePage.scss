@@ -33,6 +33,15 @@ button {
   font-family: "Montserrat", sans-serif;
 }
 
+/* Save Schedule button – ensure icon and text stay white */
+.schedule-save-btn,
+.schedule-save-btn .schedule-save-btn-icon,
+.schedule-save-btn .schedule-save-btn-text,
+.schedule-save-btn span,
+.schedule-save-btn svg {
+  color: #fff !important;
+}
+
 button:active {
   transform: scale(0.98);
 }

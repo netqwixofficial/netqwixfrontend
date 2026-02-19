@@ -139,20 +139,14 @@ const NavHomePage = () => {
     accountType === AccountType.TRAINEE &&
     (isLoadingTrainers || (activeTrainer && activeTrainer.length > 0));
   
+  // Always fetch scheduled meetings on mount so Active Sessions show correctly
+  // when sessions are booked (matches behavior at 9ebdf7b – active sessions on trainer/trainee).
   useEffect(() => {
-    // Check if data already exists in Redux before making API call
-    // Only fetch if data doesn't exist or hasn't been fetched yet
     if (!hasFetchedScheduledMeetingsRef.current) {
-      if (scheduledMeetingDetails && scheduledMeetingDetails.length > 0) {
-        // Data already exists in Redux, use it
-        hasFetchedScheduledMeetingsRef.current = true;
-        return;
-      }
-      // No data in Redux, fetch it
       hasFetchedScheduledMeetingsRef.current = true;
       dispatch(getScheduledMeetingDetailsAsync());
     }
-  }, [dispatch, scheduledMeetingDetails]);
+  }, [dispatch]);
 
   /**
    * Keep scheduled meetings (and therefore Active Sessions) in sync in real-time.

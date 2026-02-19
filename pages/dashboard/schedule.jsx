@@ -5,6 +5,7 @@ import { authAction, authState } from '../../app/components/auth/auth.slice';
 import { leftSideBarOptions, AccountType } from '../../app/common/constants';
 import { Bookings } from '../../app/features/bookings';
 import ScheduleInventory from '../../app/components/trainer/scheduleInventory';
+import SchedulePage from '../../app/components/schedule/SchedulePage';
 import CircleLoader from '../../app/common/CircleLoader';
 import DashboardLayout from '../../app/components/dashboard/DashboardLayout';
 
@@ -49,9 +50,12 @@ const DashboardSchedulePage = () => {
     );
   }
 
-  // Render based on account type
+  // Render based on account type: Trainer sees Schedule page (weekly hours); Trainee sees Bookings
   const renderContent = () => {
-    if (accountType === AccountType.TRAINEE || accountType === AccountType.TRAINER) {
+    if (accountType === AccountType.TRAINER) {
+      return <SchedulePage />;
+    }
+    if (accountType === AccountType.TRAINEE) {
       return <Bookings accountType={accountType} />;
     }
     return <ScheduleInventory />;

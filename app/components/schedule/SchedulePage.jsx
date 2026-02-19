@@ -689,6 +689,7 @@ const SchedulePage = () => {
         }}
       >
         <button
+          className="schedule-save-btn"
           onClick={handleSave}
           disabled={isSaving}
           type="button"
@@ -725,8 +726,8 @@ const SchedulePage = () => {
             </>
           ) : (
             <>
-              <Save size={18} strokeWidth={2.5} />
-              <span>Save Schedule</span>
+              <Save size={18} strokeWidth={2.5} className="schedule-save-btn-icon" />
+              <span className="schedule-save-btn-text">Save Schedule</span>
             </>
           )}
         </button>

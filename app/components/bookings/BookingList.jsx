@@ -501,6 +501,7 @@ const BookingList = ({ activeCenterContainerTab, activeTabs, bookings: bookingsP
     return (
       <ReactStrapModal
         allowFullWidth={true}
+        scrollableBody={true}
         element={
           accountType === AccountType.TRAINEE ? (
             <TraineeRatings
