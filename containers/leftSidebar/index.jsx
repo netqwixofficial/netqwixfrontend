@@ -1149,19 +1149,23 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                   </TabPane>
 
                   {/* Schedule - Trainer Only */}
-                  <TabPane
-                    tabId={leftSideBarOptions.SCHEDULE_TRAINING}
-                    className={`${activeTab === leftSideBarOptions.SCHEDULE_TRAINING
-                      ? "custom-mobile-menu"
-                      : ""
-                      } sidebar-full-width custom-mobile-schedule-css`}
-                  >
-                    <SchedulePage
-                      smallSideBarToggle={smallSideBarToggle}
-                      tab={activeTab}
-                      ActiveTab={setActiveTab}
-                    />
-                  </TabPane>
+                  {/* Removed TabPane for schedule - now uses dedicated route /dashboard/schedule */}
+                  {/* TabPane is disabled to prevent sliding tab behavior when schedule has its own page route */}
+                  {router.pathname !== '/dashboard/schedule' && (
+                    <TabPane
+                      tabId={leftSideBarOptions.SCHEDULE_TRAINING}
+                      className={`${activeTab === leftSideBarOptions.SCHEDULE_TRAINING
+                        ? "custom-mobile-menu"
+                        : ""
+                        } sidebar-full-width custom-mobile-schedule-css`}
+                    >
+                      <SchedulePage
+                        smallSideBarToggle={smallSideBarToggle}
+                        tab={activeTab}
+                        ActiveTab={setActiveTab}
+                      />
+                    </TabPane>
+                  )}
 
                   {/* My Community */}
 
