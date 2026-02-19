@@ -90,6 +90,7 @@ export const debouncedConfigs = {
 export const routingPaths = {
   landing: "/",
   dashboard: "/dashboard",
+  dashboardSchedule: "/dashboard/schedule",
   signUp: "/auth/signUp",
   signIn: "/auth/signIn",
   signUpClassic: "/auth/signUpClassic",

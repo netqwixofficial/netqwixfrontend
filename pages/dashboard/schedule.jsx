@@ -53,7 +53,20 @@ const DashboardSchedulePage = () => {
   // Render based on account type: Trainer sees Schedule page (weekly hours); Trainee sees Bookings
   const renderContent = () => {
     if (accountType === AccountType.TRAINER) {
-      return <SchedulePage />;
+      return (
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "auto",
+            height: "100%",
+            width: "100%",
+          }}
+        >
+          <SchedulePage />
+        </div>
+      );
     }
     if (accountType === AccountType.TRAINEE) {
       return <Bookings accountType={accountType} />;

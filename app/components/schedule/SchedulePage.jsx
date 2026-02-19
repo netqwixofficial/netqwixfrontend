@@ -474,20 +474,23 @@ const SchedulePage = () => {
   }
 
   return (
-    <div className="schedule-page-container">
+    <div className="schedule-page-container" style={{ width: "100%", height: "100%" }}>
       <style>{`
         .schedule-page-container {
           padding: ${width600 ? "16px" : width900 ? "20px" : "24px"};
           max-width: 1200px;
           margin: 0 auto;
-          min-height: 100vh;
+          min-height: calc(100vh - 80px);
           background: #ffffff;
           box-sizing: border-box;
+          width: 100%;
+          overflow-y: auto;
         }
         
         @media (max-width: 600px) {
           .schedule-page-container {
             padding: 12px;
+            min-height: calc(100vh - 60px);
           }
         }
       `}</style>

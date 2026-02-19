@@ -167,6 +167,13 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
     }
   }, [bookingState.sidebarTab]);
 
+  // Sync local activeTab with Redux sidebarActiveTab when it changes (e.g., from route navigation)
+  useEffect(() => {
+    if (sidebarActiveTab && sidebarActiveTab !== activeTab) {
+      setActiveTab(sidebarActiveTab);
+    }
+  }, [sidebarActiveTab]);
+
   const CloseAppSidebar = () => {
     document.querySelector(".chitchat-main").classList.remove("small-sidebar");
     document.querySelector(".app-sidebar").classList.remove("active");
@@ -738,7 +745,9 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                 {accountType === AccountType?.TRAINER && (
                   <li
                     onClick={() => {
-                      ToggleTab(leftSideBarOptions.SCHEDULE_TRAINING);
+                      router.push(routingPaths.dashboardSchedule);
+                      // Also set the active tab for visual feedback
+                      dispatch(authAction.setActiveTab(leftSideBarOptions.SCHEDULE_TRAINING));
                     }}
                   >
                     <NavLink
