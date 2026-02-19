@@ -13,7 +13,12 @@ const Modal = ({
   overflowHidden = false,
   minHeight = false,
   className = "",
+  scrollableBody = false,
 }) => {
+  const bodyStyle = scrollableBody
+    ? { maxHeight: "85vh", overflowY: "auto", overflowX: "hidden" }
+    : undefined;
+
   return (
     <ReactStrapModal
       className={`${
@@ -36,7 +41,7 @@ const Modal = ({
         }
       }}
     >
-      <ModalBody>{element}</ModalBody>
+      <ModalBody style={bodyStyle}>{element}</ModalBody>
       {footer &&<ModalFooter>{footer}</ModalFooter>}
     </ReactStrapModal>
   );

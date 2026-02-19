@@ -3132,6 +3132,7 @@ const VideoCallUI = ({
       {accountType === AccountType.TRAINEE &&
         <ReactStrapModal
           allowFullWidth={true}
+          scrollableBody={true}
           element={
             <TraineeRatings
               accountType={accountType}

@@ -1068,6 +1068,7 @@ const Bookings = ({ accountType = null }) => {
     return (
       <ReactStrapModal
         allowFullWidth={true}
+        scrollableBody={true}
         element={
           currentAccountType === AccountType.TRAINEE?
           <TraineeRatings
