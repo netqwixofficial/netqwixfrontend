@@ -1753,7 +1753,7 @@ const VideoCallUI = ({
     };
   }, [socket, accountType, time_zone]);
 
-    useEffect(() => {
+  useEffect(() => {
     if (!socket) return;
 
     const handleTimerStarted = (timerData) => {
@@ -1761,7 +1761,14 @@ const VideoCallUI = ({
 
       if (sessionId !== id) return;
 
-     startLessonTimer({ sessionId, startedAt, duration });
+      // Backend has started the authoritative lesson timer for this session.
+      // Treat this as confirmation that both users are in the call so we can
+      // safely clear any "waiting for both users" banners and allow timers/UI
+      // (including clip mode overlays) to start.
+      setBothUsersJoined(true);
+      setDisplayMsg({ show: false, msg: "" });
+
+      startLessonTimer({ sessionId, startedAt, duration });
     };
 
     socket.on("TIMER_STARTED", handleTimerStarted);

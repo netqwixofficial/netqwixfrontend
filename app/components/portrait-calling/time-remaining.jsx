@@ -41,7 +41,13 @@ const TimeRemaining = ({ timeRemaining, bothUsersJoined = false }) => {
     setShowThirtySecPopup(false);
     lastRemainingSecondsRef.current = null;
 
-    if (!bothUsersJoined) {
+    // If backend has started an authoritative timer (numeric seconds) or provided
+    // a concrete end time string, treat that as proof that the session is live.
+    const hasAuthoritativeTime =
+      (typeof timeRemaining === "number" && timeRemaining >= 0) ||
+      (typeof timeRemaining === "string" && timeRemaining.includes(":"));
+
+    if (!bothUsersJoined && !hasAuthoritativeTime) {
       setTimerColor("#6c757d"); // muted grey while waiting
       setDisplayTime("Waiting for both users...");
       return;
