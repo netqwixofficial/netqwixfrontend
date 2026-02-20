@@ -17,11 +17,14 @@ const DashboardSchedulePage = () => {
   const [accountType, setAccountType] = useState('');
 
   useEffect(() => {
-    // Only set the active tab if we're actually on the schedule route
-    // This prevents conflicts with the main dashboard page
-    if (router.pathname === '/dashboard/schedule') {
-      dispatch(authAction.setActiveTab(leftSideBarOptions.SCHEDULE_TRAINING));
+    // Ensure we're on the schedule route - if not, this component shouldn't render
+    if (router.pathname !== '/dashboard/schedule') {
+      console.warn('[DashboardSchedulePage] Not on schedule route:', router.pathname);
+      return;
     }
+
+    // Set the active tab for schedule
+    dispatch(authAction.setActiveTab(leftSideBarOptions.SCHEDULE_TRAINING));
     
     // Get account type
     const accType = userInfo?.account_type || localStorage.getItem('acc_type');
