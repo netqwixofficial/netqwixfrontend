@@ -83,10 +83,17 @@ const reportModal = ({
     const dpp = await getImageBase64("/assets/images/demoUser.png");
     demoProfilePic.current = dpp;
 
-    const pp = await getImageBase64(
-      Utils?.getImageUrlOfS3(userInfo?.profile_picture)
-    );
-    profilePic.current = pp;
+    const profileUrl = userInfo?.profile_picture;
+    if (profileUrl) {
+      try {
+        const pp = await getImageBase64(Utils?.getImageUrlOfS3(profileUrl));
+        profilePic.current = pp;
+      } catch (e) {
+        profilePic.current = dpp;
+      }
+    } else {
+      profilePic.current = dpp;
+    }
   };
 
   useEffect(() => {

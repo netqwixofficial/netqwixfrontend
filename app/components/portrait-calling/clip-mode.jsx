@@ -97,6 +97,7 @@ const VideoContainer = ({
   lockPoint = 0,
   sharedTogglePlayPause,
   sharedHandleSeek,
+  sessionId,
 }) => {
   // const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [isVideoLoading, setIsVideoLoading] = useState(true);
@@ -146,6 +147,7 @@ const VideoContainer = ({
       zoom: newScale,
       pan: translate,
       userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
+      sessionId,
     });
   };
 
@@ -170,6 +172,7 @@ const VideoContainer = ({
       zoom: newScale,
       pan: translate,
       userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
+      sessionId,
     });
   };
 
@@ -194,6 +197,7 @@ const VideoContainer = ({
       zoom: newScale,
       pan: translate,
       userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
+      sessionId,
     });
   };
 
@@ -247,6 +251,7 @@ const VideoContainer = ({
         zoom: scale,
         pan: newTranslate,
         userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
+        sessionId,
       });
     }
   };
@@ -308,6 +313,7 @@ const VideoContainer = ({
       zoom: scale,
       pan: newTranslate,
       userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
+      sessionId,
     });
   };
 
@@ -494,20 +500,21 @@ const VideoContainer = ({
       }
     };
     const handleZoomPanChange = (data) => {
-      if (data?.videoId === clip?._id) {
-        // On trainee side, follow both zoom and pan from trainer
-        if (accountType === AccountType.TRAINEE) {
-          if (typeof data.zoom === "number" && data.zoom !== scale) {
-            setScale(data.zoom);
-          }
-          if (data.pan && typeof data.pan.x === "number" && typeof data.pan.y === "number") {
-            setTranslate({ x: data.pan.x, y: data.pan.y });
-          }
+      if (!data || clip?._id == null) return;
+      const clipMatch = data.videoId === clip._id || data.clipId === clip._id;
+      if (!clipMatch) return;
+      // On trainee side, follow both zoom and pan from trainer
+      if (accountType === AccountType.TRAINEE) {
+        if (typeof data.zoom === "number") {
+          setScale((s) => (s !== data.zoom ? data.zoom : s));
+        }
+        if (data.pan && typeof data.pan.x === "number" && typeof data.pan.y === "number") {
+          setTranslate({ x: data.pan.x, y: data.pan.y });
         }
       }
     };
 
-    // Listen for events from the socket
+    // Listen for events from the socket (stable deps so we don't miss events when trainer pans/zooms)
     socket?.on(EVENTS?.ON_VIDEO_PLAY_PAUSE, handlePlayPause);
     socket?.on(EVENTS?.ON_VIDEO_TIME, handleTime);
     socket?.on(EVENTS?.ON_VIDEO_ZOOM_PAN, handleZoomPanChange);
@@ -518,7 +525,7 @@ const VideoContainer = ({
       socket?.off(EVENTS?.ON_VIDEO_TIME, handleTime);
       socket?.off(EVENTS?.ON_VIDEO_ZOOM_PAN, handleZoomPanChange);
     };
-  }, [socket, clip?._id, videoRef, accountType, scale, translate]);
+  }, [socket, clip?._id, videoRef, accountType]);
 
   // Apply any queued remote sync events once the trainee's video is ready
   useEffect(() => {
@@ -1436,6 +1443,7 @@ const VideoContainer = ({
 };
 
 const ClipModeCall = ({
+  sessionId,
   timeRemaining,
   bothUsersJoined = false,
   bufferSecondsRemaining = null,
@@ -3047,6 +3055,7 @@ const ClipModeCall = ({
         {selectedClips.length > 1 ? (
           <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, gap: "8px" }}>
             <VideoContainer
+              sessionId={sessionId}
               drawingMode={drawingMode}
               isLock={isLock}
               index={1}
@@ -3079,6 +3088,7 @@ const ClipModeCall = ({
               sharedHandleSeek={isLock ? handleSeek : undefined}
             />
             <VideoContainer
+              sessionId={sessionId}
               drawingMode={drawingMode}
               isLock={isLock}
               index={2}
@@ -3113,6 +3123,7 @@ const ClipModeCall = ({
           </div>
         ) : (
           <VideoContainer
+            sessionId={sessionId}
             index={1}
             drawingMode={drawingMode}
             canvasRef={canvasRef}

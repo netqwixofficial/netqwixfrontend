@@ -226,17 +226,23 @@ export const UserBoxMini = ({
         videoType
       });
       
-      // Only update if different to avoid unnecessary re-renders
+      // Only update if different to avoid unnecessary re-renders and play() AbortError
       if (videoRef.current.srcObject !== stream) {
         videoRef.current.srcObject = stream;
       }
       
-      // Ensure video plays
-      if (videoRef.current.paused) {
-        videoRef.current.play().catch(err => {
-          console.warn("[UserBoxMini] Failed to play video", { userId: user?._id, err });
-        });
-      }
+      // Defer play() to avoid "play() interrupted by a new load request" when React re-renders
+      const currentStream = stream;
+      requestAnimationFrame(() => {
+        if (!videoRef?.current || videoRef.current.srcObject !== currentStream) return;
+        if (videoRef.current.paused) {
+          videoRef.current.play().catch((err) => {
+            if (err?.name !== "AbortError") {
+              console.warn("[UserBoxMini] Failed to play video", { userId: user?._id, err });
+            }
+          });
+        }
+      });
     } else {
       // Clear stream if it becomes null
       if (videoRef.current.srcObject) {

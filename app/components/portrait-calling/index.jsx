@@ -2158,6 +2158,13 @@ const VideoCallUI = ({
     };
   }, [sessionEndTime, bothUsersJoined]);
 
+  // Use authoritative timer (from TIMER_STARTED) for countdown when available, so both trainer and trainee see the timer
+  useEffect(() => {
+    if (authoritativeTimer?.remainingSeconds != null) {
+      setTimeRemaining(authoritativeTimer.remainingSeconds);
+    }
+  }, [authoritativeTimer?.remainingSeconds]);
+
    
 
   const waitingMessageSuppressedRef = useRef(false);
@@ -2261,6 +2268,7 @@ const VideoCallUI = ({
       })()}
       {selectedClips && Array.isArray(selectedClips) && selectedClips.length > 0 ? (
         <ClipModeCall
+          sessionId={id}
           timeRemaining={timeRemaining}
           bothUsersJoined={bothUsersJoined}
           bufferSecondsRemaining={null}
