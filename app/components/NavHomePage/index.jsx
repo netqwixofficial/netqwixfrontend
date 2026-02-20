@@ -271,48 +271,35 @@ const NavHomePage = () => {
   };
    
 
-  // Filter sessions that are confirmed and within the current time range
+  // Filter sessions that are confirmed and within the current time range (active sessions)
+  // Matches behavior at ffb2ea8 – sessions where current time is within start–end and not yet rated
   useEffect(() => {
-     
-    if (scheduledMeetingDetails.length > 0) {
-       
-      const filtered = scheduledMeetingDetails.filter((session) => {
-       
-        const { start_time, end_time, ratings } = session;
-
-         
-        const startTimeUpdated = CovertTimeAccordingToTimeZone(start_time, session.time_zone, false);
-        const endTimeUpdated = CovertTimeAccordingToTimeZone(end_time, session.time_zone, false);
-         
-         
-        const currentTime = DateTime.now(); // Use UTC to avoid timezone mismatch
-
-        // Parse the start_time and end_time in UTC
-        const startTime = DateTime.fromISO(startTimeUpdated, { zone: "utc" });
-        const endTime = DateTime.fromISO(endTimeUpdated, { zone: "utc" });
-         
-         
-        // Extract date and time components
-        const currentDate = currentTime.toFormat("yyyy-MM-dd"); // YYYY-MM-DD format
-        const currentTimeOnly = currentTime.toFormat("HH:mm"); // HH:mm format
-
-        const startDate = startTime.toFormat("yyyy-MM-dd");
-        const startTimeOnly = startTime.toFormat("HH:mm");
-
-        const endDate = endTime.toFormat("yyyy-MM-dd");
-        const endTimeOnly = endTime.toFormat("HH:mm");
-
-        // Compare the current date and time (date + hour:minute) with start and end time
-        const isDateSame = currentDate === startDate && currentDate === endDate;
-        const isWithinTimeFrame =
-          isDateSame &&
-          currentTimeOnly >= startTimeOnly &&
-          currentTimeOnly <= endTimeOnly;
-        return isWithinTimeFrame && !ratings;
-      });
-      
-      setFilteredSessions(filtered);
+    if (!scheduledMeetingDetails?.length) {
+      setFilteredSessions([]);
+      return;
     }
+    const filtered = scheduledMeetingDetails.filter((session) => {
+      const { start_time, end_time, ratings } = session;
+      if (!start_time || !end_time) return false;
+      const startTimeUpdated = CovertTimeAccordingToTimeZone(start_time, session.time_zone);
+      const endTimeUpdated = CovertTimeAccordingToTimeZone(end_time, session.time_zone);
+      const currentTime = DateTime.utc();
+      const startTime = DateTime.fromISO(startTimeUpdated, { zone: "utc" });
+      const endTime = DateTime.fromISO(endTimeUpdated, { zone: "utc" });
+      const currentDate = currentTime.toFormat("yyyy-MM-dd");
+      const currentTimeOnly = currentTime.toFormat("HH:mm");
+      const startDate = startTime.toFormat("yyyy-MM-dd");
+      const startTimeOnly = startTime.toFormat("HH:mm");
+      const endDate = endTime.toFormat("yyyy-MM-dd");
+      const endTimeOnly = endTime.toFormat("HH:mm");
+      const isDateSame = currentDate === startDate && currentDate === endDate;
+      const isWithinTimeFrame =
+        isDateSame &&
+        currentTimeOnly >= startTimeOnly &&
+        currentTimeOnly <= endTimeOnly;
+      return isWithinTimeFrame && !ratings;
+    });
+    setFilteredSessions(filtered);
   }, [scheduledMeetingDetails]);
 
   const addTraineeClipInBookedSession = async (selectedClips) => {
