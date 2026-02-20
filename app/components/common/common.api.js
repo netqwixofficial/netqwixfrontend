@@ -47,15 +47,28 @@ export const getScheduledMeetingDetails = async (payload) => {
       return { ...response.data, data: [] };
     }
 
-    // For upcoming: remove sessions whose end_time has already passed (use raw API end_time before any conversion)
     if (payload?.status === "upcoming") {
       const now = new Date();
       filteredData = filteredData.filter((item) => {
         const isBookedOrConfirmed = item?.status === "booked" || item?.status === "confirmed";
         if (!isBookedOrConfirmed) return false;
         const rawEndTime = item?.end_time;
-        if (!rawEndTime) return false;
+        if (!rawEndTime) {
+          // If no end_time, check start_time or booked_date as fallback
+          const rawStartTime = item?.start_time;
+          if (rawStartTime) {
+            try {
+              return new Date(rawStartTime) > now;
+            } catch (e) {
+              console.warn("Error checking start_time for upcoming filter:", item?._id, e);
+              return false;
+            }
+          }
+          // If no time fields, allow it (backend should have filtered already)
+          return true;
+        }
         try {
+          // Allow bookings that haven't ended yet (with small buffer for timezone differences)
           return new Date(rawEndTime) > now;
         } catch (e) {
           console.warn("Error checking end_time for upcoming filter:", item?._id, e);

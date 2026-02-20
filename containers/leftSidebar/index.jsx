@@ -541,6 +541,7 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                 <li
                   onClick={() => {
                     setActiveTab(topNavbarOptions?.HOME);
+                    dispatch(authAction.setActiveTab(leftSideBarOptions.TOPNAVBAR));
                     dispatch(
                       authAction?.setTopNavbarActiveTab(topNavbarOptions?.HOME)
                     );
@@ -563,6 +564,7 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                   <li
                     onClick={() => {
                       setActiveTab(topNavbarOptions?.UPCOMING_SESSION);
+                      dispatch(authAction.setActiveTab(leftSideBarOptions.TOPNAVBAR));
                       dispatch(
                         authAction?.setTopNavbarActiveTab(
                           topNavbarOptions?.UPCOMING_SESSION
@@ -602,6 +604,7 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                   <li
                     onClick={() => {
                       setActiveTab(topNavbarOptions?.BOOK_LESSON);
+                      dispatch(authAction.setActiveTab(leftSideBarOptions.TOPNAVBAR));
                       dispatch(
                         authAction?.setTopNavbarActiveTab(
                           topNavbarOptions?.BOOK_LESSON
@@ -767,6 +770,7 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                   <li
                     onClick={() => {
                       setActiveTab(topNavbarOptions?.UPCOMING_SESSION);
+                      dispatch(authAction.setActiveTab(leftSideBarOptions.TOPNAVBAR));
                       dispatch(
                         authAction?.setTopNavbarActiveTab(
                           topNavbarOptions?.UPCOMING_SESSION
