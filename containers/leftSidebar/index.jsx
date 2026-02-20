@@ -745,14 +745,12 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                 {accountType === AccountType?.TRAINER && (
                   <li
                     onClick={() => {
-                      // Navigate to schedule page route
-                      router.push(routingPaths.dashboardSchedule);
+                      ToggleTab(leftSideBarOptions.SCHEDULE_TRAINING);
                     }}
                   >
                     <NavLink
                       id="sidebar-item-schedule"
                       className={`icon-btn btn-light button-effect step2 ${
-                        router.pathname === routingPaths.dashboardSchedule || 
                         activeTab === leftSideBarOptions.SCHEDULE_TRAINING ? "active" : ""
                       }`}
                       data-intro=""
@@ -1149,23 +1147,19 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                   </TabPane>
 
                   {/* Schedule - Trainer Only */}
-                  {/* Removed TabPane for schedule - now uses dedicated route /dashboard/schedule */}
-                  {/* TabPane is disabled to prevent sliding tab behavior when schedule has its own page route */}
-                  {router.pathname !== '/dashboard/schedule' && (
-                    <TabPane
-                      tabId={leftSideBarOptions.SCHEDULE_TRAINING}
-                      className={`${activeTab === leftSideBarOptions.SCHEDULE_TRAINING
-                        ? "custom-mobile-menu"
-                        : ""
-                        } sidebar-full-width custom-mobile-schedule-css`}
-                    >
-                      <SchedulePage
-                        smallSideBarToggle={smallSideBarToggle}
-                        tab={activeTab}
-                        ActiveTab={setActiveTab}
-                      />
-                    </TabPane>
-                  )}
+                  <TabPane
+                    tabId={leftSideBarOptions.SCHEDULE_TRAINING}
+                    className={`${activeTab === leftSideBarOptions.SCHEDULE_TRAINING
+                      ? "custom-mobile-menu"
+                      : ""
+                      } sidebar-full-width custom-mobile-schedule-css`}
+                  >
+                    <SchedulePage
+                      smallSideBarToggle={smallSideBarToggle}
+                      tab={activeTab}
+                      ActiveTab={setActiveTab}
+                    />
+                  </TabPane>
 
                   {/* My Community */}
 

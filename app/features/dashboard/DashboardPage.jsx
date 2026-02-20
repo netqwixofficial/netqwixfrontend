@@ -327,12 +327,6 @@ const DashboardPage = () => {
   };
 
   const getActiveTabs = () => {
-    // Don't show schedule content if we're on the schedule route (it has its own page)
-    // Only show content based on sidebarActiveTab when on the main dashboard route
-    if (router.pathname === '/dashboard/schedule') {
-      return null; // Schedule has its own route page
-    }
-
     switch (sidebarActiveTab) {
       case leftSideBarOptions.CHATS:
         return (
@@ -355,12 +349,7 @@ const DashboardPage = () => {
       }
 
       case leftSideBarOptions.SCHEDULE_TRAINING:
-        // Only show schedule content if we're on the main dashboard route
-        // If we're on /dashboard/schedule, that route has its own page
-        if (router.pathname === '/dashboard') {
-          return getScheduledInventory();
-        }
-        return null;
+        return getScheduledInventory();
       default:
         break;
     }
