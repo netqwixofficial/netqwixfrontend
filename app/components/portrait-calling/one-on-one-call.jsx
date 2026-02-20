@@ -11,6 +11,7 @@ import { CanvasMenuBar } from "../video/canvas.menubar";
 const OneOnOneCall = ({
   timeRemaining,
   bothUsersJoined = false,
+  bufferSecondsRemaining = null,
   selectedUser,
   setSelectedUser,
   localVideoRef,
@@ -350,10 +351,11 @@ const OneOnOneCall = ({
           boxSizing: "border-box",
         }}
       >
-        {timeRemaining !== null && timeRemaining !== undefined && (
+        {(timeRemaining != null || bufferSecondsRemaining != null || !bothUsersJoined) && (
           <TimeRemaining
             timeRemaining={timeRemaining}
             bothUsersJoined={bothUsersJoined}
+            bufferSecondsRemaining={bufferSecondsRemaining}
           />
         )}
       </div>

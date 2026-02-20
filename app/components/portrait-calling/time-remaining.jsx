@@ -14,7 +14,7 @@ const formatSecondsToMMSS = (seconds) => {
   return `${mm}:${ss}`;
 };
 
-const TimeRemaining = ({ timeRemaining, bothUsersJoined = false }) => {
+const TimeRemaining = ({ timeRemaining, bothUsersJoined = false, bufferSecondsRemaining = null }) => {
   const [timerColor, setTimerColor] = useState("#28a745"); // default green
   const [showFiveMinPopup, setShowFiveMinPopup] = useState(false);
   const [showThirtySecPopup, setShowThirtySecPopup] = useState(false);
@@ -41,15 +41,21 @@ const TimeRemaining = ({ timeRemaining, bothUsersJoined = false }) => {
     setShowThirtySecPopup(false);
     lastRemainingSecondsRef.current = null;
 
-    // If backend has started an authoritative timer (numeric seconds) or provided
-    // a concrete end time string, treat that as proof that the session is live.
-    const hasAuthoritativeTime =
-      (typeof timeRemaining === "number" && timeRemaining >= 0) ||
-      (typeof timeRemaining === "string" && timeRemaining.includes(":"));
-
-    if (!bothUsersJoined && !hasAuthoritativeTime) {
+    // Not both joined: show waiting message only
+    if (!bothUsersJoined) {
       setTimerColor("#6c757d"); // muted grey while waiting
       setDisplayTime("Waiting for both users...");
+      return;
+    }
+
+    // Both joined but 15s buffer not elapsed: show "Session starting in X seconds..."
+    if (bufferSecondsRemaining != null) {
+      setTimerColor("#6c757d");
+      setDisplayTime(
+        bufferSecondsRemaining > 0
+          ? `Session starting in ${bufferSecondsRemaining} seconds...`
+          : "Starting..."
+      );
       return;
     }
 
@@ -210,7 +216,7 @@ const TimeRemaining = ({ timeRemaining, bothUsersJoined = false }) => {
     // Fallback for unexpected type
     setDisplayTime("--:--");
     setTimerColor("#28a745");
-  }, [timeRemaining, bothUsersJoined]);
+  }, [timeRemaining, bothUsersJoined, bufferSecondsRemaining]);
 
   return (
     <>

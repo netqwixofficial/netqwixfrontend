@@ -113,6 +113,9 @@ const VideoCallUI = ({
   const [selectedClips, setSelectedClips] = useState([]);
   const [isTraineeJoined, setIsTraineeJoined] = useState(false);
   const [bothUsersJoined, setBothUsersJoined] = useState(false);
+  const bothUsersJoinedAtRef = useRef(null);
+  const [timerBufferElapsed, setTimerBufferElapsed] = useState(false);
+  const [bufferCountdown, setBufferCountdown] = useState(null);
   const [permissionModal, setPermissionModal] = useState(true);
   const [localStream, setLocalStream] = useState(null);
   const [displayMsg, setDisplayMsg] = useState({ show: false, msg: "" });
@@ -978,6 +981,41 @@ const VideoCallUI = ({
       setDisplayMsg({ show: false, msg: "" });
     }
   }, [remoteStream, isTraineeJoined, bothUsersJoined, displayMsg?.show, displayMsg?.msg, remoteVideoRef?.current?.srcObject]);
+
+  // Track when both users joined (for 15s buffer before timer starts)
+  useEffect(() => {
+    if (bothUsersJoined) {
+      if (bothUsersJoinedAtRef.current == null) bothUsersJoinedAtRef.current = Date.now();
+    } else {
+      bothUsersJoinedAtRef.current = null;
+      setTimerBufferElapsed(false);
+      setBufferCountdown(null);
+    }
+  }, [bothUsersJoined]);
+
+  // 15s buffer: only allow timer to run after both joined + 15 seconds
+  const TIMER_BUFFER_SECONDS = 15;
+  useEffect(() => {
+    if (!bothUsersJoined) return;
+    const t = setTimeout(() => setTimerBufferElapsed(true), TIMER_BUFFER_SECONDS * 1000);
+    return () => clearTimeout(t);
+  }, [bothUsersJoined]);
+
+  // Buffer countdown (15, 14, … 0) for "Session starting in X seconds..."
+  useEffect(() => {
+    if (!bothUsersJoined || timerBufferElapsed) {
+      setBufferCountdown(null);
+      return;
+    }
+    const update = () => {
+      if (bothUsersJoinedAtRef.current == null) return;
+      const elapsed = Math.floor((Date.now() - bothUsersJoinedAtRef.current) / 1000);
+      setBufferCountdown(Math.max(0, TIMER_BUFFER_SECONDS - elapsed));
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [bothUsersJoined, timerBufferElapsed]);
 
    
 
@@ -2027,8 +2065,12 @@ const VideoCallUI = ({
   ]);
 
   // Keep numeric countdown in sync with the current session end time.
-  // Show timer for both trainer and trainee whenever sessionEndTime is set (no bothUsersJoined gate).
+  // Timer runs only when both parties have joined AND 15s buffer has elapsed.
   useEffect(() => {
+    if (!bothUsersJoined || !timerBufferElapsed) {
+      setTimeRemaining(null);
+      return;
+    }
     if (typeof sessionEndTime !== "string" || !sessionEndTime.includes(":")) {
       setTimeRemaining(null);
       return;
@@ -2067,7 +2109,7 @@ const VideoCallUI = ({
     return () => {
       clearInterval(intervalId);
     };
-  }, [sessionEndTime]);
+  }, [sessionEndTime, bothUsersJoined, timerBufferElapsed]);
 
    
 
@@ -2174,6 +2216,7 @@ const VideoCallUI = ({
         <ClipModeCall
           timeRemaining={timeRemaining}
           bothUsersJoined={bothUsersJoined}
+          bufferSecondsRemaining={bothUsersJoined && !timerBufferElapsed ? bufferCountdown : null}
           isMaximized={isMaximized}
           setIsMaximized={setIsMaximized}
           selectedClips={selectedClips}
@@ -2204,6 +2247,7 @@ const VideoCallUI = ({
         <OneOnOneCall
           timeRemaining={timeRemaining}
           bothUsersJoined={bothUsersJoined}
+          bufferSecondsRemaining={bothUsersJoined && !timerBufferElapsed ? bufferCountdown : null}
           selectedUser={selectedUser}
           setSelectedUser={setSelectedUser}
           localVideoRef={localVideoRef}

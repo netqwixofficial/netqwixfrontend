@@ -1359,6 +1359,7 @@ const VideoContainer = ({
 const ClipModeCall = ({
   timeRemaining,
   bothUsersJoined = false,
+  bufferSecondsRemaining = null,
   isMaximized,
   setIsMaximized,
   selectedClips,
@@ -2580,10 +2581,11 @@ const ClipModeCall = ({
           position: "relative",
         }}
       >
-        {timeRemaining !== null && timeRemaining !== undefined && (
+        {(timeRemaining != null || bufferSecondsRemaining != null || !bothUsersJoined) && (
           <TimeRemaining
             timeRemaining={timeRemaining}
             bothUsersJoined={bothUsersJoined}
+            bufferSecondsRemaining={bufferSecondsRemaining}
           />
         )}
       </div>
