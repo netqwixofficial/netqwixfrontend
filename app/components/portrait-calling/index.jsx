@@ -1518,8 +1518,19 @@ const VideoCallUI = ({
                 setBothUsersJoined(true);
               }
               setDisplayMsg({ show: false, msg: "" });
-              if (remoteVideoRef?.current) remoteVideoRef.current.srcObject = remoteStream;
+              
+              // Set remote stream state first, then useEffect will sync to video element
               setRemoteStream(remoteStream);
+              
+              // Also set directly as fallback
+              if (remoteVideoRef?.current) {
+                console.log("[VideoCallUI] Directly setting remoteVideoRef.srcObject in call.on('stream')");
+                remoteVideoRef.current.srcObject = remoteStream;
+                // Ensure video plays
+                remoteVideoRef.current.play().catch(err => {
+                  console.warn("[VideoCallUI] Failed to play remote video in call.on('stream')", err);
+                });
+              }
 
               // Start quality monitoring once we have an active call
               if (peer && call && socket && id) {
@@ -1562,10 +1573,31 @@ const VideoCallUI = ({
   // Sync remote stream to video element so both trainer and trainee see the other's video
   useEffect(() => {
     if (!remoteVideoRef?.current) return;
+    
+    // Always sync the stream to the video element when it changes
     if (remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
+      console.log("[VideoCallUI] Setting remoteVideoRef.srcObject", {
+        hasStream: !!remoteStream,
+        videoTracks: remoteStream.getVideoTracks().length,
+        audioTracks: remoteStream.getAudioTracks().length,
+        accountType
+      });
+      
+      // Check if already set to avoid unnecessary updates
+      if (remoteVideoRef.current.srcObject !== remoteStream) {
+        remoteVideoRef.current.srcObject = remoteStream;
+      }
+      
+      // Ensure video plays
+      if (remoteVideoRef.current.paused) {
+        remoteVideoRef.current.play().catch(err => {
+          console.warn("[VideoCallUI] Failed to play remote video", err);
+        });
+      }
+      
       if (accountType === AccountType.TRAINEE) setIsModelOpen(true);
     } else {
+      console.log("[VideoCallUI] Clearing remoteVideoRef.srcObject");
       remoteVideoRef.current.srcObject = null;
     }
   }, [remoteStream, accountType]);
@@ -1685,10 +1717,18 @@ const VideoCallUI = ({
           console.log("[VideoCallUI] Setting bothUsersJoined to true (remote stream received)");
           setBothUsersJoined(true);
           
-          if (remoteVideoRef?.current) {
-            remoteVideoRef.current.srcObject = remoteStream;
-          }
+          // Set remote stream state first, then useEffect will sync to video element
           setRemoteStream(remoteStream);
+          
+          // Also set directly as fallback
+          if (remoteVideoRef?.current) {
+            console.log("[VideoCallUI] Directly setting remoteVideoRef.srcObject in connectToPeer");
+            remoteVideoRef.current.srcObject = remoteStream;
+            // Ensure video plays
+            remoteVideoRef.current.play().catch(err => {
+              console.warn("[VideoCallUI] Failed to play remote video in connectToPeer", err);
+            });
+          }
           accountType === AccountType.TRAINEE ? setIsModelOpen(true) : null;
           isConnectingRef.current = false;
         } catch (error) {
@@ -1798,6 +1838,13 @@ const VideoCallUI = ({
       const { sessionId, startedAt, duration } = timerData || {};
 
       if (sessionId !== id) return;
+
+      console.log("[VideoCallUI] Received TIMER_STARTED event", {
+        sessionId,
+        startedAt,
+        duration,
+        currentBothUsersJoined: bothUsersJoined
+      });
 
       // Backend has started the authoritative lesson timer for this session.
       // Treat this as confirmation that both users are in the call so we can
@@ -2065,9 +2112,9 @@ const VideoCallUI = ({
   ]);
 
   // Keep numeric countdown in sync with the current session end time.
-  // Timer runs only when both parties have joined AND 15s buffer has elapsed.
+  // Timer runs immediately when both parties have joined (no buffer delay).
   useEffect(() => {
-    if (!bothUsersJoined || !timerBufferElapsed) {
+    if (!bothUsersJoined) {
       setTimeRemaining(null);
       return;
     }
@@ -2109,7 +2156,7 @@ const VideoCallUI = ({
     return () => {
       clearInterval(intervalId);
     };
-  }, [sessionEndTime, bothUsersJoined, timerBufferElapsed]);
+  }, [sessionEndTime, bothUsersJoined]);
 
    
 
@@ -2216,7 +2263,7 @@ const VideoCallUI = ({
         <ClipModeCall
           timeRemaining={timeRemaining}
           bothUsersJoined={bothUsersJoined}
-          bufferSecondsRemaining={bothUsersJoined && !timerBufferElapsed ? bufferCountdown : null}
+          bufferSecondsRemaining={null}
           isMaximized={isMaximized}
           setIsMaximized={setIsMaximized}
           selectedClips={selectedClips}
@@ -2247,7 +2294,7 @@ const VideoCallUI = ({
         <OneOnOneCall
           timeRemaining={timeRemaining}
           bothUsersJoined={bothUsersJoined}
-          bufferSecondsRemaining={bothUsersJoined && !timerBufferElapsed ? bufferCountdown : null}
+          bufferSecondsRemaining={null}
           selectedUser={selectedUser}
           setSelectedUser={setSelectedUser}
           localVideoRef={localVideoRef}
@@ -2269,7 +2316,7 @@ const VideoCallUI = ({
           flexShrink: 0, 
           width: "100%", 
           padding: typeof window !== 'undefined' && window.innerWidth <= 768 
-            ? "8px 15px 80px 15px" // Extra bottom padding on mobile for browser UI
+            ? "8px 15px 15px 15px" // Extra bottom padding on mobile for browser UI
             : "8px 15px"
         }}>
           <ActionButtons

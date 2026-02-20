@@ -144,7 +144,7 @@ const VideoContainer = ({
     socket?.emit(EVENTS?.ON_VIDEO_ZOOM_PAN, {
       videoId: clip._id,
       zoom: newScale,
-      pan: { x: 0, y: 0 },
+      pan: translate,
       userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
     });
   };
@@ -168,7 +168,7 @@ const VideoContainer = ({
     socket?.emit(EVENTS?.ON_VIDEO_ZOOM_PAN, {
       videoId: clip._id,
       zoom: newScale,
-      pan: { x: 0, y: 0 },
+      pan: translate,
       userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
     });
   };
@@ -227,12 +227,48 @@ const VideoContainer = ({
         setDragStart(null);
       }
       setLastTouch(currentDistance);
+    } else if (e.touches.length === 1 && dragStart) {
+      // Single finger drag - panning
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - dragStart.x;
+      const deltaY = touch.clientY - dragStart.y;
+      
+      const newTranslate = {
+        x: translate.x + deltaX / scale,
+        y: translate.y + deltaY / scale,
+      };
+      
+      setTranslate(newTranslate);
+      setDragStart({ x: touch.clientX, y: touch.clientY });
+      
+      // Emit pan event
+      socket?.emit(EVENTS?.ON_VIDEO_ZOOM_PAN, {
+        videoId: clip._id,
+        zoom: scale,
+        pan: newTranslate,
+        userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
+      });
     }
   };
 
   const handleTouchStart = (e) => {
-    // Panning disabled – do not start drag to keep clips anchored
     if (accountType === AccountType.TRAINEE) return;
+    
+    if (e.touches.length === 1) {
+      // Single finger - start panning
+      const touch = e.touches[0];
+      setDragStart({ x: touch.clientX, y: touch.clientY });
+      setLastTouch(0); // Reset zoom tracking
+    } else if (e.touches.length === 2) {
+      // Two fingers - prepare for zoom
+      const [touch1, touch2] = Array.from(e.touches);
+      const distance = Math.hypot(
+        touch2.pageX - touch1.pageX,
+        touch2.pageY - touch1.pageY
+      );
+      setLastTouch(distance);
+      setDragStart(null); // Disable panning during zoom
+    }
   };
 
   const handleTouchEnd = () => {
@@ -244,10 +280,45 @@ const VideoContainer = ({
     setDragStart(null);
   };
 
+  // Handle mouse drag for panning
+  const handleMouseDown = (e) => {
+    if (accountType === AccountType.TRAINEE) return;
+    if (e.button !== 0) return; // Only left mouse button
+    setDragStart({ x: e.clientX, y: e.clientY });
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e) => {
+    if (accountType === AccountType.TRAINEE || !dragStart) return;
+    
+    const deltaX = e.clientX - dragStart.x;
+    const deltaY = e.clientY - dragStart.y;
+    
+    const newTranslate = {
+      x: translate.x + deltaX / scale,
+      y: translate.y + deltaY / scale,
+    };
+    
+    setTranslate(newTranslate);
+    setDragStart({ x: e.clientX, y: e.clientY });
+    
+    // Emit pan event
+    socket?.emit(EVENTS?.ON_VIDEO_ZOOM_PAN, {
+      videoId: clip._id,
+      zoom: scale,
+      pan: newTranslate,
+      userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
+    });
+  };
+
+  const handleMouseUp = () => {
+    if (accountType === AccountType.TRAINEE) return;
+    setDragStart(null);
+  };
+
   // Apply CSS transformations directly to the element
   const transformStyle = {
-    // Apply only zoom; keep translate at (0,0) so clips don't move from their position
-    transform: `scale(${scale})`,
+    transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
   };
 
   // Toggle visibility of custom controls when clicking on the video
@@ -424,10 +495,13 @@ const VideoContainer = ({
     };
     const handleZoomPanChange = (data) => {
       if (data?.videoId === clip?._id) {
-        // On trainee side, only follow zoom; ignore pan so clips stay in place
-        if (accountType === AccountType.TRAINEE && typeof data.zoom === "number") {
-          if (data.zoom !== scale) {
+        // On trainee side, follow both zoom and pan from trainer
+        if (accountType === AccountType.TRAINEE) {
+          if (typeof data.zoom === "number" && data.zoom !== scale) {
             setScale(data.zoom);
+          }
+          if (data.pan && typeof data.pan.x === "number" && typeof data.pan.y === "number") {
+            setTranslate({ x: data.pan.x, y: data.pan.y });
           }
         }
       }
@@ -1056,6 +1130,10 @@ const VideoContainer = ({
         >
           <div
             onWheel={onWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
@@ -1064,6 +1142,7 @@ const VideoContainer = ({
               width: "fit-content",
               height: "100%",
               touchAction: "none",
+              cursor: dragStart ? "grabbing" : "grab",
             }}
             ref={movingVideoContainerRef}
           >

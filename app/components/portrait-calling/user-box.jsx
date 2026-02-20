@@ -38,11 +38,33 @@ export const UserBox = ({
     [stream]
   );
   useEffect(() => {
-     
-    if (videoRef?.current) {
-      videoRef.current.srcObject = stream;
+    if (!videoRef?.current) return;
+    
+    if (stream) {
+      console.log("[UserBox] Setting video srcObject from stream", {
+        hasStream: !!stream,
+        videoTracks: stream.getVideoTracks().length,
+        audioTracks: stream.getAudioTracks().length,
+        userId: user?._id,
+        videoType
+      });
+      
+      if (videoRef.current.srcObject !== stream) {
+        videoRef.current.srcObject = stream;
+      }
+      
+      if (videoRef.current.paused) {
+        videoRef.current.play().catch(err => {
+          console.warn("[UserBox] Failed to play video", { userId: user?._id, err });
+        });
+      }
+    } else {
+      if (videoRef.current.srcObject) {
+        console.log("[UserBox] Clearing video srcObject", { userId: user?._id });
+        videoRef.current.srcObject = null;
+      }
     }
-  }, [videoRef, stream, isStreamOff, selectedUser]);
+  }, [videoRef, stream, isStreamOff, selectedUser, user?._id, videoType]);
 
   const handleDrag = (e, data) => {
     setIsDragging(true);
@@ -192,10 +214,37 @@ export const UserBoxMini = ({
   );
 
   useEffect(() => {
-    if (videoRef?.current && stream) {
-      videoRef.current.srcObject = stream;
+    if (!videoRef?.current) return;
+    
+    // Always sync stream to video element when stream changes
+    if (stream) {
+      console.log("[UserBoxMini] Setting video srcObject from stream", {
+        hasStream: !!stream,
+        videoTracks: stream.getVideoTracks().length,
+        audioTracks: stream.getAudioTracks().length,
+        userId: user?._id,
+        videoType
+      });
+      
+      // Only update if different to avoid unnecessary re-renders
+      if (videoRef.current.srcObject !== stream) {
+        videoRef.current.srcObject = stream;
+      }
+      
+      // Ensure video plays
+      if (videoRef.current.paused) {
+        videoRef.current.play().catch(err => {
+          console.warn("[UserBoxMini] Failed to play video", { userId: user?._id, err });
+        });
+      }
+    } else {
+      // Clear stream if it becomes null
+      if (videoRef.current.srcObject) {
+        console.log("[UserBoxMini] Clearing video srcObject", { userId: user?._id });
+        videoRef.current.srcObject = null;
+      }
     }
-  }, [videoRef, stream, isStreamOff, isHidden]);
+  }, [videoRef, stream, isStreamOff, isHidden, user?._id, videoType]);
 
   const handleDrag = (e, data) => {
     setIsDragging(true);
