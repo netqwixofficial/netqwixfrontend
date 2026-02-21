@@ -330,12 +330,17 @@ const Bookings = ({ accountType = null }) => {
     trainer_info,
     ratings,
     trainee_clips,
-    report
+    report,
+    start_time,
+    end_time
   ) => {
     const availabilityInfo = Utils.meetingAvailability(
       booked_date,
       session_start_time,
-      session_end_time
+      session_end_time,
+      undefined,
+      start_time,
+      end_time
     );
     const {
       isStartButtonEnabled,
@@ -1002,6 +1007,8 @@ const Bookings = ({ accountType = null }) => {
         ratings,
         trainee_clips,
         report,
+        start_time,
+        end_time,
       } = bookingInfo;
 
       return (
@@ -1055,7 +1062,9 @@ const Bookings = ({ accountType = null }) => {
                   trainer_info,
                   ratings,
                   trainee_clips,
-                  report
+                  report,
+                  start_time,
+                  end_time
                 )}
               </div>
             </div>

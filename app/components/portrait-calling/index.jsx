@@ -980,7 +980,7 @@ const VideoCallUI = ({
       });
       setDisplayMsg({ show: false, msg: "" });
     }
-  }, [remoteStream, isTraineeJoined, bothUsersJoined, displayMsg?.show, displayMsg?.msg, remoteVideoRef?.current?.srcObject]);
+  }, [remoteStream, isTraineeJoined, bothUsersJoined, displayMsg?.show, displayMsg?.msg]);
 
   // Track when both users joined (for 15s buffer before timer starts)
   useEffect(() => {
@@ -2235,6 +2235,7 @@ const VideoCallUI = ({
           displayMsg?.show && 
           displayMsg?.msg && 
           !bothUsersJoined && 
+          !isTraineeJoined && 
           !remoteStream && 
           !remoteVideoRef?.current?.srcObject;
         

@@ -226,23 +226,18 @@ export const UserBoxMini = ({
         videoType
       });
       
-      // Only update if different to avoid unnecessary re-renders and play() AbortError
+      // Only update if different to avoid unnecessary re-renders
       if (videoRef.current.srcObject !== stream) {
         videoRef.current.srcObject = stream;
       }
       
-      // Defer play() to avoid "play() interrupted by a new load request" when React re-renders
-      const currentStream = stream;
-      requestAnimationFrame(() => {
-        if (!videoRef?.current || videoRef.current.srcObject !== currentStream) return;
-        if (videoRef.current.paused) {
-          videoRef.current.play().catch((err) => {
-            if (err?.name !== "AbortError") {
-              console.warn("[UserBoxMini] Failed to play video", { userId: user?._id, err });
-            }
-          });
-        }
-      });
+      if (videoRef.current.paused) {
+        videoRef.current.play().catch((err) => {
+          if (err?.name !== "AbortError") {
+            console.warn("[UserBoxMini] Failed to play video", { userId: user?._id, err });
+          }
+        });
+      }
     } else {
       // Clear stream if it becomes null
       if (videoRef.current.srcObject) {

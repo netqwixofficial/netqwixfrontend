@@ -211,22 +211,23 @@ export class Utils {
     start_time,
     end_time
   ) => {
-    const currentDateTime = momenttz(new Date()).tz(userTimeZone);
-    const customStartDateTime = momenttz(start_time).tz(userTimeZone);
-    const customEndDateTime = momenttz(end_time).tz(userTimeZone);
-
-    // return (
-    //   currentDate === bookedDate &&
-    //   Date.parse(`01/01/2023 ${currentFormattedTime}`) >= Date.parse(`01/01/2023 ${sessionStartTime}`) &&
-    //   Date.parse(`01/01/2023 ${currentFormattedTime}`) <= Date.parse(`01/01/2023 ${sessionEndTime}`)
-    // );
-
-    return currentDateTime?.isBetween(
-      customStartDateTime,
-      customEndDateTime,
-      null,
-      "[]"
-    );
+    // Instant lesson or booking without slot times: allow start regardless of schedule/timezone
+    if (start_time == null || end_time == null) {
+      return true;
+    }
+    try {
+      const currentDateTime = momenttz(new Date()).tz(userTimeZone);
+      const customStartDateTime = momenttz(start_time).tz(userTimeZone);
+      const customEndDateTime = momenttz(end_time).tz(userTimeZone);
+      return currentDateTime?.isBetween(
+        customStartDateTime,
+        customEndDateTime,
+        null,
+        "[]"
+      );
+    } catch (e) {
+      return true;
+    }
   };
 
   static isUpcomingSession = (bookedDate, sessionStartTime, sessionEndTime) => {

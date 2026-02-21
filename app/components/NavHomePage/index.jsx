@@ -73,6 +73,8 @@ const NavHomePage = () => {
   const hasFetchedFriendRequestsRef = useRef(false);
   const hasFetchedActiveTrainerRef = useRef(false);
   const hasFetchedScheduledMeetingsRef = useRef(false);
+  // Track if we've completed the first load of scheduled meetings (so we don't show active-session skeleton when there are none)
+  const hasScheduledMeetingsLoadedOnceRef = useRef(false);
   
   
   const getFriendRequestsApi = async () => {
@@ -270,6 +272,13 @@ const NavHomePage = () => {
     ],
   };
    
+
+  // Mark that we've completed at least one load of scheduled meetings (so we hide active-session skeleton when there are none)
+  useEffect(() => {
+    if (!isMeetingLoading) {
+      hasScheduledMeetingsLoadedOnceRef.current = true;
+    }
+  }, [isMeetingLoading]);
 
   // Filter sessions that are confirmed and within the current time range (active sessions)
   // Matches behavior at ffb2ea8 – sessions where current time is within start–end and not yet rated
@@ -823,7 +832,7 @@ const NavHomePage = () => {
             </div>
           ))}
         </div>
-      ) : isMeetingLoading ? (
+      ) : isMeetingLoading && !hasScheduledMeetingsLoadedOnceRef.current ? (
         <div className="upcoming_session">
           <h2 className="text-center">Active Sessions</h2>
           {Array(2).fill(0).map((_, index) => (
