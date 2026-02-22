@@ -233,13 +233,15 @@ const Bookings = ({ accountType = null }) => {
 
     socket.on(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
 
-    // Also listen for instant lesson events that might create bookings
+    // Also listen for instant lesson and booking status (e.g. trainer confirmed) so both see updated Upcoming
     socket.on(EVENTS.INSTANT_LESSON.ACCEPT, handleBookingUpdate);
+    socket.on(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
 
     return () => {
       if (socket) {
         socket.off(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
         socket.off(EVENTS.INSTANT_LESSON.ACCEPT, handleBookingUpdate);
+        socket.off(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
       }
     };
   }, [socket, currentAccountType, tabBook, dispatch]);

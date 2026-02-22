@@ -61,14 +61,11 @@ export const addRatingAsync = createAsyncThunk(
 export const updateBookedSessionScheduledMeetingAsync = createAsyncThunk(
   "update/booked/session",
   async (payload, { dispatch }) => {
-    const { status, updatePayload } = payload;
-    const statusPayload = {
-      status,
-    };
+    const { updatePayload } = payload;
     try {
       const response = await updateBookedSessionScheduledMeeting(updatePayload);
-      dispatch(getScheduledMeetingDetailsAsync(statusPayload));
-      //TODO:update redux state not calling get api
+      // Full fetch so both trainer and trainee see confirmed session in Upcoming (slice derives upcoming from full list)
+      dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
       return response;
     } catch (err) {
       if (!err.isUnauthorized) {

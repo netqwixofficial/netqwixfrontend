@@ -104,15 +104,8 @@ const TrainerRenderBooking = ({
       try {
         // Wait for the update to complete
         await dispatch(updateBookedSessionScheduledMeetingAsync(payload)).unwrap();
-        // After successful update, refresh the bookings to get latest status
-        // Force refresh to ensure we get the updated status from API
-        if (accountType === AccountType?.TRAINER) {
-          await dispatch(getScheduledMeetingDetailsAsync({ status: tabBook, forceRefresh: true }));
-        } else {
-          await dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
-        }
-        // Also refresh upcoming sessions specifically
-        await dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming", forceRefresh: true }));
+        // Single full fetch so slice populates scheduledMeetingDetails and upcoming; both users see confirmed session
+        await dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
       } catch (error) {
         console.error("[TrainerRenderBooking] Error updating booking status:", error);
       }
