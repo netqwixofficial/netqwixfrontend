@@ -8,7 +8,7 @@ import {
   getScheduledMeetingDetailsAsync,
 } from "../../app/components/common/common.slice";
 import { useAppDispatch, useAppSelector } from "../../app/store";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { SocketContext } from "../../app/components/socket";
 import { LOCAL_STORAGE_KEYS, topNavbarOptions } from "../../app/common/constants";
 import { useMediaQuery } from "usehooks-ts";
@@ -134,26 +134,21 @@ const MeetingRoom = () => {
   }, [id, meetingDetails, scheduledMeetingDetails, loading]);
   
   useEffect(() => {
-    // Fetch meeting details when component mounts or when id changes
-    // Single fetch without status to get all bookings (finds current meeting; avoids duplicate timeouts)
     if (id) {
       dispatch(getScheduledMeetingDetailsAsync());
+      dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming" }));
       dispatch(authAction?.setAccountType(localStorage.getItem(LOCAL_STORAGE_KEYS?.ACC_TYPE)))
     }
   }, [dispatch, id]);
 
-  const hasRefetchedOnceRef = useRef(false);
   useEffect(() => {
-    hasRefetchedOnceRef.current = false;
-  }, [id]);
-
-  // Refetch once if meeting details not found after first load
-  useEffect(() => {
-    if (id && !meetingDetails && !loading && !hasRefetchedOnceRef.current) {
-      hasRefetchedOnceRef.current = true;
+    if (id && !meetingDetails && !loading) {
       const timer = setTimeout(() => {
         dispatch(getScheduledMeetingDetailsAsync());
-      }, 500);
+        setTimeout(() => {
+          dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming" }));
+        }, 200);
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, [id, meetingDetails, loading, dispatch]);

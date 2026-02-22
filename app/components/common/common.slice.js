@@ -61,11 +61,11 @@ export const addRatingAsync = createAsyncThunk(
 export const updateBookedSessionScheduledMeetingAsync = createAsyncThunk(
   "update/booked/session",
   async (payload, { dispatch }) => {
-    const { updatePayload } = payload;
+    const { status, updatePayload } = payload;
+    const statusPayload = { status };
     try {
       const response = await updateBookedSessionScheduledMeeting(updatePayload);
-      // Full fetch so both trainer and trainee see confirmed session in Upcoming (slice derives upcoming from full list)
-      dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
+      dispatch(getScheduledMeetingDetailsAsync(statusPayload));
       return response;
     } catch (err) {
       if (!err.isUnauthorized) {
@@ -206,52 +206,29 @@ export const bookingsSlice = createSlice({
       .addCase(getScheduledMeetingDetailsAsync.fulfilled, (state, action) => {
         state.status = "fulfilled";
         state.isMeetingLoading = false;
-        const fetchedStatus = action.payload.cachedTabBook ?? "all";
+        const fetchedStatus = action.payload.cachedTabBook || "all";
         const fetchedData = action.payload.data || [];
 
         if (fetchedStatus && fetchedStatus !== "all") {
           state.scheduledMeetingDetailsByStatus[fetchedStatus] = fetchedData;
         }
 
-        // When we fetched without status (full list), use it directly so instant lesson and all bookings show for both users
-        if (fetchedStatus === "all" || !fetchedStatus) {
-          state.scheduledMeetingDetails = fetchedData;
-          // Also populate status buckets so Upcoming tab shows booked/confirmed without needing a separate "upcoming" fetch
-          const now = new Date();
-          state.scheduledMeetingDetailsByStatus.upcoming = fetchedData.filter(
-            (item) =>
-              (item?.status === "booked" || item?.status === "confirmed") &&
-              (!item?.end_time || new Date(item.end_time) > now)
-          );
-          state.scheduledMeetingDetailsByStatus.completed = fetchedData.filter(
-            (item) => item?.status === "completed"
-          );
-          state.scheduledMeetingDetailsByStatus.cancelled = fetchedData.filter(
-            (item) => item?.status === "cancelled" || item?.status === "canceled"
-          );
-          state.scheduledMeetingDetailsByStatus.active = fetchedData.filter(
-            (item) => item?.status === "booked" || item?.status === "confirmed"
-          );
-        } else {
-          // Merge all statuses for backward compatibility when we had a status-specific fetch
-          const allData = [
-            ...(state.scheduledMeetingDetailsByStatus.upcoming || []),
-            ...(state.scheduledMeetingDetailsByStatus.cancelled || []),
-            ...(state.scheduledMeetingDetailsByStatus.completed || []),
-            ...(state.scheduledMeetingDetailsByStatus.active || []),
-          ];
-          const uniqueData = allData.reduce((acc, current) => {
-            const existingIndex = acc.findIndex((item) => item._id === current._id);
-            if (existingIndex === -1) {
-              acc.push(current);
-            } else {
-              acc[existingIndex] = current;
-            }
-            return acc;
-          }, []);
-          state.scheduledMeetingDetails = uniqueData;
-        }
-
+        const allData = [
+          ...(state.scheduledMeetingDetailsByStatus.upcoming || []),
+          ...(state.scheduledMeetingDetailsByStatus.cancelled || []),
+          ...(state.scheduledMeetingDetailsByStatus.completed || []),
+          ...(state.scheduledMeetingDetailsByStatus.active || []),
+        ];
+        const uniqueData = allData.reduce((acc, current) => {
+          const existingIndex = acc.findIndex((item) => item._id === current._id);
+          if (existingIndex === -1) {
+            acc.push(current);
+          } else {
+            acc[existingIndex] = current;
+          }
+          return acc;
+        }, []);
+        state.scheduledMeetingDetails = uniqueData;
         state.lastFetchedTimestamp = {
           ...state.lastFetchedTimestamp,
           [fetchedStatus]: Date.now(),

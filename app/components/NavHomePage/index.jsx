@@ -161,6 +161,7 @@ const NavHomePage = () => {
 
     const handleBookingUpdate = () => {
       dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
+      dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming", forceRefresh: true }));
     };
 
     // Listen for push notifications that indicate booking updates
@@ -180,15 +181,12 @@ const NavHomePage = () => {
 
     socket.on(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
 
-    // Also listen for instant lesson and booking status (e.g. trainer confirmed) so both users see updated Upcoming
     socket.on(EVENTS.INSTANT_LESSON.ACCEPT, handleBookingUpdate);
-    socket.on(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
 
     return () => {
       if (socket) {
         socket.off(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
         socket.off(EVENTS.INSTANT_LESSON.ACCEPT, handleBookingUpdate);
-        socket.off(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
       }
     };
   }, [socket, dispatch]);

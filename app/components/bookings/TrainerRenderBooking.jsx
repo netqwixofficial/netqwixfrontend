@@ -104,8 +104,12 @@ const TrainerRenderBooking = ({
       try {
         // Wait for the update to complete
         await dispatch(updateBookedSessionScheduledMeetingAsync(payload)).unwrap();
-        // Single full fetch so slice populates scheduledMeetingDetails and upcoming; both users see confirmed session
-        await dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
+        if (accountType === AccountType?.TRAINER) {
+          await dispatch(getScheduledMeetingDetailsAsync({ status: tabBook, forceRefresh: true }));
+        } else {
+          await dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
+        }
+        await dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming", forceRefresh: true }));
       } catch (error) {
         console.error("[TrainerRenderBooking] Error updating booking status:", error);
       }
