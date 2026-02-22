@@ -206,29 +206,50 @@ export const bookingsSlice = createSlice({
       .addCase(getScheduledMeetingDetailsAsync.fulfilled, (state, action) => {
         state.status = "fulfilled";
         state.isMeetingLoading = false;
-        const fetchedStatus = action.payload.cachedTabBook || "all";
+        const fetchedStatus = action.payload.cachedTabBook ?? "all";
         const fetchedData = action.payload.data || [];
 
         if (fetchedStatus && fetchedStatus !== "all") {
           state.scheduledMeetingDetailsByStatus[fetchedStatus] = fetchedData;
         }
 
-        const allData = [
-          ...(state.scheduledMeetingDetailsByStatus.upcoming || []),
-          ...(state.scheduledMeetingDetailsByStatus.cancelled || []),
-          ...(state.scheduledMeetingDetailsByStatus.completed || []),
-          ...(state.scheduledMeetingDetailsByStatus.active || []),
-        ];
-        const uniqueData = allData.reduce((acc, current) => {
-          const existingIndex = acc.findIndex((item) => item._id === current._id);
-          if (existingIndex === -1) {
-            acc.push(current);
-          } else {
-            acc[existingIndex] = current;
-          }
-          return acc;
-        }, []);
-        state.scheduledMeetingDetails = uniqueData;
+        // When we fetched without status (full list), use it so instant lessons and all bookings show for both trainer and trainee
+        if (fetchedStatus === "all" || fetchedStatus == null) {
+          state.scheduledMeetingDetails = fetchedData;
+          const now = new Date();
+          state.scheduledMeetingDetailsByStatus.upcoming = fetchedData.filter(
+            (item) =>
+              (item?.status === "booked" || item?.status === "confirmed") &&
+              (!item?.end_time || new Date(item.end_time) > now)
+          );
+          state.scheduledMeetingDetailsByStatus.completed = fetchedData.filter(
+            (item) => item?.status === "completed"
+          );
+          state.scheduledMeetingDetailsByStatus.cancelled = fetchedData.filter(
+            (item) => item?.status === "cancelled" || item?.status === "canceled"
+          );
+          state.scheduledMeetingDetailsByStatus.active = fetchedData.filter(
+            (item) => item?.status === "booked" || item?.status === "confirmed"
+          );
+        } else {
+          const allData = [
+            ...(state.scheduledMeetingDetailsByStatus.upcoming || []),
+            ...(state.scheduledMeetingDetailsByStatus.cancelled || []),
+            ...(state.scheduledMeetingDetailsByStatus.completed || []),
+            ...(state.scheduledMeetingDetailsByStatus.active || []),
+          ];
+          const uniqueData = allData.reduce((acc, current) => {
+            const existingIndex = acc.findIndex((item) => item._id === current._id);
+            if (existingIndex === -1) {
+              acc.push(current);
+            } else {
+              acc[existingIndex] = current;
+            }
+            return acc;
+          }, []);
+          state.scheduledMeetingDetails = uniqueData;
+        }
+
         state.lastFetchedTimestamp = {
           ...state.lastFetchedTimestamp,
           [fetchedStatus]: Date.now(),

@@ -180,13 +180,14 @@ const NavHomePage = () => {
     };
 
     socket.on(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
-
     socket.on(EVENTS.INSTANT_LESSON.ACCEPT, handleBookingUpdate);
+    socket.on(EVENTS.BOOKING.CREATED, handleBookingUpdate);
 
     return () => {
       if (socket) {
         socket.off(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
         socket.off(EVENTS.INSTANT_LESSON.ACCEPT, handleBookingUpdate);
+        socket.off(EVENTS.BOOKING.CREATED, handleBookingUpdate);
       }
     };
   }, [socket, dispatch]);

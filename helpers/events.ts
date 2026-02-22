@@ -43,5 +43,8 @@ export const EVENTS = {
         ACCEPT: "INSTANT_LESSON_ACCEPT",
         DECLINE: "INSTANT_LESSON_DECLINE",
         EXPIRE: "INSTANT_LESSON_EXPIRE"
+    },
+    BOOKING: {
+        CREATED: "BOOKING_CREATED"
     }
 }
