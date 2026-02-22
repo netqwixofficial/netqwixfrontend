@@ -8,7 +8,7 @@ import {
   getScheduledMeetingDetailsAsync,
 } from "../../app/components/common/common.slice";
 import { useAppDispatch, useAppSelector } from "../../app/store";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SocketContext } from "../../app/components/socket";
 import { LOCAL_STORAGE_KEYS, topNavbarOptions } from "../../app/common/constants";
 import { useMediaQuery } from "usehooks-ts";
@@ -135,27 +135,25 @@ const MeetingRoom = () => {
   
   useEffect(() => {
     // Fetch meeting details when component mounts or when id changes
-    // Fetch ALL bookings (no status filter) to ensure we find the booking regardless of status
+    // Single fetch without status to get all bookings (finds current meeting; avoids duplicate timeouts)
     if (id) {
-      // First fetch without status to get all bookings
       dispatch(getScheduledMeetingDetailsAsync());
-      // Also fetch with "upcoming" status as backup
-      dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming" }));
       dispatch(authAction?.setAccountType(localStorage.getItem(LOCAL_STORAGE_KEYS?.ACC_TYPE)))
     }
   }, [dispatch, id]);
-  
-  // Refetch if meeting details not found but we have an id
+
+  const hasRefetchedOnceRef = useRef(false);
   useEffect(() => {
-    if (id && !meetingDetails && !loading) {
-      // Meeting not found, try refetching without status filter first (gets all bookings)
+    hasRefetchedOnceRef.current = false;
+  }, [id]);
+
+  // Refetch once if meeting details not found after first load
+  useEffect(() => {
+    if (id && !meetingDetails && !loading && !hasRefetchedOnceRef.current) {
+      hasRefetchedOnceRef.current = true;
       const timer = setTimeout(() => {
         dispatch(getScheduledMeetingDetailsAsync());
-        // Also try with "upcoming" status as backup
-        setTimeout(() => {
-          dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming" }));
-        }, 200);
-      }, 300);
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [id, meetingDetails, loading, dispatch]);

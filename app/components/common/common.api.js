@@ -36,6 +36,7 @@ export const getScheduledMeetingDetails = async (payload) => {
         )}`,
       },
       params: payload,
+      timeout: 60000, // 60s for scheduled-meetings (avoids timeout during call when backend is slow)
     });
     
 

@@ -160,11 +160,7 @@ const NavHomePage = () => {
     if (!socket) return;
 
     const handleBookingUpdate = () => {
-      // Force refresh to get latest data for active sessions, bypassing cache
-      // Fetch without status to get all meetings, which includes active ones
       dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
-      // Also explicitly fetch upcoming to ensure it's updated
-      dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming", forceRefresh: true }));
     };
 
     // Listen for push notifications that indicate booking updates
