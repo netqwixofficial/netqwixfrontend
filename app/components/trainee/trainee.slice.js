@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import {
   bookSession,
+  bookInstantMeeting,
   createPaymentIntent,
   fetchTraineeWithSlots,
   updateProfile,
@@ -40,7 +41,23 @@ export const bookSessionAsync = createAsyncThunk(
       return response;
     } catch (err) {
       if (!err.isUnauthorized) {
-        toast.error(err.response.data.error);
+        toast.error(err.response?.data?.error || "Booking failed");
+      }
+      throw err;
+    }
+  }
+);
+
+/** Instant lesson: no date/timezone; server uses UTC now. Returns { bookingId, booking }. */
+export const bookInstantMeetingAsync = createAsyncThunk(
+  "add/trainee/book-instant-meeting",
+  async (payload) => {
+    try {
+      const response = await bookInstantMeeting(payload);
+      return response;
+    } catch (err) {
+      if (!err.isUnauthorized) {
+        toast.error(err.response?.data?.error || "Instant lesson request failed");
       }
       throw err;
     }

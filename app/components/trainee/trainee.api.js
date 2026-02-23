@@ -86,6 +86,25 @@ export const createPaymentIntent = async (payload) => {
 };
 
 
+/** Book instant meeting (timezone/schedule independent). Pass trainer_id only; server uses UTC now. */
+export const bookInstantMeeting = async (payload) => {
+  try {
+    const response = await axiosInstance({
+      method: "post",
+      url: `/trainee/book-instant-meeting`,
+      data: payload,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+    return response.data;
+  } catch (err) {
+    throw err;
+  }
+};
+
 export const updateProfile = async (payload) => {
   try {
     const response = await axiosInstance({

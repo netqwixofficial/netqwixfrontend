@@ -1,13 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Modal, Button, Input, Form, FormGroup, Label } from 'reactstrap';
 import moment from 'moment';
 import { convertTimesToISO, Utils } from '../../../../utils/utils';
-import { createPaymentIntentAsync } from '../trainee.slice';
+import { createPaymentIntentAsync, bookInstantMeetingAsync } from '../trainee.slice';
 import { authAction } from '../../auth/auth.slice';
 import { useAppDispatch } from '../../../store';
 import { BookedSession, LOCAL_STORAGE_KEYS } from '../../../common/constants';
 import { RxCross2 } from 'react-icons/rx';
 import { DateTime } from 'luxon';
+import { SocketContext } from '../../socket/SocketProvider';
+import { EVENTS } from '../../../../helpers/events';
+import { initiateTraineeFlow } from '../../instant-lesson/instantLessonHelpers';
+import { toast } from 'react-toastify';
 
 const InstantLessons = [
   { label: '15 Minutes', duration: 15 },
@@ -59,11 +63,13 @@ const InstantLessonTimeLine = ({
   selectedSlot,
 }) => {
   const dispatch = useAppDispatch();
+  const socket = useContext(SocketContext);
   const isTokenExists = localStorage.getItem(LOCAL_STORAGE_KEYS.ACCESS_TOKEN);
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [slot, setSlot] = useState(null);
   const [couponCode, setCouponCode] = useState("");
   const [formError, setFormError] = useState("");
+  const [isSubmittingInstant, setIsSubmittingInstant] = useState(false);
 
   useEffect(() => {
     if (isCommonBooking) {
@@ -305,7 +311,7 @@ const InstantLessonTimeLine = ({
         <div className="col-12 mb-3 d-flex justify-content-center align-items-center">
           <Button
             type="button"
-            disabled={!selectedLesson}
+            disabled={!selectedLesson || isSubmittingInstant}
             className="mt-3 btn btn-sm btn-primary"
             style={{
               backgroundColor: !selectedLesson ? "#6c757d" : "#000080",
@@ -330,29 +336,80 @@ const InstantLessonTimeLine = ({
                 e.target.style.transform = "scale(1)";
               }
             }}
-            onClick={async() => {
+            onClick={async () => {
               try {
-               
                 if (!selectedLesson || !handleFormValidation()) {
                   return;
                 }
-  
+
+                // Instant lesson path: no schedule/timezone dependency; trainer gets request in upcoming
+                if (!isCommonBooking) {
+                  const trainerId =
+                    trainerInfo?.userInfo?._id ||
+                    trainerInfo?.userInfo?.trainer_id ||
+                    trainerInfo?.userInfo?.id;
+                  if (!trainerId || !userInfo?._id) {
+                    toast.error("Missing trainer or user info.");
+                    return;
+                  }
+                  setIsSubmittingInstant(true);
+                  const res = await dispatch(
+                    bookInstantMeetingAsync({ trainer_id: trainerId })
+                  ).unwrap();
+                  const bookingId =
+                    res?.bookingId ||
+                    res?.data?.bookingId ||
+                    res?.booking?._id;
+                  if (!bookingId) {
+                    toast.error("Instant lesson could not be created.");
+                    setIsSubmittingInstant(false);
+                    return;
+                  }
+                  const coachId = String(trainerId);
+                  const duration = selectedLesson?.duration || 30;
+                  const expiresAt = new Date(
+                    Date.now() + 2 * 60 * 1000
+                  ).toISOString();
+                  if (socket) {
+                    socket.emit(EVENTS.INSTANT_LESSON.REQUEST, {
+                      lessonId: String(bookingId),
+                      coachId,
+                      traineeId: userInfo._id,
+                      traineeInfo: userInfo,
+                      duration,
+                      expiresAt,
+                      lessonType: `Instant Lesson - ${duration} min`,
+                    });
+                  }
+                  initiateTraineeFlow({
+                    lessonId: String(bookingId),
+                    coachId,
+                    traineeInfo: userInfo || {},
+                    duration,
+                    requestData: {},
+                  });
+                  toast.success("Instant lesson request sent. Trainer will see it in upcoming lessons.");
+                  onClose(false);
+                  setIsSubmittingInstant(false);
+                  return;
+                }
+
+                // Scheduled path (existing payment + book-session flow)
                 const slot1 = getTimeRange(selectedLesson.duration);
-  
-                let startTime = isCommonBooking
-                  ? DateTime.fromFormat(selectedSlot?.start, "h:mm a").toFormat("HH:mm")
-                  : slot1?.sessionStartTime;
-                let endTime = isCommonBooking
-                  ? DateTime.fromFormat(selectedSlot?.end, "h:mm a").toFormat("HH:mm")
-                  : slot1?.sessionEndTime;
-  
+                let startTime = DateTime.fromFormat(
+                  selectedSlot?.start,
+                  "h:mm a"
+                ).toFormat("HH:mm");
+                let endTime = DateTime.fromFormat(
+                  selectedSlot?.end,
+                  "h:mm a"
+                ).toFormat("HH:mm");
                 const amountPayable = Utils.getMinutesFromHourMM(
                   startTime,
                   endTime,
                   trainerInfo?.userInfo?.extraInfo?.hourly_rate
                 );
                 let paymentIntentData;
-         
                 if (amountPayable > 0) {
                   if (isTokenExists) {
                     dispatch(authAction.updateIsAuthModalOpen(false));
@@ -365,19 +422,23 @@ const InstantLessonTimeLine = ({
                         couponCode: couponCode,
                       })
                     ).unwrap();
-                    
                   } else {
                     dispatch(authAction.updateIsAuthModalOpen(true));
                   }
-  
-                  const today = DateTime.now().toISO({
-                    suppressMilliseconds: false,
-                    includeOffset: false,
-                  }) + "Z";
+                  const today =
+                    DateTime.now().toISO({
+                      suppressMilliseconds: false,
+                      includeOffset: false,
+                    }) + "Z";
                   const payload = {
                     slot_id: slot?._id,
-                    charging_price: paymentIntentData?.data?.result?.amount ?(paymentIntentData?.data?.result?.amount/100):null?? amountPayable,
-                    trainer_id: trainerInfo?.userInfo?._id || trainerInfo?.userInfo?.trainer_id,
+                    charging_price:
+                      paymentIntentData?.data?.result?.amount
+                        ? paymentIntentData?.data?.result?.amount / 100
+                        : null ?? amountPayable,
+                    trainer_id:
+                      trainerInfo?.userInfo?._id ||
+                      trainerInfo?.userInfo?.trainer_id,
                     trainer_info: trainerInfo,
                     hourly_rate: trainerInfo?.userInfo?.extraInfo?.hourly_rate,
                     status: BookedSession.booked,
@@ -387,15 +448,15 @@ const InstantLessonTimeLine = ({
                     start_time: convertTimesToISO(today, startTime),
                     end_time: convertTimesToISO(today, endTime),
                   };
-                   
                   setBookSessionPayload(payload);
                   setAmount(amountPayable.toFixed(1));
                   onClose(false);
                 }
               } catch (error) {
-                 
+                if (!isCommonBooking) {
+                  setIsSubmittingInstant(false);
+                }
               }
-             
             }}
           >
             {isCommonBooking ? "Proceed to Checkout" : "Book Instant Lesson"}

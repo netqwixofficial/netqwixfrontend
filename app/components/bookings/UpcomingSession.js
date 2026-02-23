@@ -96,43 +96,42 @@ const UpcomingSession = ({ accountType = null }) => {
   }, [newBookingData, dispatch]);
 
   /**
-   * Keep upcoming sessions in sync in real-time.
-   * Listen to push notifications for booking-related events and refresh data.
+   * Keep upcoming sessions in sync in real-time (e.g. when trainee books or trainer confirms).
    */
   useEffect(() => {
     if (!socket) return;
 
     const handleBookingUpdate = () => {
-      // Refetch data for the currently selected tab (upcoming / completed / cancelled, etc.)
-      // Force refresh by bypassing cache
       dispatch(
         getScheduledMeetingDetailsAsync({
           status: activeTabs,
           forceRefresh: true,
         })
       );
+      dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
     };
 
-    // Listen for push notifications that indicate booking updates
     const handleNotification = (notification) => {
-      // Only refresh if it's a booking-related notification
       if (
         notification.title === notificiationTitles.newBookingRequest ||
         notification.title === notificiationTitles.sessionStrated ||
         notification.title === notificiationTitles.sessionConfirmation
       ) {
-        // Small delay to ensure backend has processed the booking
-        setTimeout(() => {
-          handleBookingUpdate();
-        }, 500);
+        setTimeout(() => handleBookingUpdate(), 300);
       }
     };
 
     socket.on(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
+    socket.on(EVENTS.BOOKING.CREATED, handleBookingUpdate);
+    socket.on(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
+    socket.on(EVENTS.INSTANT_LESSON.ACCEPT, handleBookingUpdate);
 
     return () => {
       if (socket) {
         socket.off(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
+        socket.off(EVENTS.BOOKING.CREATED, handleBookingUpdate);
+        socket.off(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
+        socket.off(EVENTS.INSTANT_LESSON.ACCEPT, handleBookingUpdate);
       }
     };
   }, [socket, dispatch, activeTabs]);

@@ -160,22 +160,20 @@ const NavHomePage = () => {
     if (!socket) return;
 
     const handleBookingUpdate = () => {
+      // Full list refresh so Active Sessions and Upcoming both update within seconds
       dispatch(getScheduledMeetingDetailsAsync({ forceRefresh: true }));
       dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming", forceRefresh: true }));
     };
 
     // Listen for push notifications that indicate booking updates
     const handleNotification = (notification) => {
-      // Only refresh if it's a booking-related notification
       if (
         notification.title === notificiationTitles.newBookingRequest ||
         notification.title === notificiationTitles.sessionStrated ||
         notification.title === notificiationTitles.sessionConfirmation
       ) {
-        // Small delay to ensure backend has processed the booking
-        setTimeout(() => {
-          handleBookingUpdate();
-        }, 500);
+        // Short delay only for push so backend has written; socket events refresh immediately
+        setTimeout(() => handleBookingUpdate(), 300);
       }
     };
 
