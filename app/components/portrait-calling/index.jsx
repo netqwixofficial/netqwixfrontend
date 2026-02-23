@@ -982,6 +982,34 @@ const VideoCallUI = ({
     }
   }, [remoteStream, isTraineeJoined, bothUsersJoined, displayMsg?.show, displayMsg?.msg]);
 
+  // Fallback: if we're in the call with session end time but TIMER_STARTED was never received
+  // (e.g. WebSocket glitch), set bothUsersJoined after a short delay so the timer can run from sessionEndTime.
+  const timerFallbackTimeoutRef = useRef(null);
+  useEffect(() => {
+    if (bothUsersJoined || !id || !sessionEndTime || !localStream || !socket?.connected) {
+      if (timerFallbackTimeoutRef.current) {
+        clearTimeout(timerFallbackTimeoutRef.current);
+        timerFallbackTimeoutRef.current = null;
+      }
+      return;
+    }
+    timerFallbackTimeoutRef.current = setTimeout(() => {
+      timerFallbackTimeoutRef.current = null;
+      setBothUsersJoined((prev) => {
+        if (prev) return prev;
+        console.log("[VideoCallUI] Timer fallback: setting bothUsersJoined=true so countdown can run (TIMER_STARTED may have been missed)");
+        return true;
+      });
+      setDisplayMsg({ show: false, msg: "" });
+    }, 6000);
+    return () => {
+      if (timerFallbackTimeoutRef.current) {
+        clearTimeout(timerFallbackTimeoutRef.current);
+        timerFallbackTimeoutRef.current = null;
+      }
+    };
+  }, [bothUsersJoined, id, sessionEndTime, localStream, socket?.connected]);
+
   // Track when both users joined (for 15s buffer before timer starts)
   useEffect(() => {
     if (bothUsersJoined) {
