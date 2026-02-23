@@ -1837,7 +1837,7 @@ const VideoCallUI = ({
     const handleTimerStarted = (timerData) => {
       const { sessionId, startedAt, duration } = timerData || {};
 
-      if (sessionId !== id) return;
+      if (id == null || sessionId == null || String(sessionId) !== String(id)) return;
 
       console.log("[VideoCallUI] Received TIMER_STARTED event", {
         sessionId,

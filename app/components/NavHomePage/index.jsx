@@ -182,12 +182,14 @@ const NavHomePage = () => {
     socket.on(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
     socket.on(EVENTS.INSTANT_LESSON.ACCEPT, handleBookingUpdate);
     socket.on(EVENTS.BOOKING.CREATED, handleBookingUpdate);
+    socket.on(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
 
     return () => {
       if (socket) {
         socket.off(EVENTS.PUSH_NOTIFICATIONS.ON_RECEIVE, handleNotification);
         socket.off(EVENTS.INSTANT_LESSON.ACCEPT, handleBookingUpdate);
         socket.off(EVENTS.BOOKING.CREATED, handleBookingUpdate);
+        socket.off(EVENTS.BOOKING.STATUS_UPDATED, handleBookingUpdate);
       }
     };
   }, [socket, dispatch]);
