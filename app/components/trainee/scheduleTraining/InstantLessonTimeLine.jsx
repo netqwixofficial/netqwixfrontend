@@ -381,15 +381,19 @@ const InstantLessonTimeLine = ({
                       lessonType: `Instant Lesson - ${duration} min`,
                     });
                   }
+                  const requestData = { coachId, lessonId: String(bookingId), duration, expiresAt };
                   initiateTraineeFlow({
                     lessonId: String(bookingId),
                     coachId,
                     traineeInfo: userInfo || {},
                     duration,
-                    requestData: {},
+                    requestData,
                   });
-                  toast.success("Instant lesson request sent. Trainer will see it in upcoming lessons.");
-                  onClose(false);
+                  toast.success("Instant lesson request sent. Select your clips below.");
+                  // Close booking modal after a tick so trainee flow state is committed and clip-selection modal can show
+                  setTimeout(() => {
+                    onClose(false);
+                  }, 0);
                   setIsSubmittingInstant(false);
                   return;
                 }
