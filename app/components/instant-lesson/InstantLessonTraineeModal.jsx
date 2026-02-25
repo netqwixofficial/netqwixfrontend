@@ -34,10 +34,8 @@ const InstantLessonTraineeModal = () => {
   const [isSelectClipsOpen, setIsSelectClipsOpen] = useState(false);
   const [isLoadingClips, setIsLoadingClips] = useState(false);
 
-  // Only show for trainees
-  if (!isTraineeFlow || accountType !== AccountType.TRAINEE) {
-    return null;
-  }
+  const shouldRender =
+    isTraineeFlow && accountType === AccountType.TRAINEE;
 
   // Persist state to localStorage
   useEffect(() => {
@@ -217,6 +215,11 @@ const InstantLessonTraineeModal = () => {
         return "";
     }
   };
+
+  // Only render modal UI for trainees in the instant lesson flow.
+  if (!shouldRender) {
+    return null;
+  }
 
   return (
     <>
