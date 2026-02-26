@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext, useCallback } from "react";
 import { Modal, ModalBody, ModalFooter, Button, ModalHeader } from "reactstrap";
 import { useAppDispatch, useAppSelector } from "../../store";
 import { instantLessonState, instantLessonAction, INSTANT_LESSON_STEPS } from "./instantLesson.slice";
+import { addTraineeClipInBookedSessionAsync } from "../common/common.slice";
 import { AccountType } from "../../common/constants";
 import { SocketContext } from "../socket/SocketProvider";
 import { EVENTS } from "../../../helpers/events";
@@ -137,7 +138,7 @@ const InstantLessonTraineeModal = () => {
     setIsSelectClipsOpen(false);
   };
 
-  const handleJoinLesson = useCallback(() => {
+  const handleJoinLesson = useCallback(async () => {
     if (!canJoin) {
       toast.warning("Please complete video selection and wait for coach acceptance.");
       return;
@@ -148,38 +149,55 @@ const InstantLessonTraineeModal = () => {
       return;
     }
 
-    // Clear localStorage before navigating
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    try {
+      // Same model as scheduled sessions: save selected clips to booking before joining
+      if (selectedVideos?.length > 0) {
+        await dispatch(
+          addTraineeClipInBookedSessionAsync({
+            id: lessonId,
+            trainee_clip: selectedVideos.map((v) => v._id),
+          })
+        ).unwrap();
+      }
 
-    // Navigate to meeting room
-    navigateToMeeting(lessonId);
-    
-    // Clear trainee flow state
-    dispatch(instantLessonAction.clearTraineeFlow());
-  }, [canJoin, lessonId, dispatch]);
+      // Notify coach that trainee has selected clips and is joining (so coach popup can show "Join Lesson")
+      if (socket && lessonId && coachId) {
+        socket.emit(EVENTS.INSTANT_LESSON.CLIPS_SELECTED, {
+          lessonId,
+          coachId,
+          traineeId: userInfo?._id,
+        });
+      }
+
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+
+      navigateToMeeting(lessonId);
+      dispatch(instantLessonAction.clearTraineeFlow());
+    } catch (err) {
+      console.error("[InstantLesson] Failed to save clips before join:", err);
+      toast.error("Could not save your video selection. Please try again.");
+    }
+  }, [canJoin, lessonId, dispatch, selectedVideos, socket, coachId, userInfo]);
 
   const handleCancel = useCallback(() => {
-    // Emit cancel event if needed
-    if (socket && lessonId) {
-      socket.emit(EVENTS.INSTANT_LESSON.DECLINE, {
+    // Notify coach that trainee cancelled so coach popup can close
+    if (socket && lessonId && coachId) {
+      socket.emit(EVENTS.INSTANT_LESSON.TRAINEE_CANCELLED, {
         lessonId,
         coachId,
         traineeId: userInfo?._id,
-        requestData,
       });
     }
-    
-    // Clear localStorage
+
     if (typeof window !== "undefined") {
       localStorage.removeItem(STORAGE_KEY);
     }
-    
-    // Clear trainee flow state
+
     dispatch(instantLessonAction.clearTraineeFlow());
     toast.info("Instant lesson request cancelled.");
-  }, [socket, lessonId, coachId, userInfo, requestData, dispatch]);
+  }, [socket, lessonId, coachId, userInfo, dispatch]);
 
   const getStepTitle = () => {
     switch (currentStep) {

@@ -7,15 +7,13 @@ import { Utils } from "../../../utils/utils";
 import { SocketContext } from "../socket/SocketProvider";
 import { EVENTS } from "../../../helpers/events";
 import { toast } from "react-toastify";
-import { useRouter } from "next/router";
-import CenterMessage from "../common/CenterMessage";
+import { navigateToMeeting } from "../../../utils/utils";
 import "./InstantLessonModal.scss";
 
 const InstantLessonModal = () => {
   const dispatch = useAppDispatch();
-  const router = useRouter();
   const socket = useContext(SocketContext);
-  const { isIncoming, uiState, lessonId, expiresAt, traineeInfo, lessonType, duration, requestData, errorMessage } = useAppSelector(instantLessonState);
+  const { isIncoming, uiState, lessonId, expiresAt, traineeInfo, lessonType, duration, requestData, errorMessage, traineeClipsReady } = useAppSelector(instantLessonState);
   const { accountType } = useAppSelector((state) => state.auth);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isPulsing, setIsPulsing] = useState(false);
@@ -353,12 +351,21 @@ const InstantLessonModal = () => {
                   {uiState === UI_STATES.ACCEPTING && (
                     <div className="waiting-message">
                       <div className="waiting-message__content">
-                        <div className="waiting-spinner">
-                          <div className="spinner-dot"></div>
-                          <div className="spinner-dot"></div>
-                          <div className="spinner-dot"></div>
-                        </div>
-                        <p>Waiting for trainee to complete video selection...</p>
+                        {traineeClipsReady ? (
+                          <>
+                            <i className="fa fa-check-circle" style={{ fontSize: "2rem", color: "#28a745", marginBottom: "8px" }} aria-hidden="true"></i>
+                            <p>Trainee has selected their videos. Join lesson when ready.</p>
+                          </>
+                        ) : (
+                          <>
+                            <div className="waiting-spinner">
+                              <div className="spinner-dot"></div>
+                              <div className="spinner-dot"></div>
+                              <div className="spinner-dot"></div>
+                            </div>
+                            <p>Waiting for trainee to finish selecting videos…</p>
+                          </>
+                        )}
                       </div>
                     </div>
                   )}
@@ -374,63 +381,96 @@ const InstantLessonModal = () => {
             </div>
           </ModalBody>
 
-          <ModalFooter className="instant-lesson-footer" style={{ display: "flex", justifyContent: "center", gap: "1rem" }}>
-            <Button
-              color="danger"
-              onClick={handleDeclineClick}
-              className="decline-btn"
-              disabled={buttonsDisabled}
-              aria-label="Decline lesson request"
-              style={{
-                backgroundColor: '#dc3545',
-                borderColor: '#dc3545',
-                color: '#ffffff',
-                minHeight: '44px',
-                padding: '0.75rem 1.5rem',
-                fontWeight: '600',
-                flex: '1',
-                maxWidth: '200px'
-              }}
-            >
-              {uiState === UI_STATES.DECLINING ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Declining...
-                </>
-              ) : (
-                <>
-                  <i className="fa fa-times" aria-hidden="true"></i> Decline
-                </>
-              )}
-            </Button>
-            <Button
-              color="primary"
-              onClick={handleAccept}
-              className="accept-btn"
-              disabled={buttonsDisabled}
-              aria-label="Accept lesson request"
-              style={{
-                backgroundColor: '#007bff',
-                borderColor: '#007bff',
-                color: '#ffffff',
-                minHeight: '44px',
-                padding: '0.75rem 1.5rem',
-                fontWeight: '600',
-                flex: '1',
-                maxWidth: '200px'
-              }}
-            >
-              {uiState === UI_STATES.ACCEPTING ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  {getAcceptButtonText()}
-                </>
-              ) : (
-                <>
+          <ModalFooter className="instant-lesson-footer" style={{ display: "flex", justifyContent: "center", gap: "1rem", flexWrap: "wrap" }}>
+            {uiState !== UI_STATES.ACCEPTING && (
+              <>
+                <Button
+                  color="danger"
+                  onClick={handleDeclineClick}
+                  className="decline-btn"
+                  disabled={buttonsDisabled}
+                  aria-label="Decline lesson request"
+                  style={{
+                    backgroundColor: '#dc3545',
+                    borderColor: '#dc3545',
+                    color: '#ffffff',
+                    minHeight: '44px',
+                    padding: '0.75rem 1.5rem',
+                    fontWeight: '600',
+                    flex: '1',
+                    maxWidth: '200px'
+                  }}
+                >
+                  {uiState === UI_STATES.DECLINING ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Declining...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa fa-times" aria-hidden="true"></i> Decline
+                    </>
+                  )}
+                </Button>
+                <Button
+                  color="primary"
+                  onClick={handleAccept}
+                  className="accept-btn"
+                  disabled={buttonsDisabled}
+                  aria-label="Accept lesson request"
+                  style={{
+                    backgroundColor: '#007bff',
+                    borderColor: '#007bff',
+                    color: '#ffffff',
+                    minHeight: '44px',
+                    padding: '0.75rem 1.5rem',
+                    fontWeight: '600',
+                    flex: '1',
+                    maxWidth: '200px'
+                  }}
+                >
                   <i className="fa fa-check" aria-hidden="true"></i> {getAcceptButtonText()}
+                </Button>
               </>
-              )}
-            </Button>
+            )}
+            {uiState === UI_STATES.ACCEPTING && (
+              <>
+                <Button
+                  color="secondary"
+                  onClick={() => dispatch(instantLessonAction.clearIncomingRequest())}
+                  style={{
+                    backgroundColor: '#6c757d',
+                    borderColor: '#6c757d',
+                    color: '#ffffff',
+                    minHeight: '44px',
+                    padding: '0.75rem 1.5rem',
+                    fontWeight: '600',
+                  }}
+                >
+                  Close
+                </Button>
+                <Button
+                  color="primary"
+                  onClick={() => {
+                    if (lessonId) {
+                      dispatch(instantLessonAction.clearIncomingRequest());
+                      navigateToMeeting(lessonId);
+                    }
+                  }}
+                  aria-label="Join lesson"
+                  style={{
+                    backgroundColor: '#28a745',
+                    borderColor: '#28a745',
+                    color: '#ffffff',
+                    minHeight: '44px',
+                    padding: '0.75rem 1.5rem',
+                    fontWeight: '600',
+                  }}
+                >
+                  <i className="fa fa-video-camera" aria-hidden="true"></i> Join Lesson
+                </Button>
+              </>
+            )}
           </ModalFooter>
         </Modal>
 

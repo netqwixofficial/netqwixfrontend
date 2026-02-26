@@ -354,7 +354,11 @@ const InstantLessonTimeLine = ({
                   }
                   setIsSubmittingInstant(true);
                   const res = await dispatch(
-                    bookInstantMeetingAsync({ trainer_id: trainerId })
+                    bookInstantMeetingAsync({
+                      trainer_id: trainerId,
+                      duration: selectedLesson?.duration || 30,
+                      coupon_code: couponCode?.trim() || undefined,
+                    })
                   ).unwrap();
                   const bookingId =
                     res?.bookingId ||

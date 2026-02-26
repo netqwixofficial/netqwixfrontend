@@ -6,6 +6,7 @@ import { instantLessonAction } from "./instantLesson.slice";
 import { EVENTS } from "../../../helpers/events";
 import { AccountType } from "../../common/constants";
 import { authState } from "../auth/auth.slice";
+import { toast } from "react-toastify";
 
 /**
  * Global hook to listen for instant lesson requests via socket
@@ -67,23 +68,35 @@ export const useInstantLessonSocket = () => {
       };
 
       const handleInstantLessonExpire = (payload) => {
-        // Handle expiration confirmation from server if needed
         console.log("Instant lesson expire confirmed:", payload);
-        // The modal will handle its own state, but we can listen for server confirmations here
       };
 
-      // Register socket event listeners for trainer
+      const handleClipsSelected = (payload) => {
+        if (payload?.lessonId && payload.coachId === userInfo?._id) {
+          dispatch(instantLessonAction.setTraineeClipsReady());
+        }
+      };
+
+      const handleTraineeCancelled = (payload) => {
+        if (payload?.lessonId && payload.coachId === userInfo?._id) {
+          dispatch(instantLessonAction.clearIncomingRequest());
+        }
+      };
+
       socket.on(EVENTS.INSTANT_LESSON.REQUEST, handleInstantLessonRequest);
       socket.on(EVENTS.INSTANT_LESSON.ACCEPT, handleInstantLessonAccept);
       socket.on(EVENTS.INSTANT_LESSON.DECLINE, handleInstantLessonDecline);
       socket.on(EVENTS.INSTANT_LESSON.EXPIRE, handleInstantLessonExpire);
+      socket.on(EVENTS.INSTANT_LESSON.CLIPS_SELECTED, handleClipsSelected);
+      socket.on(EVENTS.INSTANT_LESSON.TRAINEE_CANCELLED, handleTraineeCancelled);
 
-      // Cleanup on unmount
       return () => {
         socket.off(EVENTS.INSTANT_LESSON.REQUEST, handleInstantLessonRequest);
         socket.off(EVENTS.INSTANT_LESSON.ACCEPT, handleInstantLessonAccept);
         socket.off(EVENTS.INSTANT_LESSON.DECLINE, handleInstantLessonDecline);
         socket.off(EVENTS.INSTANT_LESSON.EXPIRE, handleInstantLessonExpire);
+        socket.off(EVENTS.INSTANT_LESSON.CLIPS_SELECTED, handleClipsSelected);
+        socket.off(EVENTS.INSTANT_LESSON.TRAINEE_CANCELLED, handleTraineeCancelled);
       };
     }
 
@@ -113,18 +126,24 @@ export const useInstantLessonSocket = () => {
 
       const handleCoachDecline = (payload) => {
         console.log("Coach declined instant lesson:", payload);
-        // Clear trainee flow
         dispatch(instantLessonAction.clearTraineeFlow());
       };
 
-      // Register socket event listeners for trainee
+      const handleExpire = (payload) => {
+        if (payload?.lessonId && store.getState().instantLesson.lessonId === payload.lessonId) {
+          dispatch(instantLessonAction.clearTraineeFlow());
+          toast.info("Coach did not respond in time. No lesson was booked.");
+        }
+      };
+
       socket.on(EVENTS.INSTANT_LESSON.ACCEPT, handleCoachAccept);
       socket.on(EVENTS.INSTANT_LESSON.DECLINE, handleCoachDecline);
+      socket.on(EVENTS.INSTANT_LESSON.EXPIRE, handleExpire);
 
-      // Cleanup on unmount
       return () => {
         socket.off(EVENTS.INSTANT_LESSON.ACCEPT, handleCoachAccept);
         socket.off(EVENTS.INSTANT_LESSON.DECLINE, handleCoachDecline);
+        socket.off(EVENTS.INSTANT_LESSON.EXPIRE, handleExpire);
       };
     }
   }, [socket, accountType, userInfo, dispatch]);
