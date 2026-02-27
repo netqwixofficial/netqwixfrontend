@@ -5,11 +5,11 @@
   width: 100vw;
   height: 100vh;
   z-index: 9999;
-  background-color: rgba(0, 0, 0, 0.45);
+  background-color: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
-  /* No backdrop-filter: keeps page readable and modal clearly visible */
+  backdrop-filter: blur(4px);
 }
 
 .instant-lesson-modal {
@@ -17,20 +17,13 @@
   width: 90%;
   margin: 0 auto;
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   animation: slideIn 0.3s ease-out;
-  /* Solid background so modal is always clearly visible (no blur bleed) */
-  background: #fff;
 
   .modal-content {
     border: none;
     border-radius: 12px;
     overflow: hidden;
-    background: transparent;
-  }
-
-  .modal-dialog {
-    margin: 0.5rem;
   }
 }
 
@@ -75,7 +68,7 @@
 }
 
 .error-message {
-  background: rgba(220, 53, 69, 0.3);
+  background: rgba(220, 53, 69, 0.25);
   border: 1px solid rgba(220, 53, 69, 0.6);
   border-radius: 8px;
   padding: 1rem 1.25rem;
@@ -87,6 +80,7 @@
   justify-content: center;
   gap: 0.5rem;
   font-weight: 500;
+  backdrop-filter: blur(10px);
   box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2);
 
   i {
@@ -97,8 +91,9 @@
 .expired-message {
   text-align: center;
   padding: 1.5rem;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 8px;
+  backdrop-filter: blur(10px);
 
   p {
     margin: 0;
@@ -164,9 +159,10 @@
     gap: 1.25rem;
     margin-bottom: 1.5rem;
     padding: 1.25rem;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     transition: all 0.3s ease;
 
     &:hover {
@@ -236,9 +232,10 @@
   .countdown-timer {
     text-align: center;
     padding: 1.75rem;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.25);
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     margin-bottom: 1rem;
 
     .timer-label {
@@ -270,7 +267,7 @@
       &.timer-warning {
         color: #ff6b6b;
         animation: blink 1s infinite;
-        text-shadow: 0 0 10px rgba(241, 0, 0, 0.5);
+        text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
       }
     }
   }
@@ -278,9 +275,10 @@
   .waiting-message {
     margin-top: 1rem;
     padding: 1.25rem;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     text-align: center;
 
     &__content {
@@ -322,12 +320,13 @@
     }
   }
 
-    .expired-message {
+  .expired-message {
     text-align: center;
     padding: 2rem 1.5rem;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.25);
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     flex-direction: column;
     align-items: center;

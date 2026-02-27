@@ -3,7 +3,7 @@
  */
 
 import { instantLessonAction } from "./instantLesson.slice";
-import store from "../../store";
+import { store } from "../../store";
 
 /**
  * Initiate the trainee flow when an instant lesson request is sent
