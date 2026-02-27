@@ -29,7 +29,6 @@ const initialState = {
   requestData: null,
   errorMessage: null,
   isCountdownPaused: false,
-  traineeClipsReady: false, // Coach: trainee has selected clips and is ready to join
   // Step-based flow state (for trainee)
   currentStep: null,
   selectedVideos: [],
@@ -54,7 +53,6 @@ export const instantLessonSlice = createSlice({
       state.requestData = action.payload.requestData;
       state.errorMessage = null;
       state.isCountdownPaused = false;
-      state.traineeClipsReady = false;
     },
     clearIncomingRequest: (state) => {
       state.isIncoming = false;
@@ -68,10 +66,6 @@ export const instantLessonSlice = createSlice({
       state.requestData = null;
       state.errorMessage = null;
       state.isCountdownPaused = false;
-      state.traineeClipsReady = false;
-    },
-    setTraineeClipsReady: (state) => {
-      state.traineeClipsReady = true;
     },
     setAccepting: (state) => {
       state.uiState = UI_STATES.ACCEPTING;
