@@ -8,7 +8,7 @@ import { EVENTS } from "../../../helpers/events";
 import { toast } from "react-toastify";
 import { navigateToMeeting } from "../../../utils/utils";
 import SelectClips from "../bookings/start/SelectClips";
-import { traineeClips } from "../../../containers/rightSidebar/fileSection.api";
+import { myClips } from "../../../containers/rightSidebar/fileSection.api";
 import "./InstantLessonModal.scss";
 
 const STORAGE_KEY = "instantLessonTraineeFlow";
@@ -99,15 +99,11 @@ const InstantLessonTraineeModal = () => {
   const loadTraineeClips = async () => {
     try {
       setIsLoadingClips(true);
-      const response = await traineeClips(userInfo?._id);
+      // Reuse the same API that powers other clip selection flows
+      // This returns clips grouped by category in the shape SelectClips expects.
+      const response = await myClips({});
       if (response?.data) {
-        // Transform clips data to match SelectClips component format
-        const formattedClips = Object.keys(response.data).map((categoryId) => ({
-          _id: categoryId,
-          show: false,
-          clips: response.data[categoryId] || [],
-        }));
-        setClips(formattedClips);
+        setClips(response.data);
       }
     } catch (error) {
       console.error("Error loading trainee clips:", error);
