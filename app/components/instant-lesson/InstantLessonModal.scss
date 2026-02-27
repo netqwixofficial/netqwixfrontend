@@ -34,6 +34,19 @@
   }
 }
 
+.instant-lesson-modal-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+}
+
 @keyframes slideIn {
   from {
     transform: translateY(-50px);
@@ -457,6 +470,32 @@
     &:hover:not(:disabled) {
       background-color: #218838;
       border-color: #1e7e34;
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .instant-lesson-modal {
+    max-width: 100%;
+    width: 100%;
+    margin: 0 0.5rem;
+  }
+
+  .instant-lesson-modal-body {
+    padding: 1.25rem;
+  }
+
+  .instant-lesson-content .trainee-info {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .instant-lesson-footer {
+    flex-direction: column;
+    align-items: stretch;
+
+    .btn {
+      width: 100%;
     }
   }
 }

@@ -288,6 +288,15 @@ const InstantLessonModal = () => {
           aria-labelledby="instant-lesson-title"
           aria-modal="true"
         >
+          {/* Allow coach to dismiss the popup without accepting/declining */}
+          <button
+            type="button"
+            className="instant-lesson-modal-close"
+            aria-label="Close instant lesson request"
+            onClick={() => dispatch(instantLessonAction.clearIncomingRequest())}
+          >
+            ×
+          </button>
           <ModalBody className={`instant-lesson-modal-body ${isPulsing ? "pulse-animation" : ""} ${isExpired ? "expired-state" : ""}`}>
             <div className="instant-lesson-header">
               <div className="alert-icon">
