@@ -164,7 +164,7 @@ const InstantLessonModal = () => {
     }
 
     try {
-      // Immediately update UI state - but don't redirect
+      // Optimistically mark as accepting so we don't double‑click
       dispatch(instantLessonAction.setAccepting());
 
       // Emit accept event via socket
@@ -177,14 +177,16 @@ const InstantLessonModal = () => {
         });
       }
 
-      // Show success message but don't redirect
-      toast.success("Lesson accepted! Waiting for trainee to complete video selection...");
-      
-      // Keep modal open - don't close or redirect
-      // The modal will show waiting state until trainee joins
+      // Inform trainer and close the popup
+      toast.success("Instant lesson confirmed.");
+      dispatch(instantLessonAction.clearIncomingRequest());
     } catch (error) {
       console.error("Error accepting lesson:", error);
-      dispatch(instantLessonAction.setError({ message: "Failed to accept lesson request" }));
+      dispatch(
+        instantLessonAction.setError({
+          message: "Failed to accept lesson request",
+        })
+      );
       toast.error("Failed to accept lesson request. Please try again.");
     }
   }, [uiState, dispatch, socket, lessonId, requestData, traineeInfo]);
