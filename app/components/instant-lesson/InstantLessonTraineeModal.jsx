@@ -9,7 +9,7 @@ import { EVENTS } from "../../../helpers/events";
 import { toast } from "react-toastify";
 import { navigateToMeeting } from "../../../utils/utils";
 import SelectClips from "../bookings/start/SelectClips";
-import { traineeClips } from "../../../containers/rightSidebar/fileSection.api";
+import { myClips } from "../../../containers/rightSidebar/fileSection.api";
 import "./InstantLessonModal.scss";
 
 const STORAGE_KEY = "instantLessonTraineeFlow";
@@ -103,16 +103,17 @@ const InstantLessonTraineeModal = () => {
   const loadTraineeClips = async () => {
     try {
       setIsLoadingClips(true);
-      const response = await traineeClips(userInfo?._id);
-      if (response?.data) {
-        // Transform clips data to match SelectClips component format
-        const formattedClips = Object.keys(response.data).map((categoryId) => ({
-          _id: categoryId,
-          show: false,
-          clips: response.data[categoryId] || [],
-        }));
-        setClips(formattedClips);
-      }
+      const response = await myClips({});
+      const groups = response?.data || [];
+
+      // Transform clips data (array of { _id: categoryId, clips: [...] }) to match SelectClips format
+      const formattedClips = groups.map((group) => ({
+        _id: group._id,
+        show: false,
+        clips: group.clips || [],
+      }));
+
+      setClips(formattedClips);
     } catch (error) {
       console.error("Error loading trainee clips:", error);
       toast.error("Failed to load videos. Please try again.");
