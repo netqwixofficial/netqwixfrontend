@@ -7,7 +7,7 @@ import { SocketContext } from "../socket/SocketProvider";
 import { EVENTS } from "../../../helpers/events";
 import { toast } from "react-toastify";
 import { navigateToMeeting } from "../../../utils/utils";
-import SelectClips from "../bookings/start/SelectClips";
+import AddClip from "../bookings/start/AddClip";
 import { myClips } from "../../../containers/rightSidebar/fileSection.api";
 import "./InstantLessonModal.scss";
 
@@ -394,14 +394,13 @@ const InstantLessonTraineeModal = () => {
         </Modal>
       </div>
 
-      {/* Video Selection Modal */}
-      <SelectClips
+      {/* Video Selection Modal using shared AddClip component */}
+      <AddClip
         isOpen={isSelectClipsOpen}
         onClose={handleCloseVideoSelection}
+        trainer={null}
         selectedClips={selectedVideos}
         clips={clips}
-        isTrainer={false}
-        userInfo={userInfo}
         setSelectedClips={(newClips) => {
           // Enforce max 2 videos limit
           if (newClips.length > 2) {
@@ -410,8 +409,8 @@ const InstantLessonTraineeModal = () => {
           }
           handleVideoSelection(newClips);
         }}
-        onShare={() => {
-          const currentSelected = selectedVideos.length;
+        shareFunc={(sharedClips) => {
+          const currentSelected = sharedClips?.length || 0;
           if (currentSelected > 0) {
             handleCloseVideoSelection();
             // Auto-advance step if coach already accepted and videos are selected
