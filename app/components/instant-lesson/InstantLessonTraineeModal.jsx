@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext, useCallback } from "react";
 import { Modal, ModalBody, ModalFooter, Button, ModalHeader } from "reactstrap";
 import { useAppDispatch, useAppSelector } from "../../store";
 import { instantLessonState, instantLessonAction, INSTANT_LESSON_STEPS } from "./instantLesson.slice";
+import { addTraineeClipInBookedSessionAsync } from "../common/common.slice";
 import { AccountType } from "../../common/constants";
 import { SocketContext } from "../socket/SocketProvider";
 import { EVENTS } from "../../../helpers/events";
@@ -33,6 +34,13 @@ const InstantLessonTraineeModal = () => {
   const [clips, setClips] = useState([]);
   const [isSelectClipsOpen, setIsSelectClipsOpen] = useState(false);
   const [isLoadingClips, setIsLoadingClips] = useState(false);
+
+  // Automatically open clip selection modal when trainee instant lesson flow starts
+  useEffect(() => {
+    if (isTraineeFlow && accountType === AccountType.TRAINEE) {
+      setIsSelectClipsOpen(true);
+    }
+  }, [isTraineeFlow, accountType]);
 
   // Persist state to localStorage
   useEffect(() => {
@@ -412,6 +420,17 @@ const InstantLessonTraineeModal = () => {
         shareFunc={(sharedClips) => {
           const currentSelected = sharedClips?.length || 0;
           if (currentSelected > 0) {
+            // Persist selected clips to the current instant lesson booking
+            if (lessonId) {
+              const payload = {
+                id: lessonId,
+                trainee_clip: sharedClips.map((clip) => clip?._id),
+              };
+              dispatch(addTraineeClipInBookedSessionAsync(payload));
+            } else {
+              console.error("Missing lessonId for addTraineeClipInBookedSession");
+            }
+
             handleCloseVideoSelection();
             // Auto-advance step if coach already accepted and videos are selected
             if (coachAccepted && currentSelected > 0 && currentSelected <= 2) {
