@@ -258,235 +258,78 @@ const InstantLessonModal = () => {
 
   // Get button text based on state
   const getAcceptButtonText = () => {
-    switch (uiState) {
-      case UI_STATES.ACCEPTING:
-        return "Connecting…";
-      case UI_STATES.EXPIRED:
-        return "Expired";
-      case UI_STATES.ERROR:
-        return "Error";
-      default:
-        return "Accept";
-    }
+    if (uiState === UI_STATES.ACCEPTING) return "Confirming…";
+    if (uiState === UI_STATES.EXPIRED) return "Expired";
+    if (uiState === UI_STATES.ERROR) return "Error";
+    return "Confirm";
   };
 
   return (
     <>
-      {/* Hidden audio element for notification sound */}
       <audio ref={audioRef} preload="auto">
         <source src="/assets/sounds/notification.wav" type="audio/wav" />
-        {/* Fallback: Use Web Audio API to generate a simple beep if audio file doesn't exist */}
       </audio>
 
-      <div className="instant-lesson-modal-overlay">
-        <Modal
-          isOpen={isIncoming}
-          toggle={() => {}} // Prevent closing by clicking outside
-          centered
-          className="instant-lesson-modal"
-          backdrop="static"
-          keyboard={false}
-          role="dialog"
-          aria-labelledby="instant-lesson-title"
-          aria-modal="true"
+      <Modal
+        isOpen={isIncoming}
+        toggle={() => dispatch(instantLessonAction.clearIncomingRequest())}
+        centered
+        size="sm"
+      >
+        <ModalHeader
+          toggle={() => dispatch(instantLessonAction.clearIncomingRequest())}
         >
-          <ModalBody className={`instant-lesson-modal-body ${isPulsing ? "pulse-animation" : ""} ${isExpired ? "expired-state" : ""}`}>
-            <div className="instant-lesson-header">
-              <div className="alert-icon">
-                {isExpired ? (
-                  <i className="fa fa-clock-o" aria-hidden="true"></i>
-                ) : isError ? (
-                  <i className="fa fa-exclamation-triangle" aria-hidden="true"></i>
-                ) : (
-                  <i className="fa fa-bell" aria-hidden="true"></i>
-                )}
-              </div>
-              <h3 id="instant-lesson-title">
-                {isExpired
-                  ? "Request Expired"
-                  : isError
-                  ? "Error"
-                  : "Instant Lesson Request"}
-              </h3>
-            </div>
-
-            {isError && (
-              <div className="error-message" role="alert">
-                <i className="fa fa-exclamation-triangle" aria-hidden="true" style={{ marginRight: "8px" }}></i>
-                {errorMessage || "An error occurred. Please try again."}
-              </div>
-            )}
-
-            <div className="instant-lesson-content">
-              <div className="trainee-info">
-                <div className="trainee-avatar-wrapper">
-                  <img
-                    src={profilePicture}
-                    alt={traineeName}
-                    className="trainee-avatar"
-                    onError={(e) => {
-                      e.target.src = "/assets/images/demoUser.png";
-                    }}
-                  />
-                  <div className="avatar-ring"></div>
-                </div>
-                <div className="trainee-details">
-                  <h4>{traineeName}</h4>
-                  <p className="lesson-type">
-                    <i className="fa fa-clock-o" aria-hidden="true"></i>
-                    <span>{lessonTypeLabel}</span>
-                  </p>
-                </div>
-              </div>
-
-              {!isExpired && (
-                <>
-                  <div className="countdown-timer">
-                    <div className="timer-label">
-                      <i className="fa fa-hourglass-half" aria-hidden="true"></i>
-                      Time Remaining
-                    </div>
-                    <div className={`timer-value ${timeRemaining <= 10 ? "timer-warning" : ""}`}>
-                      {formatTime(timeRemaining)}
-                    </div>
-                  </div>
-                  {uiState === UI_STATES.ACCEPTING && (
-                    <div className="waiting-message">
-                      <div className="waiting-message__content">
-                        <div className="waiting-spinner">
-                          <div className="spinner-dot"></div>
-                          <div className="spinner-dot"></div>
-                          <div className="spinner-dot"></div>
-                        </div>
-                        <p>Waiting for trainee to complete video selection...</p>
-                      </div>
-                    </div>
-                  )}
-                </>
+          Instant Lesson Request
+        </ModalHeader>
+        <ModalBody>
+          {isError ? (
+            <p style={{ marginBottom: 0, color: "#dc3545" }}>
+              {errorMessage || "An error occurred. Please try again."}
+            </p>
+          ) : isExpired ? (
+            <p style={{ marginBottom: 0 }}>
+              This instant lesson request has expired.
+            </p>
+          ) : (
+            <>
+              <p style={{ marginBottom: 8 }}>
+                <strong>{traineeName}</strong> has requested an instant lesson{" "}
+                {lessonTypeLabel ? `(${lessonTypeLabel})` : ""}.
+              </p>
+              {typeof timeRemaining === "number" && (
+                <p
+                  style={{
+                    marginBottom: 0,
+                    fontSize: 12,
+                    color: "#6c757d",
+                  }}
+                >
+                  Time remaining to respond:{" "}
+                  <strong>{formatTime(timeRemaining)}</strong>
+                </p>
               )}
-
-              {isExpired && (
-                <div className="expired-message">
-                  <i className="fa fa-clock-o" aria-hidden="true"></i>
-                  <p>The lesson request has expired.</p>
-                </div>
-              )}
-            </div>
-          </ModalBody>
-
-          <ModalFooter className="instant-lesson-footer" style={{ display: "flex", justifyContent: "center", gap: "1rem" }}>
+            </>
+          )}
+        </ModalBody>
+        {!isExpired && !isError && (
+          <ModalFooter>
             <Button
-              color="danger"
-              onClick={handleDeclineClick}
-              className="decline-btn"
+              color="secondary"
+              onClick={handleDeclineConfirm}
               disabled={buttonsDisabled}
-              aria-label="Decline lesson request"
-              style={{
-                backgroundColor: '#dc3545',
-                borderColor: '#dc3545',
-                color: '#ffffff',
-                minHeight: '44px',
-                padding: '0.75rem 1.5rem',
-                fontWeight: '600',
-                flex: '1',
-                maxWidth: '200px'
-              }}
             >
-              {uiState === UI_STATES.DECLINING ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Declining...
-                </>
-              ) : (
-                <>
-                  <i className="fa fa-times" aria-hidden="true"></i> Decline
-                </>
-              )}
+              Cancel
             </Button>
             <Button
               color="primary"
               onClick={handleAccept}
-              className="accept-btn"
               disabled={buttonsDisabled}
-              aria-label="Accept lesson request"
-              style={{
-                backgroundColor: '#007bff',
-                borderColor: '#007bff',
-                color: '#ffffff',
-                minHeight: '44px',
-                padding: '0.75rem 1.5rem',
-                fontWeight: '600',
-                flex: '1',
-                maxWidth: '200px'
-              }}
             >
-              {uiState === UI_STATES.ACCEPTING ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  {getAcceptButtonText()}
-                </>
-              ) : (
-                <>
-                  <i className="fa fa-check" aria-hidden="true"></i> {getAcceptButtonText()}
-              </>
-              )}
+              {getAcceptButtonText()}
             </Button>
           </ModalFooter>
-        </Modal>
-
-        {/* Decline Confirmation Dialog */}
-        {showDeclineConfirm && (
-          <Modal
-            isOpen={showDeclineConfirm}
-            toggle={handleDeclineCancel}
-            centered
-            className="decline-confirm-modal"
-            backdrop="static"
-          >
-            <ModalHeader toggle={handleDeclineCancel} style={{ textAlign: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                <i className="fa fa-exclamation-triangle" aria-hidden="true"></i>
-                <span>Confirm Decline</span>
-              </div>
-            </ModalHeader>
-            <ModalBody style={{ textAlign: "center", padding: "1.5rem" }}>
-              <p style={{ margin: 0, fontSize: "1rem", color: "#333", lineHeight: "1.6" }}>
-                Are you sure you want to decline this lesson request from <strong style={{ color: "#667eea" }}>{traineeName}</strong>?
-              </p>
-            </ModalBody>
-            <ModalFooter style={{ display: "flex", justifyContent: "center", gap: "1rem", padding: "1rem 1.5rem" }}>
-              <Button 
-                color="secondary" 
-                onClick={handleDeclineCancel}
-                style={{
-                  backgroundColor: '#6c757d',
-                  borderColor: '#6c757d',
-                  color: '#ffffff',
-                  minHeight: '44px',
-                  padding: '0.75rem 1.5rem',
-                  fontWeight: '600'
-                }}
-              >
-                Cancel
-              </Button>
-              <Button 
-                color="danger" 
-                onClick={handleDeclineConfirm}
-                style={{
-                  backgroundColor: '#dc3545',
-                  borderColor: '#dc3545',
-                  color: '#ffffff',
-                  minHeight: '44px',
-                  padding: '0.75rem 1.5rem',
-                  fontWeight: '600'
-                }}
-              >
-                Yes, Decline
-              </Button>
-            </ModalFooter>
-          </Modal>
         )}
-      </div>
+      </Modal>
     </>
   );
 };
