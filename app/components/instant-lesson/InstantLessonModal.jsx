@@ -177,8 +177,8 @@ const InstantLessonModal = () => {
         });
       }
 
-      // Inform trainer and close the popup
-      toast.success("Instant lesson confirmed.");
+      // Inform trainer: they must confirm first; only then can trainee join and trainer can start from Upcoming
+      toast.success("Instant lesson confirmed. Start the session from Upcoming when the trainee joins.");
       dispatch(instantLessonAction.clearIncomingRequest());
     } catch (error) {
       console.error("Error accepting lesson:", error);
@@ -281,7 +281,7 @@ const InstantLessonModal = () => {
         <ModalHeader
           toggle={() => dispatch(instantLessonAction.clearIncomingRequest())}
         >
-          Instant Lesson Request
+          Confirm Instant Lesson
         </ModalHeader>
         <ModalBody>
           {isError ? (
@@ -297,6 +297,9 @@ const InstantLessonModal = () => {
               <p style={{ marginBottom: 8 }}>
                 <strong>{traineeName}</strong> has requested an instant lesson{" "}
                 {lessonTypeLabel ? `(${lessonTypeLabel})` : ""}.
+              </p>
+              <p style={{ marginBottom: 8, fontSize: 13, color: "#495057" }}>
+                Confirm to accept. Once you confirm, the trainee can join and you can start the session from Upcoming.
               </p>
               {typeof timeRemaining === "number" && (
                 <p
@@ -320,7 +323,7 @@ const InstantLessonModal = () => {
               onClick={handleDeclineConfirm}
               disabled={buttonsDisabled}
             >
-              Cancel
+              Decline
             </Button>
             <Button
               color="primary"

@@ -222,20 +222,22 @@ const InstantLessonTraineeModal = () => {
     return null;
   }
 
+  // When clip selection is open, show only AddClip (no overlay) so the clips modal is not blurred
   return (
     <>
-      <div className="instant-lesson-modal-overlay">
-        <Modal
-          isOpen={isTraineeFlow}
-          toggle={() => {}} // Prevent closing by clicking outside
-          centered
-          className="instant-lesson-modal"
-          backdrop="static"
-          keyboard={false}
-          role="dialog"
-          aria-labelledby="instant-lesson-trainee-title"
-          aria-modal="true"
-        >
+      {!isSelectClipsOpen && (
+        <div className="instant-lesson-modal-overlay">
+          <Modal
+            isOpen={isTraineeFlow}
+            toggle={() => {}} // Prevent closing by clicking outside
+            centered
+            className="instant-lesson-modal"
+            backdrop="static"
+            keyboard={false}
+            role="dialog"
+            aria-labelledby="instant-lesson-trainee-title"
+            aria-modal="true"
+          >
           <ModalHeader id="instant-lesson-trainee-title">
             {getStepTitle()}
           </ModalHeader>
@@ -401,8 +403,9 @@ const InstantLessonTraineeModal = () => {
           </ModalFooter>
         </Modal>
       </div>
+      )}
 
-      {/* Video Selection Modal using shared AddClip component */}
+      {/* Video Selection Modal using shared AddClip component - shown without overlay so it is not blurred */}
       <AddClip
         isOpen={isSelectClipsOpen}
         onClose={handleCloseVideoSelection}
