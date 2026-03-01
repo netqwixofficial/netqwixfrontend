@@ -73,26 +73,13 @@ const TraineeRenderBooking = ({
   const isCompleted =
     has24HoursPassedSinceBooking || bookingInfo?.ratings?.trainee;
 
-    const currentTime = DateTime.now(); // Use UTC to avoid timezone mismatch
-
-    // Parse the start_time and end_time in UTC
-    const startTime = DateTime.fromISO(bookingInfo.start_time, { zone: 'utc' });
-    const endTime = DateTime.fromISO(bookingInfo.end_time, { zone: 'utc' });
-    
-    // Extract date and time components
-    const currentDate = currentTime.toFormat('yyyy-MM-dd');  // YYYY-MM-DD format
-    const currentTimeOnly = currentTime.toFormat('HH:mm');  // HH:mm format
-  
-    const startDate = startTime.toFormat('yyyy-MM-dd');
-    const startTimeOnly = startTime.toFormat('HH:mm');
-  
-    const endDate = endTime.toFormat('yyyy-MM-dd');
-    const endTimeOnly = endTime.toFormat('HH:mm');
-  
-    // Compare the current date and time (date + hour:minute) with start and end time
-    const isDateSame = currentDate === startDate && currentDate === endDate;
-  const isWithinTimeFrame = isDateSame && currentTimeOnly >= startTimeOnly && currentTimeOnly <= endTimeOnly;
-  const isCurrentTimeAfterEndTime = currentTime > endTime;
+    // Use parent's isStartButtonEnabled so instant lessons (null start/end) and timezone-aware
+    // scheduled checks work. Parent (BookingList/NavHomePage) uses Utils.meetingAvailability
+    // with user timezone and returns true for null start_time/end_time.
+    const isWithinTimeFrame = isStartButtonEnabled;
+    const isCurrentTimeAfterEndTime = bookingInfo?.start_time && bookingInfo?.end_time
+      ? DateTime.utc() > DateTime.fromISO(bookingInfo.end_time, { zone: "utc" })
+      : false;
   const canShowRatingButton =
     !isUpcomingSession &&
     !isCurrentDateBefore &&

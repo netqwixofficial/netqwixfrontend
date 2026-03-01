@@ -314,9 +314,13 @@ const BookingList = ({ activeCenterContainerTab, activeTabs, bookings: bookingsP
       time_zone, // Assuming 'time_zone' is coming from API
     } = bookingInfo;
 
-    // Convert start and end times to local time if the time zone is different
-    const localStartTime = formatTimeInLocalZone(start_time);
-    const localEndTime = formatTimeInLocalZone(end_time);
+    // Show times in viewer's timezone so trainer and trainee each see times in their own zone
+    const localStartTime = start_time
+      ? formatTimeInLocalZone(start_time, userTimeZone)
+      : "—";
+    const localEndTime = end_time
+      ? formatTimeInLocalZone(end_time, userTimeZone)
+      : "—";
 
     const isMobileScreen = useMediaQuery("(max-width:600px)");
     return (
@@ -400,9 +404,11 @@ const BookingList = ({ activeCenterContainerTab, activeTabs, bookings: bookingsP
                   }`}
                 >
                   <div className="">Time :</div>
-                  <dt className="ml-1">{`${formatTimeInLocalZone(
-                    start_time
-                  )} - ${formatTimeInLocalZone(end_time)}`}</dt>
+                  <dt className="ml-1">
+                    {start_time && end_time
+                      ? `${localStartTime} - ${localEndTime}`
+                      : "Instant"}
+                  </dt>
                 </div>
               </div>
             </div>
