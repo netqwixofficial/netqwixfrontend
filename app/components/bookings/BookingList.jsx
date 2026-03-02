@@ -358,6 +358,8 @@ const BookingList = ({ activeCenterContainerTab, activeTabs, bookings: bookingsP
                             : "/assets/images/demoUser.png"
                         }
                         alt="trainer_image"
+                        loading="eager"
+                        decoding="async"
                         className="rounded"
                         style={{
                           width: "100%",

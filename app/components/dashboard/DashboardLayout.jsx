@@ -55,8 +55,10 @@ const DashboardLayout = ({ children }) => {
   }, []); // Empty dependency array - run only once on mount
 
   const width1000 = useMediaQuery(1000);
+  const hasToken = typeof window !== "undefined" && !!localStorage.getItem(LOCAL_STORAGE_KEYS.ACCESS_TOKEN);
+  const isUserInfoReady = !hasToken || (userInfo && userInfo._id);
   const isInitialDashboardLoading =
-    masterStatus === "pending" || masterStatus === "idle";
+    masterStatus === "pending" || masterStatus === "idle" || !isUserInfoReady;
 
   // Check if current route is meeting room (should not show header)
   const isMeetingRoom = router.pathname.includes('/meeting-room') || 

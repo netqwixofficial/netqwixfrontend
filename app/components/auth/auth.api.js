@@ -50,7 +50,6 @@ export const login = async (payload) => {
 };
 
 export const getMe = async () => {
-  console.trace('[API AUDIT] getMe called from:');
   try {
     const res = await axiosInstance({
       method: "get",

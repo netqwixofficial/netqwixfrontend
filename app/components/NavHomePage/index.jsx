@@ -731,7 +731,8 @@ const NavHomePage = () => {
                               }
                               alt="trainer_image"
                               fallbackSrc="/assets/images/demoUser.png"
-                              lazy={true}
+                              lazy={booking_index > 1}
+                              priority={booking_index === 0}
                               skeletonType="circular"
                               style={{
                                 width: "100%",

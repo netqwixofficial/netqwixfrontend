@@ -9,7 +9,8 @@ import React, { useState, useEffect, useRef } from 'react';
  * @param {string} className - Additional CSS classes
  * @param {object} style - Inline styles for the image
  * @param {string} fallbackSrc - Fallback image if main image fails to load
- * @param {boolean} lazy - Enable lazy loading (default: true)
+ * @param {boolean} lazy - Enable lazy loading (default: true). Use false for above-the-fold images.
+ * @param {boolean} priority - High priority load (loading=eager, fetchPriority=high) for critical images
  * @param {string} skeletonType - Type of skeleton: 'circular', 'rounded', 'square' (default: 'rounded')
  * @param {function} onLoad - Callback when image loads
  * @param {function} onError - Callback when image fails to load
@@ -21,6 +22,7 @@ const ImageSkeleton = ({
   style = {},
   fallbackSrc = '/assets/images/demoUser.png',
   lazy = true,
+  priority = false,
   skeletonType = 'rounded',
   onLoad,
   onError,
@@ -63,10 +65,10 @@ const ImageSkeleton = ({
     if (onError) onError(e);
   };
 
-  // Set up intersection observer for lazy loading
+  // Set up intersection observer for lazy loading (skip when priority or eager)
   useEffect(() => {
-    if (!lazy || !src) {
-      setImageSrc(src);
+    if (!lazy || priority || !src) {
+      setImageSrc(src || null);
       return;
     }
 
@@ -163,7 +165,9 @@ const ImageSkeleton = ({
           }}
           onLoad={handleLoad}
           onError={handleError}
-          loading={lazy ? 'lazy' : 'eager'}
+          loading={priority || !lazy ? 'eager' : 'lazy'}
+          fetchPriority={priority ? 'high' : undefined}
+          decoding="async"
           {...props}
         />
       )}

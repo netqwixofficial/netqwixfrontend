@@ -19,6 +19,7 @@ const UserInfoCard = () => {
   const { userInfo, accountType } = useAppSelector(authState);
   const [isEditing, setIsEditing] = useState(false);
   const [displayedImage, setDisplayedImage] = useState(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const dispatch = useAppDispatch();
   const width1200 = useMediaQuery(1200);
   const width2000 = useMediaQuery(2000);
@@ -35,15 +36,15 @@ const UserInfoCard = () => {
   const [trainerRatings, setTrainerRatings] = useState([]);
 
   useEffect(() => {
-    getMeAsync();
-  }, []);
+    dispatch(getMeAsync());
+  }, [dispatch]);
 
   useEffect(() => {
-    setProfile({
-      ...profile,
-      ...userInfo,
-    });
-    setDisplayedImage(userInfo?.profile_picture)
+    if (userInfo && Object.keys(userInfo).length > 0) {
+      setProfile((prev) => ({ ...prev, ...userInfo }));
+      setDisplayedImage(userInfo?.profile_picture);
+      setImageLoaded(false);
+    }
   }, [userInfo]);
 
   const handleEditClick = () => {
@@ -158,20 +159,37 @@ const UserInfoCard = () => {
             e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 128, 0.2)";
           }}
         >
+          {!imageLoaded && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "#e8e8e8",
+                borderRadius: "4px"
+              }}
+            />
+          )}
           <img
             src={displayedImage?.startsWith("blob:")
               ? displayedImage
               : Utils.getImageUrlOfS3(displayedImage) || "/assets/images/demoUser.png"}
             alt="profile_image"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+            onLoad={() => setImageLoaded(true)}
             style={{
               width: "100%",
               height: "100%",
               objectFit: "cover",
               display: "block",
-              borderRadius: "4px"
+              borderRadius: "4px",
+              opacity: imageLoaded ? 1 : 0,
+              transition: "opacity 0.2s ease"
             }}
             onError={(e) => {
               e.target.src = "/assets/images/demoUser.png";
+              setImageLoaded(true);
             }}
           />
         </div>

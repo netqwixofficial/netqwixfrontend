@@ -102,7 +102,8 @@ const OnlineUserCard = ({ trainer }) => {
                     src={trainer.profile_picture ? Utils.getImageUrlOfS3(trainer.profile_picture) : "/assets/images/demoUser.png"}
                     alt="trainer_image"
                     fallbackSrc="/assets/images/demoUser.png"
-                    lazy={true}
+                    lazy={false}
+                    priority={true}
                     skeletonType="circular"
                     style={{
                         width: "100%",
