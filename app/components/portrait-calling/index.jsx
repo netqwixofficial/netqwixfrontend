@@ -2127,7 +2127,21 @@ const VideoCallUI = ({
       return;
     }
     if (session_end_time) {
-      setSessionEndTime(session_end_time);
+      // Support both "HH:MM" and ISO strings (e.g. instant lessons)
+      if (typeof session_end_time === "string" && session_end_time.includes("T")) {
+        try {
+          const dt = DateTime.fromISO(session_end_time, { zone: "utc" });
+          if (dt.isValid) {
+            setSessionEndTime(dt.toLocal().toFormat("HH:mm"));
+          } else {
+            setSessionEndTime(session_end_time);
+          }
+        } catch {
+          setSessionEndTime(session_end_time);
+        }
+      } else {
+        setSessionEndTime(session_end_time);
+      }
     }
   }, [
     isTraineeJoined,

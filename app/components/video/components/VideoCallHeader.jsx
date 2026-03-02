@@ -4,13 +4,12 @@ import Timer from '../Timer';
 
 const VideoCallHeader = ({
   session_end_time,
+  bothUsersJoined = false,
   fromUser,
   toUser,
   accountType,
   displayMsg,
 }) => {
-  const timeDifference = Timer(session_end_time);
-
   return (
     <div className="video-call-header">
       {displayMsg?.showMsg && (
@@ -19,7 +18,7 @@ const VideoCallHeader = ({
         </div>
       )}
       <div className="session-timer" id="sessionEndTime">
-        <Timer session_end_time={session_end_time} />
+        <Timer session_end_time={session_end_time} bothUsersJoined={bothUsersJoined} />
       </div>
       <div className="user-info">
         <span>

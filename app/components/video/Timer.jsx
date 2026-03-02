@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
 
-const Timer = (session_end_time, bothUsersJoined = false) => {
+// Support both <Timer session_end_time={x} bothUsersJoined={y} /> and legacy Timer(session_end_time) from useVideoState
+const Timer = (props) => {
+  const session_end_time =
+    typeof props === "object" && props !== null && "session_end_time" in props
+      ? props.session_end_time
+      : props;
+  const bothUsersJoined =
+    typeof props === "object" && props !== null && "bothUsersJoined" in props
+      ? props.bothUsersJoined
+      : false;
+
   const [timeDifference, setTimeDifference] = useState("");
 
   useEffect(() => {

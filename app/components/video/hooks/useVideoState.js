@@ -49,8 +49,11 @@ export const useVideoState = ({
   const width900 = useMediaQuery(900);
   const width1000 = useMediaQuery(1000);
 
-  // Timer
-  const timeDifference = Timer(session_end_time);
+  // Timer (pass both so timer runs when both have joined)
+  const timeDifference = Timer({
+    session_end_time,
+    bothUsersJoined: isTraineeJoined,
+  });
 
   // Height for responsive calculations
   const height = typeof window !== 'undefined' ? window.innerHeight : 500;

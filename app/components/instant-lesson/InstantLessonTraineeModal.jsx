@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useContext, useCallback } from "react";
 import { Modal, ModalBody, ModalFooter, Button, ModalHeader } from "reactstrap";
+import { useRouter } from "next/router";
 import { useAppDispatch, useAppSelector } from "../../store";
 import { instantLessonState, instantLessonAction, INSTANT_LESSON_STEPS } from "./instantLesson.slice";
-import { addTraineeClipInBookedSessionAsync } from "../common/common.slice";
-import { AccountType } from "../../common/constants";
+import { addTraineeClipInBookedSessionAsync, getScheduledMeetingDetailsAsync } from "../common/common.slice";
+import { authAction } from "../auth/auth.slice";
+import { AccountType, routingPaths, topNavbarOptions } from "../../common/constants";
 import { SocketContext } from "../socket/SocketProvider";
 import { EVENTS } from "../../../helpers/events";
 import { toast } from "react-toastify";
@@ -16,6 +18,7 @@ const STORAGE_KEY = "instantLessonTraineeFlow";
 
 const InstantLessonTraineeModal = () => {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const socket = useContext(SocketContext);
   const { 
     isTraineeFlow, 
@@ -420,31 +423,27 @@ const InstantLessonTraineeModal = () => {
           }
           handleVideoSelection(newClips);
         }}
-        shareFunc={(sharedClips) => {
+        shareFunc={async (sharedClips) => {
           const currentSelected = sharedClips?.length || 0;
           if (currentSelected > 0) {
-            // Persist selected clips to the current instant lesson booking
             if (lessonId) {
               const payload = {
                 id: lessonId,
                 trainee_clip: sharedClips.map((clip) => clip?._id),
               };
-              dispatch(addTraineeClipInBookedSessionAsync(payload));
+              await dispatch(addTraineeClipInBookedSessionAsync(payload));
             } else {
               console.error("Missing lessonId for addTraineeClipInBookedSession");
             }
-
-            handleCloseVideoSelection();
-            // Auto-advance step if coach already accepted and videos are selected
-            if (coachAccepted && currentSelected > 0 && currentSelected <= 2) {
-              dispatch(instantLessonAction.setCurrentStep(INSTANT_LESSON_STEPS.COACH_ACCEPTED));
-            } else if (currentSelected > 0 && currentSelected <= 2) {
-              // Move to video selection step if not already there
-              if (currentStep === INSTANT_LESSON_STEPS.REQUEST) {
-                dispatch(instantLessonAction.setCurrentStep(INSTANT_LESSON_STEPS.SELECT_VIDEOS));
-              }
+            // Clear flow and redirect immediately so the stepper (1-2-3-4) modal never shows
+            if (typeof window !== "undefined") {
+              localStorage.removeItem(STORAGE_KEY);
             }
-            toast.success(`${currentSelected} video(s) selected. ${coachAccepted ? 'You can now join!' : 'Waiting for coach acceptance...'}`);
+            dispatch(instantLessonAction.clearTraineeFlow());
+            dispatch(authAction.setTopNavbarActiveTab(topNavbarOptions.UPCOMING_SESSION));
+            router.push(routingPaths.dashboard);
+            dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming", forceRefresh: true }));
+            toast.success(`${currentSelected} video(s) shared. You can see your session in Upcoming Sessions.`);
           } else {
             toast.warning("Please select at least one video.");
           }

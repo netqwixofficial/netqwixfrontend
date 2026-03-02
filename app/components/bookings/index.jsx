@@ -25,7 +25,7 @@ import {
   leftSideBarOptions,
   meetingRatingTimeout,
 } from "../../common/constants";
-import { Utils } from "../../../utils/utils";
+import { Utils, formatTimeInLocalZone } from "../../../utils/utils";
 import Modal from "../../common/modal";
 import StartMeeting from "./start";
 import { SocketContext } from "../socket";
@@ -1042,9 +1042,11 @@ const Bookings = ({ accountType = null }) => {
               <div className="col">
                 <dl className="row">
                   <dd className="ml-3">Time :</dd>
-                  <dt className="ml-1">{`${Utils.convertToAmPm(
-                    session_start_time
-                  )}-${Utils.convertToAmPm(session_end_time)}`}</dt>
+                  <dt className="ml-1">
+                    {session_start_time && session_end_time
+                      ? `${formatTimeInLocalZone(session_start_time, userInfo?.extraInfo?.working_hours?.time_zone || undefined)} - ${formatTimeInLocalZone(session_end_time, userInfo?.extraInfo?.working_hours?.time_zone || undefined)}`
+                      : "Instant"}
+                  </dt>
                 </dl>
               </div>
             </div>
