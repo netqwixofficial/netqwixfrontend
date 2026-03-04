@@ -9,7 +9,8 @@ import React, { useState, useEffect, useRef } from 'react';
  * @param {string} className - Additional CSS classes
  * @param {object} style - Inline styles for the image
  * @param {string} fallbackSrc - Fallback image if main image fails to load
- * @param {boolean} lazy - Enable lazy loading (default: true)
+ 
+* @param {boolean} lazy - Enable lazy loading (default: true)
  * @param {string} skeletonType - Type of skeleton: 'circular', 'rounded', 'square' (default: 'rounded')
  * @param {function} onLoad - Callback when image loads
  * @param {function} onError - Callback when image fails to load

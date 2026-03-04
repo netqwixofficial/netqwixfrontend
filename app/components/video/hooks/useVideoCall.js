@@ -26,6 +26,7 @@ export const useVideoCall = ({
   const [isCallEnded, setIsCallEnded] = useState(false);
   const [isTraineeJoined, setIsTraineeJoinedLocal] = useState(false);
   const peerRef = useRef(null);
+  const localStreamRef = useRef(null);
 
   /**
    * Initialize Peer connection
@@ -69,18 +70,41 @@ export const useVideoCall = ({
     });
 
     peer.on('call', (call) => {
-      if (localStream) {
-        call.answer(localStream);
-        call.on('stream', (remoteStream) => {
-          setIsTraineeJoinedLocal(true);
-          setIsTraineeJoined(true);
-          setDisplayMsg({ showMsg: false, msg: '' });
-          setRemoteStream(remoteStream);
-          if (remoteVideoRef?.current) {
-            remoteVideoRef.current.srcObject = remoteStream;
-          }
-        });
+      // Prefer the most up-to-date local stream ref, then fallback to state, then video element
+      const answerStream =
+        localStreamRef.current || localStream || videoRef?.current?.srcObject;
+
+      if (!answerStream) {
+        console.warn('[useVideoCall] No local stream available to answer incoming call');
+        call.answer();
+      } else {
+        call.answer(answerStream);
       }
+
+      call.on('stream', (remoteStream) => {
+        setIsTraineeJoinedLocal(true);
+        setIsTraineeJoined(true);
+        setDisplayMsg({ showMsg: false, msg: '' });
+        setRemoteStream(remoteStream);
+
+        if (remoteVideoRef?.current) {
+          remoteVideoRef.current.srcObject = remoteStream;
+
+          // Ensure the remote video element actually plays the incoming stream
+          if (remoteVideoRef.current.paused) {
+            remoteVideoRef.current
+              .play()
+              .catch((err) => {
+                if (err?.name !== 'AbortError') {
+                  console.warn(
+                    '[useVideoCall] Failed to play remote video element',
+                    err
+                  );
+                }
+              });
+          }
+        }
+      });
     });
 
     return peer;
@@ -139,6 +163,7 @@ export const useVideoCall = ({
 
       setPermissionModal(false);
       setLocalStream(stream);
+      localStreamRef.current = stream;
 
       if (videoRef?.current) {
         videoRef.current.srcObject = stream;

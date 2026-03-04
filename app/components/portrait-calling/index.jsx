@@ -2132,7 +2132,9 @@ const VideoCallUI = ({
         try {
           const dt = DateTime.fromISO(session_end_time, { zone: "utc" });
           if (dt.isValid) {
-            setSessionEndTime(dt.toLocal().toFormat("HH:mm"));
+            // Convert from UTC to the viewer's local timezone
+            const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            setSessionEndTime(dt.setZone(localZone).toFormat("HH:mm"));
           } else {
             setSessionEndTime(session_end_time);
           }
@@ -2140,7 +2142,28 @@ const VideoCallUI = ({
           setSessionEndTime(session_end_time);
         }
       } else {
-        setSessionEndTime(session_end_time);
+        // session_end_time is a "HH:MM" string in the booking's time_zone.
+        // Convert that booked time into the viewer's local timezone so that
+        // trainer and trainee each see the correct local session time.
+        try {
+          const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          if (time_zone && session_end_time.includes(":")) {
+            const dtInBookingZone = DateTime.fromFormat(
+              session_end_time,
+              "HH:mm",
+              { zone: time_zone }
+            );
+            if (dtInBookingZone.isValid) {
+              const dtLocal = dtInBookingZone.setZone(localZone);
+              setSessionEndTime(dtLocal.toFormat("HH:mm"));
+              return;
+            }
+          }
+          // Fallback to raw value if anything looks off
+          setSessionEndTime(session_end_time);
+        } catch {
+          setSessionEndTime(session_end_time);
+        }
       }
     }
   }, [
