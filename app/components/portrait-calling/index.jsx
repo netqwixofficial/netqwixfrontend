@@ -1598,34 +1598,21 @@ const VideoCallUI = ({
   };
 
 
-  // Sync remote stream to video element so both trainer and trainee see the other's video
+  // Sync remote stream to video element (one ref; UserBox/UserBoxMini use internal refs so every video gets the stream)
   useEffect(() => {
     if (!remoteVideoRef?.current) return;
-    
-    // Always sync the stream to the video element when it changes
+
     if (remoteStream) {
-      console.log("[VideoCallUI] Setting remoteVideoRef.srcObject", {
-        hasStream: !!remoteStream,
-        videoTracks: remoteStream.getVideoTracks().length,
-        audioTracks: remoteStream.getAudioTracks().length,
-        accountType
-      });
-      
-      // Check if already set to avoid unnecessary updates
       if (remoteVideoRef.current.srcObject !== remoteStream) {
         remoteVideoRef.current.srcObject = remoteStream;
       }
-      
-      // Ensure video plays
       if (remoteVideoRef.current.paused) {
-        remoteVideoRef.current.play().catch(err => {
-          console.warn("[VideoCallUI] Failed to play remote video", err);
+        remoteVideoRef.current.play().catch((err) => {
+          if (err?.name !== "AbortError") console.warn("[VideoCallUI] Failed to play remote video", err);
         });
       }
-      
       if (accountType === AccountType.TRAINEE) setIsModelOpen(true);
-    } else {
-      console.log("[VideoCallUI] Clearing remoteVideoRef.srcObject");
+    } else if (remoteVideoRef.current.srcObject) {
       remoteVideoRef.current.srcObject = null;
     }
   }, [remoteStream, accountType]);
@@ -2183,33 +2170,35 @@ const VideoCallUI = ({
       setTimeRemaining(null);
       return;
     }
-    if (typeof sessionEndTime !== "string" || !sessionEndTime.includes(":")) {
-      setTimeRemaining(null);
-      return;
-    }
 
-    const [endHours, endMinutes] = sessionEndTime.split(":").map(Number);
-    if (
-      Number.isNaN(endHours) ||
-      Number.isNaN(endMinutes) ||
-      endHours < 0 ||
-      endHours > 23 ||
-      endMinutes < 0 ||
-      endMinutes > 59
-    ) {
-      setTimeRemaining(null);
-      return;
+    let endTime;
+    if (typeof sessionEndTime === "string" && sessionEndTime.includes(":")) {
+      const [endHours, endMinutes] = sessionEndTime.split(":").map(Number);
+      if (
+        !Number.isNaN(endHours) &&
+        !Number.isNaN(endMinutes) &&
+        endHours >= 0 &&
+        endHours <= 23 &&
+        endMinutes >= 0 &&
+        endMinutes <= 59
+      ) {
+        const now = new Date();
+        endTime = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          endHours,
+          endMinutes
+        );
+      }
+    }
+    // Fallback: when both joined but no sessionEndTime (e.g. TIMER_STARTED missed), use 30 min from now so timer still runs
+    if (!endTime) {
+      endTime = new Date(Date.now() + 30 * 60 * 1000);
     }
 
     const updateRemaining = () => {
       const now = new Date();
-      const endTime = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        endHours,
-        endMinutes
-      );
       const diffMs = endTime.getTime() - now.getTime();
       const remainingSeconds = Math.max(0, Math.floor(diffMs / 1000));
       setTimeRemaining(remainingSeconds);

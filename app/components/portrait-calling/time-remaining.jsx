@@ -157,26 +157,18 @@ const TimeRemaining = ({ timeRemaining, bothUsersJoined = false, bufferSecondsRe
       };
     }
 
-    // Case 2: timeRemaining is already a number of seconds
+    // Case 2: timeRemaining is already a number of seconds (parent updates every second)
     if (typeof timeRemaining === "number") {
       const remainingSeconds = Math.max(0, Math.floor(timeRemaining));
 
-      // Update display string
       setDisplayTime(formatSecondsToMMSS(remainingSeconds));
-
-      // Dynamic color based on remaining time
-      if (remainingSeconds > FIVE_MINUTES_IN_SECONDS) {
-        setTimerColor("#28a745"); // green
-      } else if (remainingSeconds > 60) {
-        setTimerColor("#ff9800"); // orange
-      } else {
-        setTimerColor("#f44336"); // red
-      }
+      if (remainingSeconds > FIVE_MINUTES_IN_SECONDS) setTimerColor("#28a745");
+      else if (remainingSeconds > 60) setTimerColor("#ff9800");
+      else setTimerColor("#f44336");
 
       const previous = lastRemainingSecondsRef.current;
       lastRemainingSecondsRef.current = remainingSeconds;
 
-      // Trigger "5 minutes left" popup once when crossing 5 minutes
       if (
         previous != null &&
         previous > FIVE_MINUTES_IN_SECONDS &&
@@ -184,16 +176,12 @@ const TimeRemaining = ({ timeRemaining, bothUsersJoined = false, bufferSecondsRe
         remainingSeconds > 0
       ) {
         setShowFiveMinPopup(true);
-        if (fiveMinTimeoutRef.current) {
-          clearTimeout(fiveMinTimeoutRef.current);
-        }
+        if (fiveMinTimeoutRef.current) clearTimeout(fiveMinTimeoutRef.current);
         fiveMinTimeoutRef.current = setTimeout(() => {
           setShowFiveMinPopup(false);
           fiveMinTimeoutRef.current = null;
         }, 5000);
       }
-
-      // Trigger "15 seconds left" popup once when crossing 15 seconds
       if (
         previous != null &&
         previous > FIFTEEN_SECONDS_IN_SECONDS &&
@@ -201,9 +189,7 @@ const TimeRemaining = ({ timeRemaining, bothUsersJoined = false, bufferSecondsRe
         remainingSeconds > 0
       ) {
         setShowThirtySecPopup(true);
-        if (thirtySecTimeoutRef.current) {
-          clearTimeout(thirtySecTimeoutRef.current);
-        }
+        if (thirtySecTimeoutRef.current) clearTimeout(thirtySecTimeoutRef.current);
         thirtySecTimeoutRef.current = setTimeout(() => {
           setShowThirtySecPopup(false);
           thirtySecTimeoutRef.current = null;
