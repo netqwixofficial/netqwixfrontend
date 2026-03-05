@@ -36,8 +36,11 @@ const UserInfoCard = () => {
   const [trainerRatings, setTrainerRatings] = useState([]);
 
   useEffect(() => {
-    dispatch(getMeAsync());
-  }, [dispatch]);
+    // Avoid an extra /me call if we already have userInfo in Redux
+    if (!userInfo || !userInfo._id) {
+      dispatch(getMeAsync());
+    }
+  }, [dispatch, userInfo?._id]);
 
   useEffect(() => {
     if (userInfo && Object.keys(userInfo).length > 0) {
@@ -97,15 +100,13 @@ const UserInfoCard = () => {
   };
 
   useEffect(() => {
-    const findByTrainerId = getTraineeSlots.find(
+    const existing = getTraineeSlots.find(
       (trainer) => trainer && trainer?._id === profile?._id
     );
-    setTrainerRatings(findByTrainerId?.trainer_ratings);
-  }, [getTraineeSlots]);
+    setTrainerRatings(existing?.trainer_ratings);
 
-  useEffect(() => {
-    // Prefetch trainer slots once per trainer (by id), not on every re-render
-    if (!profile || !profile._id || !profile.fullname) return;
+    // Only fetch slots if we don't already have them for this trainer
+    if (!profile || !profile._id || !profile.fullname || existing) return;
 
     const now = new Date();
     const filterPayload = {
@@ -115,7 +116,7 @@ const UserInfoCard = () => {
     };
 
     dispatch(getTraineeWithSlotsAsync(filterPayload));
-  }, [dispatch, profile?._id, profile?.fullname]);
+  }, [dispatch, profile?._id, profile?.fullname, getTraineeSlots]);
 
 
   return (
