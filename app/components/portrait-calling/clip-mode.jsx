@@ -354,26 +354,28 @@ const VideoContainer = ({
           duration: video.duration,
           index
         });
+        // Always emit intent first so trainee can react, even if this device's play() is blocked.
+        socket?.emit(EVENTS?.ON_VIDEO_PLAY_PAUSE, {
+          videoId: clip?._id,
+          userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
+          isPlaying: true,
+        });
         const p = video.play();
         if (p && typeof p.then === "function") {
-          p.then(() => {
-            setIsPlaying(true);
-            socket?.emit(EVENTS?.ON_VIDEO_PLAY_PAUSE, {
-              videoId: clip?._id,
-              userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
-              isPlaying: true,
+          p
+            .then(() => {
+              setIsPlaying(true);
+            })
+            .catch((err) => {
+              console.warn("VideoContainer play() failed (e.g. policy or device)", {
+                clipId: clip?._id,
+                index,
+                err: err?.message || err,
+              });
+              setIsPlaying(false);
             });
-          }).catch((err) => {
-            console.warn("VideoContainer play() failed (e.g. policy or device)", { clipId: clip?._id, index, err: err?.message || err });
-            setIsPlaying(false);
-          });
         } else {
           setIsPlaying(true);
-          socket?.emit(EVENTS?.ON_VIDEO_PLAY_PAUSE, {
-            videoId: clip?._id,
-            userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
-            isPlaying: true,
-          });
         }
       } else {
         console.log("⏸️ [VideoContainer] Pausing video", {
@@ -1762,22 +1764,26 @@ const ClipModeCall = ({
           video1Time: video1.currentTime,
           video2Time: video2.currentTime
         });
+        // Emit intent first so trainee can react even if this browser blocks play().
+        socket?.emit(EVENTS?.ON_VIDEO_PLAY_PAUSE, {
+          both: true,
+          userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
+          isPlaying: true,
+        });
         const p1 = video1.play();
         const p2 = video2.play();
-        const all = [p1, p2].every((p) => p && typeof p.then === "function")
-          ? Promise.all([p1, p2])
-          : Promise.resolve();
+        const all =
+          [p1, p2].every((p) => p && typeof p.then === "function")
+            ? Promise.all([p1, p2])
+            : Promise.resolve();
         all
           .then(() => {
             setIsPlayingBoth(true);
-            socket?.emit(EVENTS?.ON_VIDEO_PLAY_PAUSE, {
-              both: true,
-              userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
-              isPlaying: true,
-            });
           })
           .catch((err) => {
-            console.warn("ClipModeCall play() failed on one or both videos", { err: err?.message || err });
+            console.warn("ClipModeCall play() failed on one or both videos", {
+              err: err?.message || err,
+            });
             setIsPlayingBoth(false);
           });
       } else {
