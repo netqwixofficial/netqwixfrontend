@@ -2972,10 +2972,10 @@ const ClipModeCall = ({
         }}
       >
         <UserBox
-          id={fromUser._id}
+          id={toUser._id}
           onClick={handleUserClick}
           selectedUser={selectedUser}
-          selected={selectedUser === fromUser._id}
+          selected={selectedUser === toUser._id}
           notSelected={selectedUser}
           videoRef={remoteVideoRef}
           user={toUser}
@@ -2985,10 +2985,10 @@ const ClipModeCall = ({
         />
 
         <UserBox
-          id={toUser._id}
+          id={fromUser._id}
           onClick={handleUserClick}
           selectedUser={selectedUser}
-          selected={selectedUser === toUser._id}
+          selected={selectedUser === fromUser._id}
           notSelected={selectedUser}
           videoRef={localVideoRef}
           user={fromUser}
@@ -2998,9 +2998,9 @@ const ClipModeCall = ({
           muted={true}
         />
 
-        {selectedUser === toUser._id ? (
+        {selectedUser === fromUser._id ? (
           <UserBoxMini
-            id={fromUser._id}
+            id={toUser._id}
             onClick={handleUserClick}
             selected={false}
             videoRef={remoteVideoRef}
@@ -3011,7 +3011,7 @@ const ClipModeCall = ({
           />
         ) : (
           <UserBoxMini
-            id={toUser._id}
+            id={fromUser._id}
             onClick={handleUserClick}
             selected={false}
             videoRef={localVideoRef}

@@ -32,6 +32,8 @@ const BookingCard = ({
     booked_date,
     session_start_time,
     session_end_time,
+    start_time,
+    end_time,
     trainee_info,
     trainer_info,
     ratings,
@@ -42,7 +44,10 @@ const BookingCard = ({
   const availabilityInfo = getMeetingAvailability(
     booked_date,
     session_start_time,
-    session_end_time
+    session_end_time,
+    Intl.DateTimeFormat().resolvedOptions()?.timeZone,
+    start_time,
+    end_time
   );
 
   const {
@@ -120,11 +125,11 @@ const BookingCard = ({
           <div>
             <h5>{trainee_info?.fullname || trainer_info?.fullname}</h5>
             <p className="mb-1">
-              Date: {Utils.getDateInFormat(booked_date)}
+              Date: {Utils.getDateInLocalFormat(start_time || booked_date)}
             </p>
             <p className="mb-1">
-              Time: {Utils.formatTime(session_start_time)} -{' '}
-              {Utils.formatTime(session_end_time)}
+              Time: {Utils.formatTime(start_time || session_start_time)} -{" "}
+              {Utils.formatTime(end_time || session_end_time)}
             </p>
             <span
               className={`badge ${

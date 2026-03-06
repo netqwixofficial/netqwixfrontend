@@ -48,11 +48,14 @@ export const useBookings = ({ accountType }) => {
    * Get meeting availability info
    */
   const getMeetingAvailability = useCallback(
-    (booked_date, session_start_time, session_end_time) => {
+    (booked_date, session_start_time, session_end_time, start_time, end_time) => {
       return Utils.meetingAvailability(
         booked_date,
         session_start_time,
-        session_end_time
+        session_end_time,
+        Intl.DateTimeFormat().resolvedOptions()?.timeZone,
+        start_time,
+        end_time
       );
     },
     []
@@ -69,7 +72,9 @@ export const useBookings = ({ accountType }) => {
         const availabilityInfo = getMeetingAvailability(
           booking.booked_date,
           booking.session_start_time,
-          booking.session_end_time
+          booking.session_end_time,
+          booking.start_time,
+          booking.end_time
         );
 
         const isMeetingDone =

@@ -95,7 +95,7 @@ export const getScheduledMeetingDetails = async (payload) => {
             item.booked_date,
             item.session_start_time,
             item.session_end_time,
-            item.time_zone, // Assuming `userTimeZone` is `item.time_zone`
+            Intl.DateTimeFormat().resolvedOptions()?.timeZone,
             item.start_time,
             item.end_time
           );

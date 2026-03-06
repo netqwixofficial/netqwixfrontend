@@ -371,9 +371,9 @@ const OneOnOneCall = ({
       }}>
         <div className="one-on-one-layout__primary">
         <UserBox
-          id={toUser._id}
+          id={fromUser._id}
           onClick={handleUserClick}
-          selected={selectedUser === toUser._id}
+          selected={selectedUser === fromUser._id}
           selectedUser={selectedUser}
           notSelected={selectedUser}
           videoRef={localVideoRef}
@@ -386,10 +386,10 @@ const OneOnOneCall = ({
         </div>
         <div className="one-on-one-layout__secondary">
         <UserBox
-          id={fromUser._id}
+          id={toUser._id}
           onClick={handleUserClick}
           selectedUser={selectedUser}
-          selected={selectedUser === fromUser._id}
+          selected={selectedUser === toUser._id}
           notSelected={selectedUser}
           videoRef={remoteVideoRef}
           user={toUser}
@@ -401,20 +401,20 @@ const OneOnOneCall = ({
 
         {selectedUser && (
           <UserBoxMini
-            id={selectedUser === toUser._id ? fromUser._id : toUser._id}
+            id={selectedUser === fromUser._id ? toUser._id : fromUser._id}
             onClick={handleUserClick}
             selected={false}
-            videoRef={selectedUser === toUser._id ? remoteVideoRef : localVideoRef}
-            stream={selectedUser === toUser._id ? remoteStream : localStream}
-            user={selectedUser === toUser._id ? toUser : fromUser}
+            videoRef={selectedUser === fromUser._id ? remoteVideoRef : localVideoRef}
+            stream={selectedUser === fromUser._id ? remoteStream : localStream}
+            user={selectedUser === fromUser._id ? toUser : fromUser}
             isStreamOff={
-              selectedUser === toUser._id ? isRemoteStreamOff : isLocalStreamOff
+              selectedUser === fromUser._id ? isRemoteStreamOff : isLocalStreamOff
             }
-            muted={selectedUser === toUser._id ? false : true}
-            videoType={selectedUser === toUser._id ? "student" : "teacher"}
+            muted={selectedUser === fromUser._id ? false : true}
+            videoType={selectedUser === fromUser._id ? "student" : "teacher"}
             onHide={handleHideVideo}
             onRestore={handleRestoreVideo}
-            isHidden={selectedUser === toUser._id ? hiddenVideos.student : hiddenVideos.teacher}
+            isHidden={selectedUser === fromUser._id ? hiddenVideos.student : hiddenVideos.teacher}
           />
         )}
 

@@ -131,6 +131,38 @@ export class Utils {
     return newDate.toFormat("MM-dd-yyyy");
   };
 
+  static getDateInLocalFormat = (date = "") => {
+    const zone = Intl.DateTimeFormat().resolvedOptions()?.timeZone;
+    const dt = date ? DateTime.fromISO(date, { zone: "utc" }) : DateTime.now();
+    return zone ? dt.setZone(zone).toFormat("MM-dd-yyyy") : dt.toFormat("MM-dd-yyyy");
+  };
+
+  /**
+   * Formats either:
+   * - a "HH:mm" string (stored schedule time) -> "h:mm AM/PM"
+   * - an ISO datetime (UTC) -> viewer local "h:mm AM/PM"
+   */
+  static formatTime = (time = "") => {
+    if (!time) return "";
+    if (typeof time === "string" && time.includes("T")) {
+      const zone = Intl.DateTimeFormat().resolvedOptions()?.timeZone;
+      const dt = DateTime.fromISO(time, { zone: "utc" });
+      const local = zone ? dt.setZone(zone) : dt;
+      return local.toFormat("h:mm a").toUpperCase();
+    }
+    if (typeof time === "string" && time.includes(":")) {
+      return Utils.convertToAmPm(time);
+    }
+    try {
+      const zone = Intl.DateTimeFormat().resolvedOptions()?.timeZone;
+      const dt = DateTime.fromJSDate(new Date(time), { zone: "utc" });
+      const local = zone ? dt.setZone(zone) : dt;
+      return local.toFormat("h:mm a").toUpperCase();
+    } catch {
+      return String(time);
+    }
+  };
+
   static getDateInFormatIOS = (date = "") => {
     const newDate = date ? date : new Date();
     return moment(newDate).format("YYYY-MM-DD");
@@ -287,17 +319,20 @@ export class Utils {
       start_time,
       end_time
     );
-    const has24HoursPassedSinceBooking = this.has24HoursPassedSinceBooking(
-      bookedDate,
-      currentDate,
-      currentFormattedTime,
-      sessionEndTime
-    );
-    const isUpcomingSession = this.isUpcomingSession(
-      bookedDate,
-      sessionStartTime,
-      sessionEndTime
-    );
+    const has24HoursPassedSinceBooking =
+      start_time != null && end_time != null
+        ? moment().diff(moment(end_time), "hours") >= 24
+        : this.has24HoursPassedSinceBooking(
+            bookedDate,
+            currentDate,
+            currentFormattedTime,
+            sessionEndTime
+          );
+
+    const isUpcomingSession =
+      start_time != null
+        ? moment().isBefore(moment(start_time))
+        : this.isUpcomingSession(bookedDate, sessionStartTime, sessionEndTime);
     return {
       isStartButtonEnabled,
       has24HoursPassedSinceBooking,
@@ -1039,6 +1074,27 @@ export const formatToHHMM = (isoDate) => {
 
 export const convertTimesForDataArray = (dataArray) => {
   return dataArray.map((item) => {
+    const localZone = getLocalTimeZone();
+
+    // If backend didn't provide a timezone (common for instant meetings),
+    // derive display times from the UTC start/end timestamps in the viewer's local zone.
+    if (!item?.time_zone && item?.start_time && item?.end_time) {
+      const startLocal = DateTime.fromISO(item.start_time, { zone: "utc" }).setZone(localZone);
+      const endLocal = DateTime.fromISO(item.end_time, { zone: "utc" }).setZone(localZone);
+      const formattedStartTime = startLocal.toFormat("HH:mm");
+      const formattedEndTime = endLocal.toFormat("HH:mm");
+      const convertedBookDate = item.booked_date
+        ? DateTime.fromISO(item.booked_date, { zone: "utc" }).setZone(localZone).toISO({ includeOffset: false }) + "Z"
+        : item.booked_date;
+
+      return {
+        ...item,
+        booked_date: convertedBookDate,
+        session_start_time: formattedStartTime,
+        session_end_time: formattedEndTime,
+      };
+    }
+
     // Convert start time
     const convertedStartTime = CovertTimeAccordingToTimeZone(
       item.start_time, 
