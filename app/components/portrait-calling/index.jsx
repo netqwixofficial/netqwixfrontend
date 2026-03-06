@@ -2163,39 +2163,50 @@ const VideoCallUI = ({
     sessionEndTime,
   ]);
 
-  // Keep numeric countdown in sync with the current session end time.
-  // Timer runs immediately when both parties have joined (no buffer delay).
+  // Keep numeric countdown in sync with the current session end time for
+  // scheduled sessions. This is ONLY a fallback when we do NOT have the
+  // authoritative backend timer (TIMER_STARTED). When authoritativeTimer
+  // is present, we use that instead.
   useEffect(() => {
     if (!bothUsersJoined) {
       setTimeRemaining(null);
       return;
     }
 
-    let endTime;
-    if (typeof sessionEndTime === "string" && sessionEndTime.includes(":")) {
-      const [endHours, endMinutes] = sessionEndTime.split(":").map(Number);
-      if (
-        !Number.isNaN(endHours) &&
-        !Number.isNaN(endMinutes) &&
-        endHours >= 0 &&
-        endHours <= 23 &&
-        endMinutes >= 0 &&
-        endMinutes <= 59
-      ) {
-        const now = new Date();
-        endTime = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
-          endHours,
-          endMinutes
-        );
-      }
+    // If backend timer is running, don't override it with a local estimate.
+    if (authoritativeTimer?.remainingSeconds != null) {
+      return;
     }
-    // Fallback: when both joined but no sessionEndTime (e.g. TIMER_STARTED missed), use 30 min from now so timer still runs
-    if (!endTime) {
-      endTime = new Date(Date.now() + 30 * 60 * 1000);
+
+    if (typeof sessionEndTime !== "string" || !sessionEndTime.includes(":")) {
+      // No valid end time to derive from; leave timeRemaining as-is.
+      return;
     }
+
+    const [endHours, endMinutes] = sessionEndTime.split(":").map(Number);
+    if (
+      Number.isNaN(endHours) ||
+      Number.isNaN(endMinutes) ||
+      endHours < 0 ||
+      endHours > 23 ||
+      endMinutes < 0 ||
+      endMinutes > 59
+    ) {
+      return;
+    }
+
+    const computeEndTime = () => {
+      const now = new Date();
+      return new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        endHours,
+        endMinutes
+      );
+    };
+
+    let endTime = computeEndTime();
 
     const updateRemaining = () => {
       const now = new Date();
@@ -2210,7 +2221,7 @@ const VideoCallUI = ({
     return () => {
       clearInterval(intervalId);
     };
-  }, [sessionEndTime, bothUsersJoined]);
+  }, [sessionEndTime, bothUsersJoined, authoritativeTimer?.remainingSeconds]);
 
   // Use authoritative timer (from TIMER_STARTED) for countdown when available, so both trainer and trainee see the timer
   useEffect(() => {

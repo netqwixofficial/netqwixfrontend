@@ -27,22 +27,24 @@ export const UserBox = ({
   const containerRef = useRef(null);
   // Internal ref so this instance always attaches stream to its own <video> (parent may share one ref across multiple boxes)
   const videoElRef = useRef(null);
+  // If parent has already attached a stream to the shared ref, use it as a fallback
+  const effectiveStream = stream || (videoRef && videoRef.current && videoRef.current.srcObject) || null;
 
   const setVideoRef = useCallback(
     (node) => {
       videoElRef.current = node;
       if (videoRef) videoRef.current = node;
-      if (node && stream) node.srcObject = stream;
+      if (node && effectiveStream) node.srcObject = effectiveStream;
     },
-    [stream, videoRef]
+    [effectiveStream, videoRef]
   );
   useEffect(() => {
     const el = videoElRef.current;
     if (!el) return;
 
-    if (stream) {
-      if (el.srcObject !== stream) {
-        el.srcObject = stream;
+    if (effectiveStream) {
+      if (el.srcObject !== effectiveStream) {
+        el.srcObject = effectiveStream;
       }
       if (el.paused) {
         el.play().catch((err) => {
@@ -54,7 +56,7 @@ export const UserBox = ({
     } else {
       if (el.srcObject) el.srcObject = null;
     }
-  }, [stream, isStreamOff, selectedUser, user?._id, videoType]);
+  }, [effectiveStream, isStreamOff, selectedUser, user?._id, videoType]);
 
   const handleDrag = (e, data) => {
     setIsDragging(true);
@@ -183,6 +185,7 @@ export const UserBoxMini = ({
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
   const videoElRef = useRef(null);
+  const effectiveStream = stream || (videoRef && videoRef.current && videoRef.current.srcObject) || null;
 
   const handleBoxClick = useCallback(() => {
     if (onClick && id && !isDragging) {
@@ -196,17 +199,17 @@ export const UserBoxMini = ({
     (node) => {
       videoElRef.current = node;
       if (videoRef) videoRef.current = node;
-      if (node && stream) node.srcObject = stream;
+      if (node && effectiveStream) node.srcObject = effectiveStream;
     },
-    [stream, videoRef]
+    [effectiveStream, videoRef]
   );
 
   useEffect(() => {
     const el = videoElRef.current;
     if (!el) return;
 
-    if (stream) {
-      if (el.srcObject !== stream) el.srcObject = stream;
+    if (effectiveStream) {
+      if (el.srcObject !== effectiveStream) el.srcObject = effectiveStream;
       if (el.paused) {
         el.play().catch((err) => {
           if (err?.name !== "AbortError") {
@@ -217,7 +220,7 @@ export const UserBoxMini = ({
     } else {
       if (el.srcObject) el.srcObject = null;
     }
-  }, [stream, isStreamOff, isHidden, user?._id, videoType]);
+  }, [effectiveStream, isStreamOff, isHidden, user?._id, videoType]);
 
   const handleDrag = (e, data) => {
     setIsDragging(true);
