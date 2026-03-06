@@ -1772,30 +1772,34 @@ const VideoCallUI = ({
     }
   }, [accountType, setIsModelOpen]);
   
-  // Start lesson countdown based on backend timer info (authoritative)
+  // Start lesson countdown based on backend timer info (authoritative).
+  // Prefer remainingSeconds from the server so we are not sensitive to client
+  // clock skew; we simply count down locally from the server-provided value.
   const startLessonTimer = useCallback(
-    ({ sessionId, startedAt, duration }) => {
-      if (!sessionId || !startedAt || !duration) return;
+    ({ sessionId, startedAt, duration, remainingSeconds }) => {
+      if (!sessionId || !duration) return;
 
       if (lessonTimerIntervalRef.current) {
         clearInterval(lessonTimerIntervalRef.current);
         lessonTimerIntervalRef.current = null;
       }
 
+      const initialRemaining =
+        typeof remainingSeconds === "number" && remainingSeconds >= 0
+          ? Math.floor(remainingSeconds)
+          : duration;
+      let currentRemaining = initialRemaining;
+
       const updateTimer = () => {
-        const currentTime = Date.now();
-
-        const elapsed = Math.floor((currentTime - startedAt) / 1000);
-        const remaining = Math.max(0, duration - elapsed);
-
+        currentRemaining = Math.max(0, currentRemaining - 1);
         setAuthoritativeTimer({
           sessionId,
           startedAt,
           duration,
-          remainingSeconds: remaining,
+          remainingSeconds: currentRemaining,
         });
 
-        if (remaining <= 0 && lessonTimerIntervalRef.current) {
+        if (currentRemaining <= 0 && lessonTimerIntervalRef.current) {
           clearInterval(lessonTimerIntervalRef.current);
           lessonTimerIntervalRef.current = null;
         }
@@ -1803,8 +1807,14 @@ const VideoCallUI = ({
 
       // Hide any "waiting" messages once the authoritative timer starts
       setDisplayMsg({ show: false, msg: "" });
-      updateTimer();
-            lessonTimerIntervalRef.current = setInterval(updateTimer, 1000);
+      // Initial state
+      setAuthoritativeTimer({
+        sessionId,
+        startedAt,
+        duration,
+        remainingSeconds: initialRemaining,
+      });
+      lessonTimerIntervalRef.current = setInterval(updateTimer, 1000);
     },
     []
   );
