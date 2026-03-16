@@ -63,8 +63,8 @@ const AuthGuard = ({ children }) => {
         // Handle dashboard redirect logic (existing functionality)
         if (isRedirectToDashboard) {
           if (pathName !== ROUTES.MEETING.path && pathName !== '/meeting') {
-            // Redirect authenticated users to dashboard home route
-            router.push('/dashboard/home');
+            // Restore legacy behavior: redirect to generic dashboard route
+            router.push(routingPaths.dashboard);
           }
         } else {
           dispatch(authAction.updateIsAuthModalOpen(false));

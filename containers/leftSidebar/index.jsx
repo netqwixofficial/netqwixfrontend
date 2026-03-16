@@ -472,36 +472,31 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
           style={(width1000 || topNavbarActiveTab === topNavbarOptions?.MEETING_ROOM) ? {} : { paddingTop: "0px" }}
         >
             {/* logo section */}
-            {(width1000 ||
-              topNavbarActiveTab === topNavbarOptions?.MEETING_ROOM) && (
-              <div className="logo-warpper">
-                <button
-                  id="Net"
-                  onClick={() => {
-                    // Logo click: go to dashboard home
-                    router.push("/dashboard/home");
-                    dispatch(
-                      authAction?.setTopNavbarActiveTab(topNavbarOptions?.HOME)
-                    );
-                  }}
-                  aria-label="Go to dashboard"
-                  style={{
-                    cursor: "pointer",
-                    border: "none",
-                    background: "none",
-                    padding: 0,
-                    margin: 0,
-                  }}
-                >
-                  <img
-                    src="/assets/images/logo/netquix-logo.png"
-                    alt="logo"
-                    className="custom-image"
-                    style={{ display: "block" }}
-                  />
-                </button>
-              </div>
-            )}
+            {(width1000 || topNavbarActiveTab === topNavbarOptions?.MEETING_ROOM) && <div className="logo-warpper">
+              <button
+                id="Net"
+                onClick={() => {
+                  // Restore original behavior: logo goes to generic dashboard
+                  router.push(routingPaths.dashboard);
+                  dispatch(authAction?.setTopNavbarActiveTab(topNavbarOptions?.HOME));
+                }}
+                aria-label="Go to dashboard"
+                style={{
+                  cursor: "pointer",
+                  border: "none",
+                  background: "none",
+                  padding: 0,
+                  margin: 0
+                }}
+              >
+                <img
+                  src="/assets/images/logo/netquix-logo.png"
+                  alt="logo"
+                  className="custom-image"
+                  style={{ display: "block" }}
+                />
+              </button>
+            </div>}
 
 
             <div className="app-list sidebar-main">
@@ -551,8 +546,6 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                     dispatch(
                       authAction?.setTopNavbarActiveTab(topNavbarOptions?.HOME)
                     );
-                    // Navigate to dashboard home route
-                    router.push("/dashboard/home");
                   }}
                 >
                   <NavLink
@@ -578,8 +571,6 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                           topNavbarOptions?.UPCOMING_SESSION
                         )
                       );
-                      // Navigate to Upcoming Sessions dashboard route
-                      router.push("/dashboard/upcoming-sessions");
                     }}
                   >
                     <NavLink
@@ -620,8 +611,6 @@ const Index = ({ openCloseToggleSideNav, setOpenCloseToggleSideNav }) => {
                           topNavbarOptions?.BOOK_LESSON
                         )
                       );
-                      // Navigate to Book Lesson dashboard route
-                      router.push("/dashboard/book-lesson");
                     }}
                   >
                     <NavLink

@@ -31,8 +31,8 @@ const AuthUserModal = () => {
             onClick={() => {
               dispatch(authAction.updateIsAuthModalOpen(false));
               dispatch(authAction.updateIsRedirectToDashboard(true));
-              // Default post-auth landing: dashboard home
-              router.push("/dashboard/home");
+              // Restore original behavior: go to generic dashboard route
+              router.push(routingPaths.dashboard);
             }}
         />
        </div>

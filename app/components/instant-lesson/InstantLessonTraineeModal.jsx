@@ -440,11 +440,9 @@ const InstantLessonTraineeModal = () => {
               localStorage.removeItem(STORAGE_KEY);
             }
             dispatch(instantLessonAction.clearTraineeFlow());
-            // Go directly to Upcoming Sessions dashboard route
-            dispatch(
-              authAction.setTopNavbarActiveTab(topNavbarOptions.UPCOMING_SESSION)
-            );
-            router.push("/dashboard/upcoming-sessions");
+            // Restore legacy behavior: go back to main dashboard,
+            // let existing tab logic drive which section is shown
+            router.push(routingPaths.dashboard);
             dispatch(getScheduledMeetingDetailsAsync({ status: "upcoming", forceRefresh: true }));
             toast.success(`${currentSelected} video(s) shared. You can see your session in Upcoming Sessions.`);
           } else {

@@ -56,11 +56,11 @@ const StripePaymentContent = ({
     setClips(null);
     setIsAddClipModalOpen(false);
     setShowTransactionModal(false);
-    // After booking/payment flow, go to Upcoming Sessions
-    router.push("/dashboard/upcoming-sessions");
+    // Legacy behavior: return to main dashboard, existing tab logic decides view
+    router.push(routingPaths.dashboard);
   };
   useEffect(() => {
-    if (window.location.pathname !== "/dashboard/upcoming-sessions") {
+    if (window.location.pathname !== routingPaths.dashboard) {
       if (newBookingData?._id) {
         getMyClips();
         setIsAddClipModalOpen(true);
@@ -69,7 +69,7 @@ const StripePaymentContent = ({
   }, [newBookingData]);
 
   useEffect(() => {
-    if (window.location.pathname !== "/dashboard/upcoming-sessions") {
+    if (window.location.pathname !== routingPaths.dashboard) {
       const sessionTrainer = scheduledMeetingDetails?.find(
         (data) => data?._id === newBookingData?._id
       );
@@ -105,7 +105,7 @@ const StripePaymentContent = ({
               <StripeCard
                 clientSecret={transaction?.intent?.result?.client_secret}
                 handlePaymentSuccess={ async () => {
-                  if (window.location.pathname === "/dashboard/upcoming-sessions") {
+                  if (window.location.pathname === routingPaths.dashboard) {
                     setShowTransactionModal(false);
                   }
                   const payload = {
