@@ -293,7 +293,7 @@ const BookingTable = ({
     if (
       isTokenExists &&
       Object.keys(userInfo).length !== 0 &&
-      window.location.pathname !== routingPaths.dashboard
+      window.location.pathname !== "/dashboard/book-lesson"
     ) {
       if (userInfo?.account_type === AccountType.TRAINEE) {
         dispatch(
@@ -310,7 +310,8 @@ const BookingTable = ({
         }, 2000);
 
         setTimeout(() => {
-          router.push(routingPaths.dashboard);
+          // If trainer somehow enters booking flow, send them back to dashboard home
+          router.push("/dashboard/home");
         }, 5000);
       }
     }
