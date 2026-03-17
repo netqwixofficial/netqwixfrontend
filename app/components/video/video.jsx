@@ -58,6 +58,7 @@ import ScreenShotDetails from "./screenshotDetails";
 import { FaLock, FaUnlock } from "react-icons/fa";
 import { useMediaQuery } from "../../hook/useMediaQuery";
 import PermissionModal from "./PermissionModal";
+import { Modal, ModalBody, ModalHeader } from "reactstrap";
 import { getInitials } from "../../../utils/videoCall";
 import Timer from "./Timer";
 import { isMobile } from 'react-device-detect';
@@ -240,6 +241,12 @@ export const HandleVideoCall = ({
   const [trainerConnected, setTrainerConnected] = useState(true);
   const [traineeConnected, setTraineeConnected] = useState(false);
   const [lessonStatusBanner, setLessonStatusBanner] = useState("");
+  const [showFiveMinuteWarning, setShowFiveMinuteWarning] = useState(false);
+  const [showOneMinuteWarning, setShowOneMinuteWarning] = useState(false);
+  const [hasShownFiveMinuteWarning, setHasShownFiveMinuteWarning] =
+    useState(false);
+  const [hasShownOneMinuteWarning, setHasShownOneMinuteWarning] =
+    useState(false);
 
   const errorHandling = (err) => toast.error(err);
   const [sketchPickerColor, setSketchPickerColor] = useState({
@@ -299,6 +306,10 @@ export const HandleVideoCall = ({
     });
     setLessonTimerStatus("running");
 
+    // Reset warning flags whenever we start/restart the lesson timer
+    setHasShownFiveMinuteWarning(false);
+    setHasShownOneMinuteWarning(false);
+
     // Initial display update
     const now = Date.now();
     const elapsed = Math.floor((now - startedAt) / 1000);
@@ -312,11 +323,43 @@ export const HandleVideoCall = ({
       const remainingSecondsLocal = Math.max(0, remainingAtStart - elapsedSeconds);
       setLessonTimeDisplay(formatRemainingTime(remainingSecondsLocal));
 
+      // Show warnings at 5 minutes and 1 minute remaining (only once each)
+      if (
+        remainingSecondsLocal <= 5 * 60 &&
+        remainingSecondsLocal > 4 * 60 &&
+        !hasShownFiveMinuteWarning
+      ) {
+        setShowFiveMinuteWarning(true);
+        setHasShownFiveMinuteWarning(true);
+        setTimeout(() => {
+          setShowFiveMinuteWarning(false);
+        }, 10000); // auto-close after 10 seconds
+      }
+
+      if (
+        remainingSecondsLocal <= 60 &&
+        remainingSecondsLocal > 0 &&
+        !hasShownOneMinuteWarning
+      ) {
+        setShowOneMinuteWarning(true);
+        setHasShownOneMinuteWarning(true);
+        setTimeout(() => {
+          setShowOneMinuteWarning(false);
+        }, 10000); // auto-close after 10 seconds
+      }
+
       if (remainingSecondsLocal <= 0) {
         clearLessonTimerInterval();
+        // Automatically end the session when timer reaches zero
+        setLessonTimerStatus("ended");
+        // Use existing cleanup logic to end the call/session
+        if (!isCallEnded) {
+          setIsCallEnded(true);
+          cleanupFunction();
+        }
       }
     }, 1000);
-  }, []);
+  }, [cleanupFunction, hasShownFiveMinuteWarning, hasShownOneMinuteWarning, isCallEnded]);
 
   // Keep a small banner in sync with timer + presence
   useEffect(() => {
@@ -3341,8 +3384,34 @@ useEffect(() => {
                     </p>
                   )}
                 </div>
-              </div>
-}
+              </div>}
+
+              {/* Lesson time warnings */}
+              <Modal
+                isOpen={showFiveMinuteWarning}
+                toggle={() => setShowFiveMinuteWarning(false)}
+                centered
+              >
+                <ModalHeader toggle={() => setShowFiveMinuteWarning(false)}>
+                  Session ending soon
+                </ModalHeader>
+                <ModalBody>
+                  Your session will end in approximately <strong>5 minutes</strong>.
+                </ModalBody>
+              </Modal>
+
+              <Modal
+                isOpen={showOneMinuteWarning}
+                toggle={() => setShowOneMinuteWarning(false)}
+                centered
+              >
+                <ModalHeader toggle={() => setShowOneMinuteWarning(false)}>
+                  Session ending very soon
+                </ModalHeader>
+                <ModalBody>
+                  Your session will end in approximately <strong>1 minute</strong>.
+                </ModalBody>
+              </Modal>
               {/* User Video 1 */}
 
               <div
@@ -4375,7 +4444,7 @@ useEffect(() => {
                 >
                   <h3>Time remaining</h3>
                   <h2 style={{ fontSize: "18px" }}>
-                    {lessonTimeDisplay || timeDifference}
+                    {lessonTimeDisplay || "--:--"}
                   </h2>
                   {lessonStatusBanner && (
                     <p style={{ fontSize: "12px", marginTop: "4px" }}>
