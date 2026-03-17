@@ -145,7 +145,7 @@ export const HandleVideoCall = ({
     accountType,
     session_end_time,
     toUser,
-    isTraineeJoined: false, // Will be set by video call hook
+    isTraineeJoined: false, // Timer now driven by backend lesson timer, not local flag
   });
 
   // Destructure state from hook
@@ -181,7 +181,6 @@ export const HandleVideoCall = ({
     width768,
     width900,
     width1000,
-    timeDifference, // legacy time difference based on session_end_time
     height,
     setSelectedClips,
     setIsMuted,
@@ -3334,7 +3333,7 @@ useEffect(() => {
                 >
                   <h3 style={{ fontSize: 'calc(14px + 2*(100vw - 320px) / 1600)' }}>Time remaining</h3>
                   <h2 style={{ fontSize: 'calc(14px + 2*(100vw - 320px) / 1600)' }}>
-                    {lessonTimeDisplay || timeDifference}
+                    {lessonTimeDisplay || "--:--"}
                   </h2>
                   {lessonStatusBanner && (
                     <p style={{ fontSize: '12px', marginTop: '4px' }}>

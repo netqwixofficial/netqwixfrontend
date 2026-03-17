@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useMediaQuery } from '../../../hook/useMediaQuery';
-import Timer from '../Timer';
 import { useAppSelector } from '../../../store';
 import { bookingsState } from '../../common/common.slice';
 import { AccountType } from '../../../common/constants';
@@ -48,12 +47,6 @@ export const useVideoState = ({
   const width768 = useMediaQuery(768);
   const width900 = useMediaQuery(900);
   const width1000 = useMediaQuery(1000);
-
-  // Timer (pass both so timer runs when both have joined)
-  const timeDifference = Timer({
-    session_end_time,
-    bothUsersJoined: isTraineeJoined,
-  });
 
   // Height for responsive calculations
   const height = typeof window !== 'undefined' ? window.innerHeight : 500;
@@ -142,7 +135,6 @@ export const useVideoState = ({
     width768,
     width900,
     width1000,
-    timeDifference,
     height,
 
     // Setters
