@@ -58,7 +58,6 @@ import ScreenShotDetails from "./screenshotDetails";
 import { FaLock, FaUnlock } from "react-icons/fa";
 import { useMediaQuery } from "../../hook/useMediaQuery";
 import PermissionModal from "./PermissionModal";
-import { Modal, ModalBody, ModalHeader } from "reactstrap";
 import { getInitials } from "../../../utils/videoCall";
 import Timer from "./Timer";
 import { isMobile } from 'react-device-detect';
