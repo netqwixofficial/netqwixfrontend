@@ -827,13 +827,27 @@ useEffect(() => {
       });
 
       peer.on("call", (call) => {
-        //  
         call.answer(stream);
         call.on("stream", (remoteStream) => {
-          //  
           setIsTraineeJoined(true);
           setDisplayMsg({ showMsg: false, msg: "" });
           setRemoteStream(remoteStream);
+
+          if (remoteVideoRef?.current) {
+            remoteVideoRef.current.srcObject = remoteStream;
+            if (remoteVideoRef.current.paused) {
+              remoteVideoRef.current
+                .play()
+                .catch((err) => {
+                  if (err?.name !== "AbortError") {
+                    console.warn(
+                      "[HandleVideoCall] Failed to play remote video element",
+                      err
+                    );
+                  }
+                });
+            }
+          }
         });
       });
 
@@ -863,11 +877,24 @@ useEffect(() => {
     if (!(videoRef && videoRef?.current)) return;
     let call = peer.call(peerId, videoRef?.current?.srcObject);
     call.on("stream", (remoteStream) => {
-      //  
       setDisplayMsg({ showMsg: false, msg: "" });
       setIsTraineeJoined(true);
-      remoteVideoRef.current.srcObject = remoteStream;
       setRemoteStream(remoteStream);
+      if (remoteVideoRef?.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
+        if (remoteVideoRef.current.paused) {
+          remoteVideoRef.current
+            .play()
+            .catch((err) => {
+              if (err?.name !== "AbortError") {
+                console.warn(
+                  "[HandleVideoCall] Failed to play remote video element (outgoing call)",
+                  err
+                );
+              }
+            });
+        }
+      }
       accountType === AccountType.TRAINEE ? setIsModelOpen(true) : null;
     });
     // })
