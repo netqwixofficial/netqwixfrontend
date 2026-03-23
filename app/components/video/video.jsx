@@ -131,6 +131,7 @@ export const HandleVideoCall = ({
   const canvasRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerRef = useRef(null);
+  const pendingPeerIdsRef = useRef([]);
   const selectedVideoRef1 = useRef(null);
   const selectedVideoRef2 = useRef(null);
   const progressBarRef = useRef(null);
@@ -360,6 +361,21 @@ export const HandleVideoCall = ({
     }, 1000);
   }, [cleanupFunction, hasShownFiveMinuteWarning, hasShownOneMinuteWarning, isCallEnded]);
 
+  const requestCoachTimerStart = useCallback(() => {
+    if (!socket || !id) return;
+    socket.emit("LESSON_TIMER_START_REQUEST", { sessionId: id });
+  }, [socket, id]);
+
+  const requestCoachTimerPause = useCallback(() => {
+    if (!socket || !id) return;
+    socket.emit("LESSON_TIMER_PAUSE_REQUEST", { sessionId: id });
+  }, [socket, id]);
+
+  const requestCoachTimerResume = useCallback(() => {
+    if (!socket || !id) return;
+    socket.emit("LESSON_TIMER_RESUME_REQUEST", { sessionId: id });
+  }, [socket, id]);
+
   // Keep a small banner in sync with timer + presence
   useEffect(() => {
     if (lessonTimerStatus === "waiting") {
@@ -507,12 +523,18 @@ export const HandleVideoCall = ({
       }
     };
 
+    const handleLessonTimerError = (data) => {
+      if (!data?.message) return;
+      toast.error(data.message);
+    };
+
     socket.on("LESSON_STATE_SYNC", handleStateSync);
     socket.on("TIMER_STARTED", handleTimerStarted);
     socket.on("LESSON_TIME_PAUSED", handleTimerPaused);
     socket.on("LESSON_TIME_RESUMED", handleTimerResumed);
     socket.on("LESSON_TIME_ENDED", handleTimerEnded);
     socket.on("PARTICIPANT_STATUS_CHANGED", handleParticipantStatusChanged);
+    socket.on("LESSON_TIMER_ERROR", handleLessonTimerError);
 
     return () => {
       clearLessonTimerInterval();
@@ -522,6 +544,7 @@ export const HandleVideoCall = ({
       socket.off("LESSON_TIME_RESUMED", handleTimerResumed);
       socket.off("LESSON_TIME_ENDED", handleTimerEnded);
       socket.off("PARTICIPANT_STATUS_CHANGED", handleParticipantStatusChanged);
+      socket.off("LESSON_TIMER_ERROR", handleLessonTimerError);
     };
   }, [socket, id, startLessonCountdown]);
 
@@ -778,6 +801,8 @@ useEffect(() => {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
+      // If ON_CALL_JOIN arrived early, connect now that local stream exists
+      flushPendingPeerConnections();
 
       // Create a new Peer instance
       // const peer = new Peer(fromUser._id, {
@@ -819,6 +844,8 @@ useEffect(() => {
             msg: 'Unable to connect to the server. Please refresh the page and try again.',
           });
         }
+        // Process any queued peer connections that arrived before local media/peer was ready
+        flushPendingPeerConnections();
       });
 
       peer.on("error", (error) => {
@@ -902,6 +929,20 @@ useEffect(() => {
     // });
   };
 
+  const flushPendingPeerConnections = () => {
+    if (!(peerRef && peerRef.current)) return;
+    if (!(videoRef && videoRef.current && videoRef.current.srcObject)) return;
+    if (!pendingPeerIdsRef.current.length) return;
+
+    const uniquePeerIds = [...new Set(pendingPeerIdsRef.current)];
+    pendingPeerIdsRef.current = [];
+    uniquePeerIds.forEach((pendingPeerId) => {
+      if (pendingPeerId && pendingPeerId !== fromUser?._id) {
+        connectToPeer(peerRef.current, pendingPeerId);
+      }
+    });
+  };
+
   const initializeLocalStates = () => {
     strikes = [];
     localVideoRef = null;
@@ -928,8 +969,22 @@ useEffect(() => {
       //   fromUser,
       //   toUser
       // );
-      const { to_user, from_user } = userInfo;
-      if (!(peerRef && peerRef.current)) return;
+      const { from_user } = userInfo || {};
+      if (!from_user) return;
+      // Avoid accidental self-call loops
+      if (from_user === fromUser?._id) return;
+
+      // If peer/local stream not ready yet, queue and connect when ready
+      const hasPeer = peerRef && peerRef.current;
+      const hasLocalStream =
+        videoRef &&
+        videoRef.current &&
+        videoRef.current.srcObject;
+      if (!hasPeer || !hasLocalStream) {
+        pendingPeerIdsRef.current.push(from_user);
+        return;
+      }
+
       connectToPeer(peerRef.current, from_user);
     });
 
@@ -3404,6 +3459,25 @@ useEffect(() => {
                   <h2 style={{ fontSize: 'calc(14px + 2*(100vw - 320px) / 1600)' }}>
                     {lessonTimeDisplay || "--:--"}
                   </h2>
+                  {accountType === AccountType.TRAINER && (
+                    <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
+                      {lessonTimerStatus === "waiting" && (
+                        <Button size="sm" color="success" onClick={requestCoachTimerStart}>
+                          Start Timer
+                        </Button>
+                      )}
+                      {lessonTimerStatus === "running" && (
+                        <Button size="sm" color="warning" onClick={requestCoachTimerPause}>
+                          Pause Timer
+                        </Button>
+                      )}
+                      {lessonTimerStatus === "paused" && (
+                        <Button size="sm" color="primary" onClick={requestCoachTimerResume}>
+                          Resume Timer
+                        </Button>
+                      )}
+                    </div>
+                  )}
                   {lessonStatusBanner && (
                     <p style={{ fontSize: '12px', marginTop: '4px' }}>
                       {lessonStatusBanner}
@@ -4472,6 +4546,25 @@ useEffect(() => {
                   <h2 style={{ fontSize: "18px" }}>
                     {lessonTimeDisplay || "--:--"}
                   </h2>
+                  {accountType === AccountType.TRAINER && (
+                    <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
+                      {lessonTimerStatus === "waiting" && (
+                        <Button size="sm" color="success" onClick={requestCoachTimerStart}>
+                          Start Timer
+                        </Button>
+                      )}
+                      {lessonTimerStatus === "running" && (
+                        <Button size="sm" color="warning" onClick={requestCoachTimerPause}>
+                          Pause Timer
+                        </Button>
+                      )}
+                      {lessonTimerStatus === "paused" && (
+                        <Button size="sm" color="primary" onClick={requestCoachTimerResume}>
+                          Resume Timer
+                        </Button>
+                      )}
+                    </div>
+                  )}
                   {lessonStatusBanner && (
                     <p style={{ fontSize: "12px", marginTop: "4px" }}>
                       {lessonStatusBanner}
