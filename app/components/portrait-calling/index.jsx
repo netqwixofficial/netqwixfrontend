@@ -172,6 +172,7 @@ const VideoCallUI = ({
   // Authoritative lesson timer (backend-driven)
   const lessonTimerIntervalRef = useRef(null);
   const [authoritativeTimer, setAuthoritativeTimer] = useState(null);
+  const [lessonTimerStatus, setLessonTimerStatus] = useState("waiting");
 
   const netquixVideos = [
     {
@@ -1819,6 +1820,21 @@ const VideoCallUI = ({
     []
   );
 
+  const requestCoachTimerStart = useCallback(() => {
+    if (!socket || !id) return;
+    socket.emit("LESSON_TIMER_START_REQUEST", { sessionId: id });
+  }, [socket, id]);
+
+  const requestCoachTimerPause = useCallback(() => {
+    if (!socket || !id) return;
+    socket.emit("LESSON_TIMER_PAUSE_REQUEST", { sessionId: id });
+  }, [socket, id]);
+
+  const requestCoachTimerResume = useCallback(() => {
+    if (!socket || !id) return;
+    socket.emit("LESSON_TIMER_RESUME_REQUEST", { sessionId: id });
+  }, [socket, id]);
+
   useEffect(() => {
     if (!socket) return;
 
@@ -1856,37 +1872,110 @@ const VideoCallUI = ({
     };
   }, [socket, accountType, time_zone]);
 
+  // TIMER_STARTED and other timer state events are handled in the
+  // unified lesson timer sync effect below.
+
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !id) return;
 
-    const handleTimerStarted = (timerData) => {
-      const { sessionId, startedAt, duration } = timerData || {};
+    const handleLessonStateSync = (state) => {
+      if (!state || String(state.sessionId) !== String(id)) return;
 
-      if (id == null || sessionId == null || String(sessionId) !== String(id)) return;
+      const { status, startedAt, duration, remainingSeconds } = state;
+      setLessonTimerStatus(status || "waiting");
 
-      console.log("[VideoCallUI] Received TIMER_STARTED event", {
-        sessionId,
-        startedAt,
-        duration,
-        currentBothUsersJoined: bothUsersJoined
-      });
-
-      // Backend has started the authoritative lesson timer for this session.
-      // Treat this as confirmation that both users are in the call so we can
-      // safely clear any "waiting for both users" banners and allow timers/UI
-      // (including clip mode overlays) to start.
-      setBothUsersJoined(true);
-      setDisplayMsg({ show: false, msg: "" });
-
-      startLessonTimer({ sessionId, startedAt, duration });
+      if (status === "running" && startedAt && duration) {
+        startLessonTimer({ sessionId: id, startedAt, duration, remainingSeconds });
+      } else if (status === "paused") {
+        if (lessonTimerIntervalRef.current) {
+          clearInterval(lessonTimerIntervalRef.current);
+          lessonTimerIntervalRef.current = null;
+        }
+        setAuthoritativeTimer({
+          sessionId: id,
+          startedAt: null,
+          duration: duration || remainingSeconds || 0,
+          remainingSeconds: Math.max(0, Math.floor(remainingSeconds || 0)),
+        });
+      } else if (status === "ended") {
+        if (lessonTimerIntervalRef.current) {
+          clearInterval(lessonTimerIntervalRef.current);
+          lessonTimerIntervalRef.current = null;
+        }
+        setAuthoritativeTimer({
+          sessionId: id,
+          startedAt: null,
+          duration: duration || 0,
+          remainingSeconds: 0,
+        });
+      }
     };
 
+    const handleTimerStarted = (data) => {
+      if (!data || String(data.sessionId) !== String(id)) return;
+      setLessonTimerStatus("running");
+    };
+
+    const handleTimerPaused = (data) => {
+      if (!data || String(data.sessionId) !== String(id)) return;
+      setLessonTimerStatus("paused");
+      if (lessonTimerIntervalRef.current) {
+        clearInterval(lessonTimerIntervalRef.current);
+        lessonTimerIntervalRef.current = null;
+      }
+      setAuthoritativeTimer((prev) => ({
+        sessionId: id,
+        startedAt: null,
+        duration: prev?.duration || data.duration || 0,
+        remainingSeconds: Math.max(0, Math.floor(data.remainingSeconds || 0)),
+      }));
+    };
+
+    const handleTimerResumed = (data) => {
+      if (!data || String(data.sessionId) !== String(id)) return;
+      setLessonTimerStatus("running");
+      startLessonTimer({
+        sessionId: id,
+        startedAt: data.startedAt,
+        duration: data.duration,
+        remainingSeconds: data.remainingSeconds,
+      });
+    };
+
+    const handleTimerEnded = (data) => {
+      if (!data || String(data.sessionId) !== String(id)) return;
+      setLessonTimerStatus("ended");
+      if (lessonTimerIntervalRef.current) {
+        clearInterval(lessonTimerIntervalRef.current);
+        lessonTimerIntervalRef.current = null;
+      }
+      setAuthoritativeTimer((prev) => ({
+        sessionId: id,
+        startedAt: null,
+        duration: prev?.duration || 0,
+        remainingSeconds: 0,
+      }));
+    };
+
+    const handleTimerError = (data) => {
+      if (data?.message) toast.error(data.message);
+    };
+
+    socket.emit("LESSON_STATE_REQUEST", { sessionId: id });
+    socket.on("LESSON_STATE_SYNC", handleLessonStateSync);
     socket.on("TIMER_STARTED", handleTimerStarted);
+    socket.on("LESSON_TIME_PAUSED", handleTimerPaused);
+    socket.on("LESSON_TIME_RESUMED", handleTimerResumed);
+    socket.on("LESSON_TIME_ENDED", handleTimerEnded);
+    socket.on("LESSON_TIMER_ERROR", handleTimerError);
 
     return () => {
-      if (socket) {
-        socket.off("TIMER_STARTED", handleTimerStarted);
-      }
+      socket.off("LESSON_STATE_SYNC", handleLessonStateSync);
+      socket.off("TIMER_STARTED", handleTimerStarted);
+      socket.off("LESSON_TIME_PAUSED", handleTimerPaused);
+      socket.off("LESSON_TIME_RESUMED", handleTimerResumed);
+      socket.off("LESSON_TIME_ENDED", handleTimerEnded);
+      socket.off("LESSON_TIMER_ERROR", handleTimerError);
     };
   }, [socket, id, startLessonTimer]);
 
@@ -2348,6 +2437,10 @@ const VideoCallUI = ({
           timeRemaining={timeRemaining}
           bothUsersJoined={bothUsersJoined}
           bufferSecondsRemaining={null}
+          lessonTimerStatus={lessonTimerStatus}
+          onStartTimer={requestCoachTimerStart}
+          onPauseTimer={requestCoachTimerPause}
+          onResumeTimer={requestCoachTimerResume}
           isMaximized={isMaximized}
           setIsMaximized={setIsMaximized}
           selectedClips={selectedClips}
@@ -2379,6 +2472,10 @@ const VideoCallUI = ({
           timeRemaining={timeRemaining}
           bothUsersJoined={bothUsersJoined}
           bufferSecondsRemaining={null}
+          lessonTimerStatus={lessonTimerStatus}
+          onStartTimer={requestCoachTimerStart}
+          onPauseTimer={requestCoachTimerPause}
+          onResumeTimer={requestCoachTimerResume}
           selectedUser={selectedUser}
           setSelectedUser={setSelectedUser}
           localVideoRef={localVideoRef}

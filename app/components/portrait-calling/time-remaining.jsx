@@ -14,7 +14,16 @@ const formatSecondsToMMSS = (seconds) => {
   return `${mm}:${ss}`;
 };
 
-const TimeRemaining = ({ timeRemaining, bothUsersJoined = false, bufferSecondsRemaining = null }) => {
+const TimeRemaining = ({
+  timeRemaining,
+  bothUsersJoined = false,
+  bufferSecondsRemaining = null,
+  showCoachControls = false,
+  lessonTimerStatus = "waiting",
+  onStartTimer,
+  onPauseTimer,
+  onResumeTimer,
+}) => {
   const [timerColor, setTimerColor] = useState("#28a745"); // default green
   const [showFiveMinPopup, setShowFiveMinPopup] = useState(false);
   const [showThirtySecPopup, setShowThirtySecPopup] = useState(false);
@@ -244,6 +253,61 @@ const TimeRemaining = ({ timeRemaining, bothUsersJoined = false, bufferSecondsRe
         >
           {displayTime}
         </h3>
+        {showCoachControls && (
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            {lessonTimerStatus === "waiting" && (
+              <button
+                type="button"
+                onClick={onStartTimer}
+                style={{
+                  border: "none",
+                  borderRadius: "14px",
+                  padding: "4px 10px",
+                  cursor: "pointer",
+                  background: "#28a745",
+                  color: "#fff",
+                  fontWeight: 600,
+                }}
+              >
+                Play
+              </button>
+            )}
+            {lessonTimerStatus === "running" && (
+              <button
+                type="button"
+                onClick={onPauseTimer}
+                style={{
+                  border: "none",
+                  borderRadius: "14px",
+                  padding: "4px 10px",
+                  cursor: "pointer",
+                  background: "#ff9800",
+                  color: "#fff",
+                  fontWeight: 600,
+                }}
+              >
+                Pause
+              </button>
+            )}
+            {lessonTimerStatus === "paused" && (
+              <button
+                type="button"
+                onClick={onResumeTimer}
+                style={{
+                  border: "none",
+                  borderRadius: "14px",
+                  padding: "4px 10px",
+                  cursor: "pointer",
+                  background: "#1e88e5",
+                  color: "#fff",
+                  fontWeight: 600,
+                }}
+              >
+                Resume
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {showFiveMinPopup && (

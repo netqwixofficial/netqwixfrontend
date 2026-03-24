@@ -1449,6 +1449,10 @@ const ClipModeCall = ({
   timeRemaining,
   bothUsersJoined = false,
   bufferSecondsRemaining = null,
+  lessonTimerStatus = "waiting",
+  onStartTimer,
+  onPauseTimer,
+  onResumeTimer,
   isMaximized,
   setIsMaximized,
   selectedClips,
@@ -2679,6 +2683,11 @@ const ClipModeCall = ({
             timeRemaining={timeRemaining}
             bothUsersJoined={bothUsersJoined}
             bufferSecondsRemaining={bufferSecondsRemaining}
+            showCoachControls={accountType === AccountType.TRAINER}
+            lessonTimerStatus={lessonTimerStatus}
+            onStartTimer={onStartTimer}
+            onPauseTimer={onPauseTimer}
+            onResumeTimer={onResumeTimer}
           />
         )}
       </div>
