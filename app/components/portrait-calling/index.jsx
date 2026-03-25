@@ -1785,14 +1785,23 @@ const VideoCallUI = ({
         lessonTimerIntervalRef.current = null;
       }
 
-      const initialRemaining =
+      const remainingAtStart =
         typeof remainingSeconds === "number" && remainingSeconds >= 0
           ? Math.floor(remainingSeconds)
-          : duration;
-      let currentRemaining = initialRemaining;
+          : Math.floor(duration);
+
+      // Initial paint immediately (based on authoritative backend time)
+      const now = Date.now();
+      const elapsed = startedAt ? Math.floor((now - startedAt) / 1000) : 0;
+      const initialRemaining = Math.max(0, remainingAtStart - elapsed);
 
       const updateTimer = () => {
-        currentRemaining = Math.max(0, currentRemaining - 1);
+        const current = Date.now();
+        const elapsedSeconds = startedAt
+          ? Math.floor((current - startedAt) / 1000)
+          : 0;
+        const currentRemaining = Math.max(0, remainingAtStart - elapsedSeconds);
+
         setAuthoritativeTimer({
           sessionId,
           startedAt,
@@ -1881,7 +1890,18 @@ const VideoCallUI = ({
     const handleLessonStateSync = (state) => {
       if (!state || String(state.sessionId) !== String(id)) return;
 
-      const { status, startedAt, duration, remainingSeconds } = state;
+      const {
+        status,
+        startedAt,
+        duration,
+        remainingSeconds,
+        trainerConnected,
+        traineeConnected,
+      } = state;
+
+      // Use backend presence flags as the source of truth for "both joined".
+      // This avoids relying on ON_BOTH_JOIN, which can be missed depending on routing.
+      setBothUsersJoined(!!trainerConnected && !!traineeConnected);
       setLessonTimerStatus(status || "waiting");
 
       if (status === "running" && startedAt && duration) {

@@ -258,7 +258,11 @@ const TimeRemaining = ({
             {lessonTimerStatus === "waiting" && (
               <button
                 type="button"
-                onClick={onStartTimer}
+                onClick={() => {
+                  if (!bothUsersJoined || bufferSecondsRemaining != null) return;
+                  onStartTimer?.();
+                }}
+                disabled={!bothUsersJoined || bufferSecondsRemaining != null}
                 style={{
                   border: "none",
                   borderRadius: "14px",
@@ -267,6 +271,8 @@ const TimeRemaining = ({
                   background: "#28a745",
                   color: "#fff",
                   fontWeight: 600,
+                  opacity: !bothUsersJoined || bufferSecondsRemaining != null ? 0.5 : 1,
+                  cursor: !bothUsersJoined || bufferSecondsRemaining != null ? "not-allowed" : "pointer",
                 }}
               >
                 Play
@@ -275,7 +281,7 @@ const TimeRemaining = ({
             {lessonTimerStatus === "running" && (
               <button
                 type="button"
-                onClick={onPauseTimer}
+                onClick={() => onPauseTimer?.()}
                 style={{
                   border: "none",
                   borderRadius: "14px",
@@ -292,7 +298,7 @@ const TimeRemaining = ({
             {lessonTimerStatus === "paused" && (
               <button
                 type="button"
-                onClick={onResumeTimer}
+                onClick={() => onResumeTimer?.()}
                 style={{
                   border: "none",
                   borderRadius: "14px",
