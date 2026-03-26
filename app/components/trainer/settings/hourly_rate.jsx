@@ -28,7 +28,11 @@ export const UpdateHourlyRateForm = ({ userInfo, onFormSubmit, extraInfo }) => {
         });
       }
     }
-  }, [userInfo]);
+    // Important: only re-sync the form when the actual hourly_rate value changes.
+    // If we depend on the whole `userInfo` object, we can re-apply the old rate
+    // while the user is trying to clear the input, which makes it look like
+    // "1 0" never gets removed.
+  }, [userInfo?.extraInfo?.hourly_rate]);
 
   const validationSchema = Yup.object().shape({
     hourly_rate: Yup.number()
