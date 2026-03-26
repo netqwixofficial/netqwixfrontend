@@ -50,11 +50,19 @@ const TimeRemaining = ({
     setShowThirtySecPopup(false);
     lastRemainingSecondsRef.current = null;
 
-    // Not both joined: show waiting message only
+    // If timer isn't available yet, show waiting message.
+    // If backend already provided `timeRemaining` (number seconds), we
+    // should keep showing countdown even before `bothUsersJoined` flips true.
     if (!bothUsersJoined) {
-      setTimerColor("#6c757d"); // muted grey while waiting
-      setDisplayTime("Waiting for both users...");
-      return;
+      const hasNumericSeconds = typeof timeRemaining === "number" && !Number.isNaN(timeRemaining);
+      const hasHHmmEndTime =
+        typeof timeRemaining === "string" && timeRemaining.includes(":");
+
+      if (!hasNumericSeconds && !hasHHmmEndTime) {
+        setTimerColor("#6c757d"); // muted grey while waiting
+        setDisplayTime("Waiting for both users...");
+        return;
+      }
     }
 
     // Both joined but 15s buffer not elapsed: show "Session starting in X seconds..."

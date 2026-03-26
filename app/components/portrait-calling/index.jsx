@@ -2287,7 +2287,11 @@ const VideoCallUI = ({
   // authoritative backend timer (TIMER_STARTED). When authoritativeTimer
   // is present, we use that instead.
   useEffect(() => {
-    if (!bothUsersJoined) {
+    // If backend timer isn't running yet and both users haven't joined,
+    // we keep the timer hidden (waiting state). If backend timer exists,
+    // don't clear it just because `bothUsersJoined` is still false; this
+    // prevents showing late/incorrect remaining time.
+    if (!bothUsersJoined && authoritativeTimer?.remainingSeconds == null) {
       setTimeRemaining(null);
       return;
     }
