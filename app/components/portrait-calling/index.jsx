@@ -1022,9 +1022,9 @@ const VideoCallUI = ({
     }
   }, [bothUsersJoined]);
 
-  // Buffer: only allow the timer UI to start after both joined + 60 seconds.
+  // Buffer: only allow the timer UI to start after both joined + 30 seconds.
   // This prevents the "time already decreased" issue when the backend starts a bit later.
-  const TIMER_BUFFER_SECONDS = 60;
+  const TIMER_BUFFER_SECONDS = 30;
   useEffect(() => {
     if (!bothUsersJoined) return;
     const t = setTimeout(() => setTimerBufferElapsed(true), TIMER_BUFFER_SECONDS * 1000);
@@ -2086,7 +2086,12 @@ const VideoCallUI = ({
       peerRef.current?.signal(candidate);
     };
 
-    const handleStopFeed = ({ feedStatus }) => {
+    const handleStopFeed = ({ feedStatus, userInfo }) => {
+      // Only apply remote feed status when event comes from the other participant.
+      // Ignore echoed self-events so we don't incorrectly hide the remote user box.
+      if (!userInfo?.from_user || String(userInfo.from_user) !== String(toUser?._id)) {
+        return;
+      }
       setIsRemoteStreamOff(feedStatus);
     };
 

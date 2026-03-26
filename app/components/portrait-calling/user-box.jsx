@@ -27,16 +27,14 @@ export const UserBox = ({
   const containerRef = useRef(null);
   // Internal ref so this instance always attaches stream to its own <video> (parent may share one ref across multiple boxes)
   const videoElRef = useRef(null);
-  // If parent has already attached a stream to the shared ref, use it as a fallback
-  const effectiveStream = stream || (videoRef && videoRef.current && videoRef.current.srcObject) || null;
+  const effectiveStream = stream || null;
 
   const setVideoRef = useCallback(
     (node) => {
       videoElRef.current = node;
-      if (videoRef) videoRef.current = node;
       if (node && effectiveStream) node.srcObject = effectiveStream;
     },
-    [effectiveStream, videoRef]
+    [effectiveStream]
   );
   useEffect(() => {
     const el = videoElRef.current;
@@ -185,7 +183,7 @@ export const UserBoxMini = ({
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
   const videoElRef = useRef(null);
-  const effectiveStream = stream || (videoRef && videoRef.current && videoRef.current.srcObject) || null;
+  const effectiveStream = stream || null;
 
   const handleBoxClick = useCallback(() => {
     if (onClick && id && !isDragging) {
@@ -198,10 +196,9 @@ export const UserBoxMini = ({
   const setVideoRef = useCallback(
     (node) => {
       videoElRef.current = node;
-      if (videoRef) videoRef.current = node;
       if (node && effectiveStream) node.srcObject = effectiveStream;
     },
-    [effectiveStream, videoRef]
+    [effectiveStream]
   );
 
   useEffect(() => {
