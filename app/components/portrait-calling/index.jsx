@@ -1022,8 +1022,9 @@ const VideoCallUI = ({
     }
   }, [bothUsersJoined]);
 
-  // 15s buffer: only allow timer to run after both joined + 15 seconds
-  const TIMER_BUFFER_SECONDS = 15;
+  // Buffer: only allow the timer UI to start after both joined + 60 seconds.
+  // This prevents the "time already decreased" issue when the backend starts a bit later.
+  const TIMER_BUFFER_SECONDS = 60;
   useEffect(() => {
     if (!bothUsersJoined) return;
     const t = setTimeout(() => setTimerBufferElapsed(true), TIMER_BUFFER_SECONDS * 1000);
@@ -1613,8 +1614,9 @@ const VideoCallUI = ({
         });
       }
       if (accountType === AccountType.TRAINEE) setIsModelOpen(true);
-    } else if (remoteVideoRef.current.srcObject) {
-      remoteVideoRef.current.srcObject = null;
+    } else {
+      // Avoid clearing srcObject immediately when remoteStream is temporarily null.
+      // UserBox components handle rendering based on isStreamOff and their own sync.
     }
   }, [remoteStream, accountType]);
 
@@ -2301,40 +2303,70 @@ const VideoCallUI = ({
       return;
     }
 
-    if (typeof sessionEndTime !== "string" || !sessionEndTime.includes(":")) {
-      // No valid end time to derive from; leave timeRemaining as-is.
+    // Don't show a countdown during the buffer window.
+    if (!timerBufferElapsed) {
+      setTimeRemaining(null);
       return;
     }
 
-    const [endHours, endMinutes] = sessionEndTime.split(":").map(Number);
-    if (
-      Number.isNaN(endHours) ||
-      Number.isNaN(endMinutes) ||
-      endHours < 0 ||
-      endHours > 23 ||
-      endMinutes < 0 ||
-      endMinutes > 59
-    ) {
-      return;
-    }
-
-    const computeEndTime = () => {
-      const now = new Date();
-      return new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate(),
-        endHours,
-        endMinutes
-      );
+    const parseHHMMToMinutes = (value) => {
+      if (typeof value !== "string") return null;
+      // Strictly match "HH:MM" (no ISO datetime strings).
+      const match = value.match(/^(\d{1,2}):(\d{2})$/);
+      if (!match) return null;
+      const h = Number(match[1]);
+      const m = Number(match[2]);
+      if (Number.isNaN(h) || Number.isNaN(m)) return null;
+      if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+      return h * 60 + m;
     };
 
-    let endTime = computeEndTime();
+    const timerStartAtMs =
+      (bothUsersJoinedAtRef.current ?? Date.now()) +
+      TIMER_BUFFER_SECONDS * 1000;
+
+    // Derive the lesson duration from the selected session start/end.
+    // Then start the countdown at (bothUsersJoined + buffer).
+    let durationSeconds = null;
+
+    const startMinutes = parseHHMMToMinutes(session_start_time);
+    const endMinutes = parseHHMMToMinutes(session_end_time);
+    if (startMinutes != null && endMinutes != null) {
+      let durationMinutes = endMinutes - startMinutes;
+      if (durationMinutes < 0) durationMinutes += 24 * 60;
+      durationSeconds = Math.max(0, Math.floor(durationMinutes * 60));
+    } else if (typeof sessionEndTime === "string" && sessionEndTime.includes(":")) {
+      // Fallback: derive remaining duration from sessionEndTime relative to the buffer start.
+      const endMinutesLocal = parseHHMMToMinutes(sessionEndTime);
+      if (endMinutesLocal != null) {
+        const endHours = Math.floor(endMinutesLocal / 60);
+        const endMins = endMinutesLocal % 60;
+        const now = new Date(timerStartAtMs);
+        const endTime = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          endHours,
+          endMins
+        );
+        durationSeconds = Math.max(
+          0,
+          Math.floor((endTime.getTime() - timerStartAtMs) / 1000)
+        );
+      }
+    }
+
+    if (!durationSeconds) return;
 
     const updateRemaining = () => {
-      const now = new Date();
-      const diffMs = endTime.getTime() - now.getTime();
-      const remainingSeconds = Math.max(0, Math.floor(diffMs / 1000));
+      const elapsedSeconds = Math.floor(
+        (Date.now() - timerStartAtMs) / 1000
+      );
+      // Clamp so it never goes above the original duration.
+      const remainingSeconds = Math.max(
+        0,
+        Math.min(durationSeconds, durationSeconds - elapsedSeconds)
+      );
       setTimeRemaining(remainingSeconds);
     };
 
@@ -2344,7 +2376,13 @@ const VideoCallUI = ({
     return () => {
       clearInterval(intervalId);
     };
-  }, [sessionEndTime, bothUsersJoined, authoritativeTimer?.remainingSeconds]);
+  }, [
+    session_start_time,
+    session_end_time,
+    bothUsersJoined,
+    timerBufferElapsed,
+    authoritativeTimer?.remainingSeconds,
+  ]);
 
   // Use authoritative timer (from TIMER_STARTED) for countdown when available, so both trainer and trainee see the timer
   useEffect(() => {
@@ -2460,7 +2498,12 @@ const VideoCallUI = ({
           sessionId={id}
           timeRemaining={timeRemaining}
           bothUsersJoined={bothUsersJoined}
-          bufferSecondsRemaining={null}
+          bufferSecondsRemaining={
+            lessonTimerStatus === "waiting" &&
+            authoritativeTimer?.remainingSeconds == null
+              ? bufferCountdown
+              : null
+          }
           lessonTimerStatus={lessonTimerStatus}
           onStartTimer={requestCoachTimerStart}
           onPauseTimer={requestCoachTimerPause}
@@ -2495,7 +2538,12 @@ const VideoCallUI = ({
         <OneOnOneCall
           timeRemaining={timeRemaining}
           bothUsersJoined={bothUsersJoined}
-          bufferSecondsRemaining={null}
+          bufferSecondsRemaining={
+            lessonTimerStatus === "waiting" &&
+            authoritativeTimer?.remainingSeconds == null
+              ? bufferCountdown
+              : null
+          }
           lessonTimerStatus={lessonTimerStatus}
           onStartTimer={requestCoachTimerStart}
           onPauseTimer={requestCoachTimerPause}
