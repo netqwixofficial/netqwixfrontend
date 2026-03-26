@@ -24,7 +24,10 @@ export const UpdateHourlyRateForm = ({ userInfo, onFormSubmit, extraInfo }) => {
       if (formRef && formRef.current) {
         formRef.current.setValues({
           // by default it's TRAINER_AMOUNT_USD
-          hourly_rate: +userInfo.extraInfo?.hourly_rate || TRAINER_AMOUNT_USD,
+          hourly_rate:
+            userInfo?.extraInfo?.hourly_rate != null
+              ? String(userInfo.extraInfo.hourly_rate)
+              : String(TRAINER_AMOUNT_USD),
         });
       }
     }
@@ -36,6 +39,9 @@ export const UpdateHourlyRateForm = ({ userInfo, onFormSubmit, extraInfo }) => {
 
   const validationSchema = Yup.object().shape({
     hourly_rate: Yup.number()
+      .transform((value, originalValue) =>
+        originalValue === "" || originalValue == null ? null : value
+      )
       .min(MINIMUM_RATE, `Hourly rate must be at least ${MINIMUM_RATE}`)
       .max(MAXIMUM_RATE, `Hourly rate must not exceed ${MAXIMUM_RATE}`)
       .required("This field is required")
@@ -47,7 +53,15 @@ export const UpdateHourlyRateForm = ({ userInfo, onFormSubmit, extraInfo }) => {
       innerRef={formRef}
       initialValues={initialValues}
       validationSchema={validationSchema}
-      onSubmit={onFormSubmit}
+      onSubmit={(values) =>
+        onFormSubmit({
+          ...values,
+          hourly_rate:
+            values.hourly_rate === "" || values.hourly_rate == null
+              ? null
+              : Number(values.hourly_rate),
+        })
+      }
     >
       {({
         values,
@@ -70,13 +84,17 @@ export const UpdateHourlyRateForm = ({ userInfo, onFormSubmit, extraInfo }) => {
                   <input
                     onChange={(event) => {
                       const { value } = event.target;
+                      // Keep as raw string while typing so user can fully clear field.
+                      // Only allow digits (prevents NaN/partial number edge cases).
+                      if (!/^\d*$/.test(value)) return;
                       setValues({
                         ...values,
-                        hourly_rate: value ? +value : null,
+                        hourly_rate: value,
                       });
                     }}
-                    value={values.hourly_rate || ""}
-                    type="number"
+                    value={values.hourly_rate ?? ""}
+                    type="text"
+                    inputMode="numeric"
                     placeholder="Hourly rate"
                     onBlur={handleBlur}
                     className={`form-control mt-1 ${
@@ -107,7 +125,7 @@ export const UpdateHourlyRateForm = ({ userInfo, onFormSubmit, extraInfo }) => {
                 disabled={
                   !isValid ||
                   !values.hourly_rate ||
-                  +extraInfo?.hourly_rate === values.hourly_rate
+                  +extraInfo?.hourly_rate === Number(values.hourly_rate)
                 }
               >
                 Save
