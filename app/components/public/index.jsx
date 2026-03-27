@@ -856,7 +856,10 @@ const TrainerInfo = ({
             </h2>
             <h3 className="mt-3">
               Hourly Rate: $
-              {trainer?.extraInfo?.hourly_rate || TRAINER_AMOUNT_USD}
+              {trainer?.extraInfo?.hourly_rate != null &&
+              trainer?.extraInfo?.hourly_rate !== ""
+                ? trainer.extraInfo.hourly_rate
+                : ""}
             </h3>
             {showRatings(
               trainer && trainer.trainer_ratings,

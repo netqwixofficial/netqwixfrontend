@@ -232,7 +232,7 @@ const UserInfoCard = () => {
                 {isEditing ? (
                   <input
                     type="number"
-                    value={profile?.extraInfo?.hourly_rate || 0}
+                    value={profile?.extraInfo?.hourly_rate ?? ""}
                     onChange={handleRateChange}
                     onBlur={(e) => {
                       e.target.style.borderColor = "#000080";
@@ -257,7 +257,10 @@ const UserInfoCard = () => {
                   />
                 ) : (
                   <span style={{ color: "#000080", fontWeight: "700", fontSize: width600 ? "15px" : "17px" }}>
-                    {profile?.extraInfo?.hourly_rate || 0}
+                    {profile?.extraInfo?.hourly_rate != null &&
+                    profile?.extraInfo?.hourly_rate !== ""
+                      ? profile.extraInfo.hourly_rate
+                      : ""}
                   </span>
                 )}
               </h5>

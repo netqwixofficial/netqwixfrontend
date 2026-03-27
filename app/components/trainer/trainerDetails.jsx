@@ -598,7 +598,11 @@ const TrainerSessionInfo = ({
                   fontWeight: "500",
                   color: "#000080",
                 }}>
-                  Hourly Rate: ${trainer?.extraInfo?.hourly_rate || TRAINER_AMOUNT_USD}
+                  Hourly Rate: $
+                  {trainer?.extraInfo?.hourly_rate != null &&
+                  trainer?.extraInfo?.hourly_rate !== ""
+                    ? trainer.extraInfo.hourly_rate
+                    : ""}
                 </h3>
               </div>
               <div style={{ marginTop: isMobileScreen ? "12px" : "15px", display: "flex", justifyContent: "center" }}>
