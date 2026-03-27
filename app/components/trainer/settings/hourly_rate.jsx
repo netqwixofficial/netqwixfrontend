@@ -74,6 +74,10 @@ export const UpdateHourlyRateForm = ({ userInfo, onFormSubmit, extraInfo }) => {
         isValid,
         handleChange,
       }) => (
+        (() => {
+          const hourlyRateValue =
+            values.hourly_rate == null ? "" : String(values.hourly_rate);
+          return (
         <Form onSubmit={handleSubmit}>
           <div className="container mb-3">
             {/* hourly_rate */}
@@ -87,12 +91,9 @@ export const UpdateHourlyRateForm = ({ userInfo, onFormSubmit, extraInfo }) => {
                       // Keep as raw string while typing so user can fully clear field.
                       // Only allow digits (prevents NaN/partial number edge cases).
                       if (!/^\d*$/.test(value)) return;
-                      setValues({
-                        ...values,
-                        hourly_rate: value,
-                      });
+                      setFieldValue("hourly_rate", value, false);
                     }}
-                    value={values.hourly_rate ?? ""}
+                    value={hourlyRateValue}
                     type="text"
                     inputMode="numeric"
                     placeholder="Hourly rate"
@@ -133,6 +134,8 @@ export const UpdateHourlyRateForm = ({ userInfo, onFormSubmit, extraInfo }) => {
             </div>
           </div>
         </Form>
+          );
+        })()
       )}
     </Formik>
   );
