@@ -23,11 +23,11 @@ export const UpdateHourlyRateForm = ({ userInfo, onFormSubmit, extraInfo }) => {
     if (userInfo) {
       if (formRef && formRef.current) {
         formRef.current.setValues({
-          // by default it's TRAINER_AMOUNT_USD
+          // Keep hourly rate truly empty when backend value is null/undefined.
           hourly_rate:
             userInfo?.extraInfo?.hourly_rate != null
               ? String(userInfo.extraInfo.hourly_rate)
-              : String(TRAINER_AMOUNT_USD),
+              : "",
         });
       }
     }
@@ -125,7 +125,7 @@ export const UpdateHourlyRateForm = ({ userInfo, onFormSubmit, extraInfo }) => {
                 disabled={
                   !isValid ||
                   !values.hourly_rate ||
-                  +extraInfo?.hourly_rate === Number(values.hourly_rate)
+                  Number(extraInfo?.hourly_rate ?? "") === Number(values.hourly_rate)
                 }
               >
                 Save
