@@ -154,20 +154,17 @@ const VideoCallUI = ({
   const [isSessionExtended, setIsSessionExtended] = useState(false);
   // Session end time in HH:MM (authoritative end-time based on booking/extension)
   const [sessionEndTime, setSessionEndTime] = useState(null);
-  const [showGracePeriodModal, setShowGracePeriodModal] = useState(false);
   const [showSessionEndedModal, setShowSessionEndedModal] = useState(false);
-  const [show30SecondWarning, setShow30SecondWarning] = useState(false);
-  const [countdownMessage, setCountdownMessage] = useState("");
-  const [remainingSeconds, setRemainingSeconds] = useState(30);
-  const gracePeriodModalDismissedRef = useRef(false);
-  const sessionEndedModalDismissedRef = useRef(false);
-  const warning30SecondIntervalRef = useRef(null);
+  const [showFiveMinuteWarning, setShowFiveMinuteWarning] = useState(false);
+  const [showTwoMinuteWarning, setShowTwoMinuteWarning] = useState(false);
+  const warningThresholdsRef = useRef({ five: false, two: false, ended: false });
   const [lockPoint, setLockPoint] = useState(0);
   const callEngineRef = useRef(null);
   const [preflightDone, setPreflightDone] = useState(false);
   const [preflightPassed, setPreflightPassed] = useState(false);
   const [callState, setCallState] = useState("idle"); // idle | connecting | connected | reconnecting | failed | ended
   const qualityMonitorIntervalRef = useRef(null);
+  const heartbeatIntervalRef = useRef(null);
 
   // Authoritative lesson timer (backend-driven)
   const lessonTimerIntervalRef = useRef(null);
@@ -673,6 +670,10 @@ const VideoCallUI = ({
         clearInterval(qualityMonitorIntervalRef.current);
         qualityMonitorIntervalRef.current = null;
       }
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
 
       // Clean up active call
       if (activeCallRef.current?.call) {
@@ -780,55 +781,30 @@ const VideoCallUI = ({
     };
   }, [socket, accountType, cutCall, fromUser?._id, toUser?._id]);
 
-  // Listen for LESSON_TIME_WARNING event (30 seconds remaining)
-  // Backend emits this when exactly 30 seconds remain in the session
+  // Synchronized warning modals and auto-end behavior from authoritative timer.
+  // Both users derive warnings from the same backend remainingSeconds so they stay in sync.
   useEffect(() => {
-    if (!socket) return;
+    const remaining = authoritativeTimer?.remainingSeconds;
+    if (typeof remaining !== "number") return;
 
-    const handleLessonTimeWarning = ({ sessionId, remainingSeconds: secondsRemaining }) => {
-      if (sessionId !== id) return;
-      
-      // Show 30-second warning modal
-      setRemainingSeconds(secondsRemaining);
-      setShow30SecondWarning(true);
-      
-      // Start countdown timer
-      if (warning30SecondIntervalRef.current) {
-        clearInterval(warning30SecondIntervalRef.current);
-      }
-      
-      warning30SecondIntervalRef.current = setInterval(() => {
-        setRemainingSeconds((prev) => {
-          if (prev <= 1) {
-            if (warning30SecondIntervalRef.current) {
-              clearInterval(warning30SecondIntervalRef.current);
-              warning30SecondIntervalRef.current = null;
-            }
-            setShow30SecondWarning(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      
-      // Also show toast as backup notification
-      toast.warning(
-        `Only ${secondsRemaining} seconds remaining in this lesson.`,
-      );
-    };
+    if (remaining > 300) {
+      warningThresholdsRef.current.five = false;
+      warningThresholdsRef.current.two = false;
+      return;
+    }
 
-    socket.on("LESSON_TIME_WARNING", handleLessonTimeWarning);
+    if (!warningThresholdsRef.current.five && remaining <= 300 && remaining > 120) {
+      warningThresholdsRef.current.five = true;
+      setShowFiveMinuteWarning(true);
+      toast.warning("Only 5 minutes left in this session.");
+    }
 
-    return () => {
-      if (socket) {
-        socket.off("LESSON_TIME_WARNING", handleLessonTimeWarning);
-      }
-      if (warning30SecondIntervalRef.current) {
-        clearInterval(warning30SecondIntervalRef.current);
-        warning30SecondIntervalRef.current = null;
-      }
-    };
-  }, [socket, id]);
+    if (!warningThresholdsRef.current.two && remaining <= 120 && remaining > 0) {
+      warningThresholdsRef.current.two = true;
+      setShowTwoMinuteWarning(true);
+      toast.warning("Only 2 minutes left in this session.");
+    }
+  }, [authoritativeTimer?.remainingSeconds]);
 
   // Listen for LESSON_TIME_ENDED event - session time is up
   // Backend emits this when the session duration has elapsed
@@ -852,9 +828,12 @@ const VideoCallUI = ({
       );
 
       toast.info("Lesson time has ended.");
-      
-      // End the call when backend declares time over
-      cutCall(true);
+      setShowFiveMinuteWarning(false);
+      setShowTwoMinuteWarning(false);
+
+      // End the call when backend declares time over.
+      // Use non-manual path so report/rating opens automatically per role.
+      cutCall(false);
     };
 
     socket.on("LESSON_TIME_ENDED", handleLessonTimeEnded);
@@ -889,7 +868,7 @@ const VideoCallUI = ({
     if (clipsLoadedRef.current || selectedClips.length > 0) {
       emitVideoSelectEvent("clips", selectedClips);
     }
-  }, [selectedClips?.length, socket, fromUser?._id, toUser?._id]);
+  }, [selectedClips, socket, fromUser?._id, toUser?._id]);
 
   // Select trainee clips that were attached to the booking before the session.
   // Backend can send this field as either `trainee_clips` (array of populated clip docs)
@@ -1455,16 +1434,14 @@ const VideoCallUI = ({
       });
 
       // Start heartbeat: emit every 10 seconds to prove we're alive
-      const heartbeatInterval = setInterval(() => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
+      heartbeatIntervalRef.current = setInterval(() => {
         if (socket && socket.connected) {
           socket.emit("HEARTBEAT");
         }
       }, 10000);
-
-      // Cleanup heartbeat on unmount
-      return () => {
-        clearInterval(heartbeatInterval);
-      };
 
       // Initialize CallEngine wrapper around PeerJS so we centralize
       // Peer config, error handling and connection timeouts.
@@ -2000,6 +1977,18 @@ const VideoCallUI = ({
       socket.off("LESSON_TIMER_ERROR", handleTimerError);
     };
   }, [socket, id, startLessonTimer]);
+
+  // Periodically re-sync lesson state from backend while in call to prevent drift
+  // between users if any timer event was delayed/missed on one client.
+  useEffect(() => {
+    if (!socket || !id) return;
+    const syncInterval = setInterval(() => {
+      if (socket.connected) {
+        socket.emit("LESSON_STATE_REQUEST", { sessionId: id });
+      }
+    }, 10000);
+    return () => clearInterval(syncInterval);
+  }, [socket, id]);
 
   // Listen to socket events with proper cleanup
   useEffect(() => {
@@ -3570,113 +3559,38 @@ const VideoCallUI = ({
         </ModalBody>
       </Modal>
 
-      {/* 30-Second Warning Modal */}
-      <Modal isOpen={show30SecondWarning} centered backdrop="static" keyboard={false}>
-        <ModalHeader style={{ 
-          backgroundColor: remainingSeconds <= 10 ? '#dc3545' : '#ffc107',
-          color: '#ffffff',
-          borderBottom: 'none'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <i className="fa fa-exclamation-triangle" aria-hidden="true" style={{ fontSize: '24px' }}></i>
-            <span style={{ fontSize: '18px', fontWeight: '600' }}>Session Ending Soon</span>
+      {/* 5-minute warning modal */}
+      <Modal isOpen={showFiveMinuteWarning} centered>
+        <ModalHeader style={{ backgroundColor: "#ffc107", color: "#ffffff", borderBottom: "none" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <i className="fa fa-exclamation-triangle" aria-hidden="true" style={{ fontSize: "24px" }}></i>
+            <span style={{ fontSize: "18px", fontWeight: "600" }}>5 Minutes Left</span>
           </div>
         </ModalHeader>
-        <ModalBody style={{ padding: '2rem', textAlign: 'center' }}>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <i 
-              className="fa fa-clock-o" 
-              aria-hidden="true" 
-              style={{ 
-                fontSize: '48px', 
-                color: remainingSeconds <= 10 ? '#dc3545' : '#ffc107',
-                marginBottom: '1rem'
-              }}
-            ></i>
-            <h3 style={{ 
-              color: remainingSeconds <= 10 ? '#dc3545' : '#333',
-              marginBottom: '1rem',
-              fontWeight: '600'
-            }}>
-              Session ending in {remainingSeconds} seconds
-            </h3>
-            <p style={{ color: '#666', fontSize: '16px', lineHeight: '1.6' }}>
-              Your session time is almost up. The call will end automatically when the timer reaches zero.
-            </p>
-          </div>
-          {remainingSeconds <= 10 && (
-            <div style={{
-              backgroundColor: '#fff3cd',
-              border: '1px solid #ffc107',
-              borderRadius: '8px',
-              padding: '1rem',
-              marginTop: '1rem'
-            }}>
-              <p style={{ margin: 0, color: '#856404', fontWeight: '500' }}>
-                ⚠️ Less than 10 seconds remaining!
-              </p>
-            </div>
-          )}
+        <ModalBody style={{ padding: "1.5rem", textAlign: "center", color: "#555" }}>
+          Session will end in 5 minutes. Please wrap up your discussion.
         </ModalBody>
-        <ModalFooter style={{ 
-          borderTop: 'none',
-          justifyContent: 'center',
-          padding: '1rem 2rem'
-        }}>
-          <Button 
-            color="secondary" 
-            onClick={() => { 
-              setShow30SecondWarning(false);
-              if (warning30SecondIntervalRef.current) {
-                clearInterval(warning30SecondIntervalRef.current);
-                warning30SecondIntervalRef.current = null;
-              }
-            }}
-            style={{
-              minWidth: '120px',
-              padding: '0.75rem 1.5rem',
-              fontWeight: '600'
-            }}
-          >
-            <i className="fa fa-times" aria-hidden="true" style={{ marginRight: '8px' }}></i>
+        <ModalFooter style={{ borderTop: "none", justifyContent: "center" }}>
+          <Button color="secondary" onClick={() => setShowFiveMinuteWarning(false)}>
             Close
           </Button>
         </ModalFooter>
       </Modal>
 
-      {/* Grace Period Modal (-4 minutes) */}
-      <Modal isOpen={showGracePeriodModal} centered className="grace-period-modal">
-        <ModalHeader className="grace-period-modal__header">
-          <div className="grace-period-modal__title">
-            <i className="fa fa-heart" aria-hidden="true"></i>
-            <span>Thank you for using NetQwix!</span>
+      {/* 2-minute warning modal */}
+      <Modal isOpen={showTwoMinuteWarning} centered>
+        <ModalHeader style={{ backgroundColor: "#fd7e14", color: "#ffffff", borderBottom: "none" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <i className="fa fa-clock-o" aria-hidden="true" style={{ fontSize: "24px" }}></i>
+            <span style={{ fontSize: "18px", fontWeight: "600" }}>2 Minutes Left</span>
           </div>
         </ModalHeader>
-        <ModalBody className="grace-period-modal__body">
-          <div className="grace-period-modal__content">
-            <p className="grace-period-modal__main-text">
-              We give our community a 5 minute grace period after each session to say goodbye
-              and discuss the game plan moving forward.
-            </p>
-            <div className="grace-period-modal__countdown">
-              <i className="fa fa-clock-o" aria-hidden="true"></i>
-              <p className="grace-period-modal__countdown-text">
-                The session will automatically close in <strong>{countdownMessage}</strong>.
-              </p>
-            </div>
-          </div>
+        <ModalBody style={{ padding: "1.5rem", textAlign: "center", color: "#555" }}>
+          Session is about to end. The call will close automatically at 00:00.
         </ModalBody>
-        <ModalFooter className="grace-period-modal__footer">
-          <Button 
-            color="primary" 
-            onClick={() => { 
-              gracePeriodModalDismissedRef.current = true; 
-              setShowGracePeriodModal(false); 
-            }}
-            className="grace-period-modal__btn"
-          >
-            <i className="fa fa-check" aria-hidden="true" style={{ marginRight: "8px" }}></i>
-            Got it
+        <ModalFooter style={{ borderTop: "none", justifyContent: "center" }}>
+          <Button color="secondary" onClick={() => setShowTwoMinuteWarning(false)}>
+            Close
           </Button>
         </ModalFooter>
       </Modal>
