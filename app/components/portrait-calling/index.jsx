@@ -157,7 +157,24 @@ const VideoCallUI = ({
   const [showSessionEndedModal, setShowSessionEndedModal] = useState(false);
   const [showFiveMinuteWarning, setShowFiveMinuteWarning] = useState(false);
   const [showTwoMinuteWarning, setShowTwoMinuteWarning] = useState(false);
+  const [peerJoinedModalOpen, setPeerJoinedModalOpen] = useState(false);
+  const [peerJoinedModalName, setPeerJoinedModalName] = useState("");
+  const lastPartnerJoinNotifyAtRef = useRef(0);
   const warningThresholdsRef = useRef({ five: false, two: false, ended: false });
+
+  const showPartnerJoinedPrompt = useCallback(() => {
+    const t = Date.now();
+    if (t - lastPartnerJoinNotifyAtRef.current < 12000) return;
+    lastPartnerJoinNotifyAtRef.current = t;
+    const partnerName = toUser?.fullname || "Your partner";
+    toast.info(
+      `${partnerName} has joined the meeting. Please stay on this page while your cameras connect.`,
+      { autoClose: 9000, position: "top-center" }
+    );
+    setPeerJoinedModalName(partnerName);
+    setPeerJoinedModalOpen(true);
+  }, [toUser?.fullname]);
+
   const [lockPoint, setLockPoint] = useState(0);
   const callEngineRef = useRef(null);
   const [preflightDone, setPreflightDone] = useState(false);
@@ -1644,11 +1661,6 @@ const VideoCallUI = ({
         }
       }
 
-      if (!(localVideoRef && localVideoRef?.current)) {
-        console.error('[VideoCall] Local video ref not available');
-        return;
-      }
-
       if (!peer || !peerId) {
         console.error('[VideoCall] Invalid peer or peerId', { peer, peerId });
         return;
@@ -1660,15 +1672,16 @@ const VideoCallUI = ({
         return;
       }
 
-      // Check if we have a valid stream
-      if (!localVideoRef.current.srcObject) {
+      const outboundStream =
+        localVideoRef.current?.srcObject || localStream || null;
+      if (!outboundStream) {
         console.error('[VideoCall] Local video stream not available');
         return;
       }
 
       isConnectingRef.current = true;
 
-      const call = peer.call(peerId, localVideoRef?.current?.srcObject);
+      const call = peer.call(peerId, outboundStream);
       
       if (!call) {
         console.error('[VideoCall] Failed to create call');
@@ -1750,7 +1763,7 @@ const VideoCallUI = ({
         msg: "Failed to connect. Please try again." 
       });
     }
-  }, [accountType, setIsModelOpen]);
+  }, [accountType, setIsModelOpen, localStream]);
   
   // Start lesson countdown based on backend timer info (authoritative).
   // Prefer remainingSeconds from the server so we are not sensitive to client
@@ -2014,11 +2027,6 @@ const VideoCallUI = ({
           return;
         }
 
-        if (!(peerRef && peerRef.current)) {
-          console.error('[VideoCall] Peer ref not available');
-          return;
-        }
-
         // Use peerId if provided (for unique device connections), otherwise fallback to from_user
         // This allows same user to join from multiple devices
         const targetPeerId = peerId || from_user;
@@ -2041,7 +2049,14 @@ const VideoCallUI = ({
           });
           return;
         }
-        
+
+        showPartnerJoinedPrompt();
+
+        if (!(peerRef && peerRef.current)) {
+          console.error('[VideoCall] Peer ref not available');
+          return;
+        }
+
         console.log('[VideoCall] Attempting to connect to peer', {
           targetPeerId,
           myPeerId,
@@ -2051,7 +2066,7 @@ const VideoCallUI = ({
           activeCallPeer: activeCallRef.current?.peer,
           isConnecting: isConnectingRef.current
         });
-        
+
         // Always attempt connection - connectToPeer will handle duplicate prevention
         connectToPeer(peerRef.current, targetPeerId);
       } catch (error) {
@@ -2091,6 +2106,12 @@ const VideoCallUI = ({
       });
     };
 
+    const handleParticipantStatusChanged = (payload) => {
+      if (!payload?.sessionId || String(payload.sessionId) !== String(id)) return;
+      if (String(payload.userId) !== String(toUser?._id)) return;
+      showPartnerJoinedPrompt();
+    };
+
     const handleParticipantStale = ({ socketId, timestamp }) => {
       // Backend detected that a participant's connection went stale (no heartbeat)
       // This doesn't necessarily mean they left - they might be reconnecting
@@ -2106,6 +2127,7 @@ const VideoCallUI = ({
 
     // Register event listeners
     socket.on("ON_CALL_JOIN", handleCallJoin);
+    socket.on("PARTICIPANT_STATUS_CHANGED", handleParticipantStatusChanged);
     socket.on("PARTICIPANT_STALE", handleParticipantStale);
     socket.on(EVENTS.VIDEO_CALL.ON_OFFER, handleOffer);
     socket.on(EVENTS.VIDEO_CALL.ON_ANSWER, handleAnswer);
@@ -2117,6 +2139,7 @@ const VideoCallUI = ({
     return () => {
       if (socket) {
         socket.off("ON_CALL_JOIN", handleCallJoin);
+        socket.off("PARTICIPANT_STATUS_CHANGED", handleParticipantStatusChanged);
         socket.off("PARTICIPANT_STALE", handleParticipantStale);
         socket.off(EVENTS.VIDEO_CALL.ON_OFFER, handleOffer);
         socket.off(EVENTS.VIDEO_CALL.ON_ANSWER, handleAnswer);
@@ -2131,7 +2154,7 @@ const VideoCallUI = ({
         callEngineRef.current = null;
       }
     };
-  }, [socket, toUser, connectToPeer]);
+  }, [socket, toUser, toUser?._id, id, connectToPeer, showPartnerJoinedPrompt]);
 
   // NOTE - handle user offline
   const handleOffline = () => {
@@ -3494,6 +3517,26 @@ const VideoCallUI = ({
           id={id}
         // width={"50%"}
         />}
+
+      <Modal
+        isOpen={peerJoinedModalOpen}
+        toggle={() => setPeerJoinedModalOpen(false)}
+        centered
+      >
+        <ModalHeader toggle={() => setPeerJoinedModalOpen(false)}>
+          Join the meeting
+        </ModalHeader>
+        <ModalBody>
+          <p className="mb-0" style={{ fontSize: "1rem", color: "#444", lineHeight: 1.5 }}>
+            <strong>{peerJoinedModalName}</strong> has joined the session. Please stay on this page so your cameras can connect.
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="primary" onClick={() => setPeerJoinedModalOpen(false)}>
+            OK
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       <PermissionModal isOpen={permissionModal} errorMessage={errorMessageForPermission} />
 

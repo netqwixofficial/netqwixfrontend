@@ -433,11 +433,11 @@ const InstantLessonTimeLine = ({
                   } else {
                     dispatch(authAction.updateIsAuthModalOpen(true));
                   }
-                  const today =
-                    DateTime.now().toISO({
-                      suppressMilliseconds: false,
-                      includeOffset: false,
-                    }) + "Z";
+                  if (!startDate) {
+                    toast.error("Please select a date on the calendar first.");
+                    setIsSubmittingInstant(false);
+                    return;
+                  }
                   const payload = {
                     slot_id: slot?._id,
                     charging_price:
@@ -450,11 +450,12 @@ const InstantLessonTimeLine = ({
                     trainer_info: trainerInfo,
                     hourly_rate: trainerInfo?.userInfo?.extraInfo?.hourly_rate,
                     status: BookedSession.booked,
-                    booked_date: today,
+                    booked_date: startDate,
                     session_start_time: startTime,
                     session_end_time: endTime,
-                    start_time: convertTimesToISO(today, startTime),
-                    end_time: convertTimesToISO(today, endTime),
+                    start_time: convertTimesToISO(startDate, startTime),
+                    end_time: convertTimesToISO(startDate, endTime),
+                    time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                   };
                   setBookSessionPayload(payload);
                   setAmount(amountPayable.toFixed(1));

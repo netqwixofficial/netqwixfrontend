@@ -928,20 +928,18 @@ export function convertTimesToISO(date, time1) {
       throw new Error("Invalid date format. Please provide a valid ISO 8601 date.");
   }
 
-  // Function to combine date and time
-  const combineDateTime = (date, time) => {
-      const [hours, minutes] = time.split(":").map(Number);
-      if (isNaN(hours) || isNaN(minutes)) {
-          throw new Error("Invalid time format. Please provide time in HH:mm format.");
-      }
+  const [hours, minutes] = time1.split(":").map(Number);
+  if (isNaN(hours) || isNaN(minutes)) {
+      throw new Error("Invalid time format. Please provide time in HH:mm format.");
+  }
 
-      const newDate = new Date(date);
-      newDate.setUTCHours(hours, minutes, 0, 0); // Set hours, minutes, seconds, milliseconds
-      return newDate.toISOString();
-  };
-
-  return combineDateTime(baseDate, time1)
-  
+  // Use the viewer's local calendar day + local wall-clock time (slot HH:mm).
+  // setUTCHours was wrong here: it treated "14:30" as UTC and shifted displayed times.
+  const y = baseDate.getFullYear();
+  const m = baseDate.getMonth();
+  const d = baseDate.getDate();
+  const localCombined = new Date(y, m, d, hours, minutes, 0, 0);
+  return localCombined.toISOString();
 }
 
 export function formatToAMPM(date) {

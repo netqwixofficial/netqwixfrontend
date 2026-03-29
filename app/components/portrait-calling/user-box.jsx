@@ -5,6 +5,20 @@ import { useCallback } from "react";
 import { AccountType } from "../../common/constants";
 import { ChevronRight } from "react-feather";
 
+/** Parent refs (e.g. portrait-calling localVideoRef / remoteVideoRef) must point at the <video> for PeerJS and stream sync. */
+function assignForwardedVideoRef(videoRef, node) {
+  if (videoRef == null) return;
+  if (typeof videoRef === "function") {
+    videoRef(node);
+  } else {
+    try {
+      videoRef.current = node;
+    } catch {
+      /* read-only ref */
+    }
+  }
+}
+
 export const UserBox = ({
   onClick,
   selected,
@@ -32,9 +46,10 @@ export const UserBox = ({
   const setVideoRef = useCallback(
     (node) => {
       videoElRef.current = node;
+      assignForwardedVideoRef(videoRef, node);
       if (node && effectiveStream) node.srcObject = effectiveStream;
     },
-    [effectiveStream]
+    [effectiveStream, videoRef]
   );
   useEffect(() => {
     const el = videoElRef.current;
@@ -196,9 +211,10 @@ export const UserBoxMini = ({
   const setVideoRef = useCallback(
     (node) => {
       videoElRef.current = node;
+      assignForwardedVideoRef(videoRef, node);
       if (node && effectiveStream) node.srcObject = effectiveStream;
     },
-    [effectiveStream]
+    [effectiveStream, videoRef]
   );
 
   useEffect(() => {
