@@ -19,7 +19,10 @@ export const useActiveSessions = ({ scheduledMeetingDetails }) => {
     }
 
     const filtered = scheduledMeetingDetails.filter((session) => {
-      const { start_time, end_time, ratings } = session;
+      const { ratings } = session;
+      const start_time = session.session_start_time || session.start_time;
+      const end_time = session.session_end_time || session.end_time;
+      if (!start_time || !end_time) return false;
 
       const startTimeUpdated = CovertTimeAccordingToTimeZone(
         start_time,

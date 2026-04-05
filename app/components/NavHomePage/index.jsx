@@ -285,7 +285,9 @@ const NavHomePage = () => {
       return;
     }
     const filtered = scheduledMeetingDetails.filter((session) => {
-      const { start_time, end_time, ratings } = session;
+      const { ratings } = session;
+      const start_time = session.session_start_time || session.start_time;
+      const end_time = session.session_end_time || session.end_time;
       if (!start_time || !end_time) return false;
       const startTimeUpdated = CovertTimeAccordingToTimeZone(start_time, session.time_zone);
       const endTimeUpdated = CovertTimeAccordingToTimeZone(end_time, session.time_zone);
@@ -778,8 +780,10 @@ const NavHomePage = () => {
                       >
                         <div className="">Session Requested Time :</div>
                         <dt className="ml-1">{`${formatTimeInLocalZone(
-                          session.start_time
-                        )} - ${formatTimeInLocalZone(session.end_time)}`}</dt>
+                          session.session_start_time || session.start_time
+                        )} - ${formatTimeInLocalZone(
+                          session.session_end_time || session.end_time
+                        )}`}</dt>
                       </div>
                     </div>
 

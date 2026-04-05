@@ -733,51 +733,68 @@ const VideoCallUI = ({
   useEffect(() => {
     if (!socket) return;
 
-    const handleVideoSelect = ({ videos, type }) => {
+    const handleVideoSelect = ({ videos, type, userInfo }) => {
       if (type === "clips") {
-        // Handle both empty array and array with clips
-        // Empty array means exit clip mode and return to default camera view
         const newClips = Array.isArray(videos) ? [...videos] : [];
-        
-        // CRITICAL FIX: Prevent socket events from clearing clips that were loaded from booking
-        // Only update clips from socket if:
-        // 1. We're receiving clips (not empty), OR
-        // 2. We don't have clips loaded from booking (clipsLoadedRef.current is false)
-        // This prevents race conditions where socket events clear pre-loaded clips
+        const fromUid =
+          userInfo?.from_user != null ? String(userInfo.from_user) : "";
+        const myUid = fromUser?._id != null ? String(fromUser._id) : "";
+
+        // Trainee follows trainer-driven clip updates (including [] to exit clip mode).
+        if (accountType === AccountType.TRAINEE) {
+          if (fromUid && fromUid === myUid) return;
+          setSelectedClips(newClips);
+          selectedClipsRef.current = newClips;
+          clipsLoadedRef.current = newClips.length > 0;
+          lastEmittedClipIdsRef.current = newClips
+            .map((c) => c?._id)
+            .filter(Boolean)
+            .sort()
+            .join(",");
+          if (socket && fromUser?._id && toUser?._id) {
+            socket.emit(EVENTS.ON_CLEAR_CANVAS, {
+              userInfo: { from_user: fromUser._id, to_user: toUser._id },
+              canvasIndex: 1,
+            });
+          }
+          return;
+        }
+
+        // Trainer: ignore empty payloads that would wipe booking clips unless this is our own echo.
         const currentClipsLength = selectedClipsRef.current.length;
         const hasClipsFromBooking = clipsLoadedRef.current && currentClipsLength > 0;
         const isReceivingEmptyClips = newClips.length === 0;
-        
-        if (hasClipsFromBooking && isReceivingEmptyClips) {
+        if (
+          hasClipsFromBooking &&
+          isReceivingEmptyClips &&
+          !(fromUid && fromUid === myUid)
+        ) {
           console.log("[VideoCallUI] Ignoring socket event that would clear booking clips", {
             receivedClips: newClips.length,
             currentClips: currentClipsLength,
             clipsLoadedFromBooking: clipsLoadedRef.current,
           });
-          return; // Don't clear clips that were loaded from booking
+          return;
         }
-        
+
         console.log("[VideoCallUI] Updating clips from socket event", {
           receivedClips: newClips.length,
           currentClips: currentClipsLength,
-          clipIds: newClips.map(c => c?._id),
+          clipIds: newClips.map((c) => c?._id),
         });
         setSelectedClips(newClips);
-        selectedClipsRef.current = newClips; // Update ref for future handler calls
-        
-        // Update clipsLoadedRef if we're receiving clips
+        selectedClipsRef.current = newClips;
+
         if (newClips.length > 0) {
           clipsLoadedRef.current = true;
         } else {
           clipsLoadedRef.current = false;
         }
-        
-        // Clear annotations when switching between clip mode and default mode
-        // This ensures clean state when mode changes
+
         if (socket && fromUser?._id && toUser?._id) {
           socket.emit(EVENTS.ON_CLEAR_CANVAS, {
             userInfo: { from_user: fromUser._id, to_user: toUser._id },
-            canvasIndex: 1, // Clear canvas when mode changes
+            canvasIndex: 1,
           });
         }
       }
@@ -879,17 +896,21 @@ const VideoCallUI = ({
     }
   };
 
-  //NOTE - emit event after selecting the clips
-  // Deduplication prevents an infinite loop: trainee receives clips → re-emits → trainer receives → loop.
-  // Only emit when the actual clip IDs change (not just reference changes from socket echo).
+  //NOTE - emit event after selecting the clips (trainer only — trainee must not re-broadcast).
+  // Deduplication prevents echo loops when references change without ID changes.
   useEffect(() => {
-    const currentIds = (selectedClips || []).map(c => c?._id).filter(Boolean).sort().join(',');
-    if (currentIds === lastEmittedClipIdsRef.current) return; // Same clips, skip to break echo loop
+    if (accountType !== AccountType.TRAINER) return;
+    const currentIds = (selectedClips || [])
+      .map((c) => c?._id)
+      .filter(Boolean)
+      .sort()
+      .join(",");
+    if (currentIds === lastEmittedClipIdsRef.current) return;
     lastEmittedClipIdsRef.current = currentIds;
     if (clipsLoadedRef.current || selectedClips.length > 0) {
       emitVideoSelectEvent("clips", selectedClips);
     }
-  }, [selectedClips, socket, fromUser?._id, toUser?._id]);
+  }, [selectedClips, socket, fromUser?._id, toUser?._id, accountType]);
 
   // Select trainee clips that were attached to the booking before the session.
   // Backend can send this field as either `trainee_clips` (array of populated clip docs)
@@ -980,35 +1001,7 @@ const VideoCallUI = ({
     }
   }, [remoteStream, isTraineeJoined, bothUsersJoined, displayMsg?.show, displayMsg?.msg]);
 
-  // Fallback: if we're in the call with session end time but TIMER_STARTED was never received
-  // (e.g. WebSocket glitch), set bothUsersJoined after a short delay so the timer can run from sessionEndTime.
-  const timerFallbackTimeoutRef = useRef(null);
-  useEffect(() => {
-    if (bothUsersJoined || !id || !sessionEndTime || !localStream || !socket?.connected) {
-      if (timerFallbackTimeoutRef.current) {
-        clearTimeout(timerFallbackTimeoutRef.current);
-        timerFallbackTimeoutRef.current = null;
-      }
-      return;
-    }
-    timerFallbackTimeoutRef.current = setTimeout(() => {
-      timerFallbackTimeoutRef.current = null;
-      setBothUsersJoined((prev) => {
-        if (prev) return prev;
-        console.log("[VideoCallUI] Timer fallback: setting bothUsersJoined=true so countdown can run (TIMER_STARTED may have been missed)");
-        return true;
-      });
-      setDisplayMsg({ show: false, msg: "" });
-    }, 6000);
-    return () => {
-      if (timerFallbackTimeoutRef.current) {
-        clearTimeout(timerFallbackTimeoutRef.current);
-        timerFallbackTimeoutRef.current = null;
-      }
-    };
-  }, [bothUsersJoined, id, sessionEndTime, localStream, socket?.connected]);
-
-  // Track when both users joined (for 15s buffer before timer starts)
+  // Track when both users joined (for buffer before fallback countdown; authoritative timer uses backend)
   useEffect(() => {
     if (bothUsersJoined) {
       if (bothUsersJoinedAtRef.current == null) bothUsersJoinedAtRef.current = Date.now();
@@ -1019,9 +1012,8 @@ const VideoCallUI = ({
     }
   }, [bothUsersJoined]);
 
-  // Buffer: only allow the timer UI to start after both joined + 30 seconds.
-  // This prevents the "time already decreased" issue when the backend starts a bit later.
-  const TIMER_BUFFER_SECONDS = 30;
+  // Short client buffer before slot-based fallback countdown (authoritative timer bypasses this).
+  const TIMER_BUFFER_SECONDS = 15;
   useEffect(() => {
     if (!bothUsersJoined) return;
     const t = setTimeout(() => setTimerBufferElapsed(true), TIMER_BUFFER_SECONDS * 1000);
@@ -1646,6 +1638,21 @@ const VideoCallUI = ({
     }
   }, [remoteStream, accountType]);
 
+  // Keep primary local <video> in sync for PeerJS outbound (ref must not point at a mini tile).
+  useEffect(() => {
+    if (!localVideoRef?.current || !localStream) return;
+    if (localVideoRef.current.srcObject !== localStream) {
+      localVideoRef.current.srcObject = localStream;
+    }
+    if (localVideoRef.current.paused) {
+      localVideoRef.current.play().catch((err) => {
+        if (err?.name !== "AbortError") {
+          console.warn("[VideoCallUI] Failed to play local video", err);
+        }
+      });
+    }
+  }, [localStream]);
+
   const connectToPeer = useCallback((peer, peerId) => {
     try {
       // Check if we already have an active call to this SPECIFIC peer
@@ -1958,6 +1965,7 @@ const VideoCallUI = ({
     const handleTimerStarted = (data) => {
       if (!data || String(data.sessionId) !== String(id)) return;
       setLessonTimerStatus("running");
+      socket.emit("LESSON_STATE_REQUEST", { sessionId: id });
     };
 
     const handleTimerPaused = (data) => {

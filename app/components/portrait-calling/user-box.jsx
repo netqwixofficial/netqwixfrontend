@@ -182,7 +182,7 @@ export const UserBoxMini = ({
   onClick,
   selected,
   id,
-  videoRef,
+  videoRef: _ignoredVideoRef, // kept for call-site compatibility; must not assign parent refs
   user,
   stream,
   isStreamOff,
@@ -194,6 +194,7 @@ export const UserBoxMini = ({
   isHidden,
   videoType // 'student' | 'teacher'
 }) => {
+  void _ignoredVideoRef;
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef(null);
@@ -211,10 +212,11 @@ export const UserBoxMini = ({
   const setVideoRef = useCallback(
     (node) => {
       videoElRef.current = node;
-      assignForwardedVideoRef(videoRef, node);
+      // Do not forward to parent localVideoRef / remoteVideoRef — minis must not steal the
+      // single <video> PeerJS and portrait index.jsx sync to (that breaks clip-mode streaming).
       if (node && effectiveStream) node.srcObject = effectiveStream;
     },
-    [effectiveStream, videoRef]
+    [effectiveStream]
   );
 
   useEffect(() => {

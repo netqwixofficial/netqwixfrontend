@@ -1570,6 +1570,7 @@ const ClipModeCall = ({
   }
 
   const emitVideoSelectEvent = (type, id) => {
+    if (!socket) return;
     socket.emit(EVENTS.ON_VIDEO_SELECT, {
       userInfo: { from_user: fromUser._id, to_user: toUser._id },
       type,
@@ -2112,76 +2113,11 @@ const ClipModeCall = ({
   };
 
   useEffect(() => {
-    const video1 = videoRef.current;
-    const video2 = videoRef2.current;
-
     const canvas1 = canvasRef?.current;
     const canvas2 = canvasRef2?.current;
 
     const context1 = canvas1?.getContext("2d");
     const context2 = canvas2?.getContext("2d");
-
-    const drawFrame = () => {
-      if (canvas1 && context1 && video1) {
-        context1.fillStyle = "rgba(255, 255, 255, 0.5)";
-        context1.fillRect(0, 0, canvas1.width, canvas1.height);
-        // Render text annotations for canvas1
-        if (textInputs.canvas1 && textInputs.canvas1.length > 0) {
-          textInputs.canvas1.forEach((textItem) => {
-            if (textItem.text) {
-              context1.save();
-              context1.font = `${textItem.fontSize || 18}px Arial`;
-              context1.fillStyle = textItem.color || canvasConfigs.sender.strokeStyle;
-              context1.textBaseline = "top";
-              // Draw background for better visibility
-              const metrics = context1.measureText(textItem.text);
-              const padding = 4;
-              context1.fillStyle = "rgba(0, 0, 0, 0.5)";
-              context1.fillRect(
-                textItem.x - padding,
-                textItem.y - padding,
-                metrics.width + padding * 2,
-                (textItem.fontSize || 18) + padding * 2
-              );
-              // Draw text
-              context1.fillStyle = textItem.color || canvasConfigs.sender.strokeStyle;
-              context1.fillText(textItem.text, textItem.x, textItem.y);
-              context1.restore();
-            }
-          });
-        }
-      }
-      if (canvas2 && context2 && video2) {
-        context2.fillStyle = "rgba(255, 255, 255, 0.5)";
-        context2.fillRect(0, 0, canvas2.width, canvas2.height);
-        // Render text annotations for canvas2
-        if (textInputs.canvas2 && textInputs.canvas2.length > 0) {
-          textInputs.canvas2.forEach((textItem) => {
-            if (textItem.text) {
-              context2.save();
-              context2.font = `${textItem.fontSize || 18}px Arial`;
-              context2.fillStyle = textItem.color || canvasConfigs.sender.strokeStyle;
-              context2.textBaseline = "top";
-              // Draw background for better visibility
-              const metrics = context2.measureText(textItem.text);
-              const padding = 4;
-              context2.fillStyle = "rgba(0, 0, 0, 0.5)";
-              context2.fillRect(
-                textItem.x - padding,
-                textItem.y - padding,
-                metrics.width + padding * 2,
-                (textItem.fontSize || 18) + padding * 2
-              );
-              // Draw text
-              context2.fillStyle = textItem.color || canvasConfigs.sender.strokeStyle;
-              context2.fillText(textItem.text, textItem.x, textItem.y);
-              context2.restore();
-            }
-          });
-        }
-      }
-      requestAnimationFrame(drawFrame);
-    };
 
     // Drawing Logic for Canvas 1 and Canvas 2
     const startDrawing = (event, canvasIndex = 1) => {
@@ -2591,41 +2527,115 @@ const ClipModeCall = ({
       }
     };
 
-    if (canvas1) {
-      canvas1.addEventListener("touchstart", (e) => startDrawing(e, 1), {
-        passive: false,
-      });
-      canvas1.addEventListener("touchmove", (e) => draw(e, 1), {
-        passive: false,
-      });
-      canvas1.addEventListener("touchend", (e) => stopDrawing(e, 1), {
-        passive: false,
-      });
+    let rafId = 0;
+    const drawFrameLoop = () => {
+      if (canvas1 && context1) {
+        context1.fillStyle = "rgba(255, 255, 255, 0.5)";
+        context1.fillRect(0, 0, canvas1.width, canvas1.height);
+        if (textInputs.canvas1 && textInputs.canvas1.length > 0) {
+          textInputs.canvas1.forEach((textItem) => {
+            if (textItem.text) {
+              context1.save();
+              context1.font = `${textItem.fontSize || 18}px Arial`;
+              context1.fillStyle = textItem.color || canvasConfigs.sender.strokeStyle;
+              context1.textBaseline = "top";
+              const metrics = context1.measureText(textItem.text);
+              const padding = 4;
+              context1.fillStyle = "rgba(0, 0, 0, 0.5)";
+              context1.fillRect(
+                textItem.x - padding,
+                textItem.y - padding,
+                metrics.width + padding * 2,
+                (textItem.fontSize || 18) + padding * 2
+              );
+              context1.fillStyle = textItem.color || canvasConfigs.sender.strokeStyle;
+              context1.fillText(textItem.text, textItem.x, textItem.y);
+              context1.restore();
+            }
+          });
+        }
+      }
+      if (canvas2 && context2) {
+        context2.fillStyle = "rgba(255, 255, 255, 0.5)";
+        context2.fillRect(0, 0, canvas2.width, canvas2.height);
+        if (textInputs.canvas2 && textInputs.canvas2.length > 0) {
+          textInputs.canvas2.forEach((textItem) => {
+            if (textItem.text) {
+              context2.save();
+              context2.font = `${textItem.fontSize || 18}px Arial`;
+              context2.fillStyle = textItem.color || canvasConfigs.sender.strokeStyle;
+              context2.textBaseline = "top";
+              const metrics = context2.measureText(textItem.text);
+              const padding = 4;
+              context2.fillStyle = "rgba(0, 0, 0, 0.5)";
+              context2.fillRect(
+                textItem.x - padding,
+                textItem.y - padding,
+                metrics.width + padding * 2,
+                (textItem.fontSize || 18) + padding * 2
+              );
+              context2.fillStyle = textItem.color || canvasConfigs.sender.strokeStyle;
+              context2.fillText(textItem.text, textItem.x, textItem.y);
+              context2.restore();
+            }
+          });
+        }
+      }
+      rafId = requestAnimationFrame(drawFrameLoop);
+    };
 
-      canvas1.addEventListener("mousedown", (e) => startDrawing(e, 1));
-      canvas1.addEventListener("mousemove", (e) => draw(e, 1));
-      canvas1.addEventListener("mouseup", (e) => stopDrawing(e, 1));
+    const c1TouchStart = (e) => startDrawing(e, 1);
+    const c1TouchMove = (e) => draw(e, 1);
+    const c1TouchEnd = (e) => stopDrawing(e, 1);
+    const c1MouseDown = (e) => startDrawing(e, 1);
+    const c1MouseMove = (e) => draw(e, 1);
+    const c1MouseUp = (e) => stopDrawing(e, 1);
+
+    const c2TouchStart = (e) => startDrawing(e, 2);
+    const c2TouchMove = (e) => draw(e, 2);
+    const c2TouchEnd = (e) => stopDrawing(e, 2);
+    const c2MouseDown = (e) => startDrawing(e, 2);
+    const c2MouseMove = (e) => draw(e, 2);
+    const c2MouseUp = (e) => stopDrawing(e, 2);
+
+    if (canvas1) {
+      canvas1.addEventListener("touchstart", c1TouchStart, { passive: false });
+      canvas1.addEventListener("touchmove", c1TouchMove, { passive: false });
+      canvas1.addEventListener("touchend", c1TouchEnd, { passive: false });
+      canvas1.addEventListener("mousedown", c1MouseDown);
+      canvas1.addEventListener("mousemove", c1MouseMove);
+      canvas1.addEventListener("mouseup", c1MouseUp);
     }
 
     if (canvas2) {
-      canvas2.addEventListener("touchstart", (e) => startDrawing(e, 2), {
-        passive: false,
-      });
-      canvas2.addEventListener("touchmove", (e) => draw(e, 2), {
-        passive: false,
-      });
-      canvas2.addEventListener("touchend", (e) => stopDrawing(e, 2), {
-        passive: false,
-      });
-
-      canvas2.addEventListener("mousedown", (e) => startDrawing(e, 2));
-      canvas2.addEventListener("mousemove", (e) => draw(e, 2));
-      canvas2.addEventListener("mouseup", (e) => stopDrawing(e, 2));
+      canvas2.addEventListener("touchstart", c2TouchStart, { passive: false });
+      canvas2.addEventListener("touchmove", c2TouchMove, { passive: false });
+      canvas2.addEventListener("touchend", c2TouchEnd, { passive: false });
+      canvas2.addEventListener("mousedown", c2MouseDown);
+      canvas2.addEventListener("mousemove", c2MouseMove);
+      canvas2.addEventListener("mouseup", c2MouseUp);
     }
 
+    rafId = requestAnimationFrame(drawFrameLoop);
+
     return () => {
-      video1?.removeEventListener("play", drawFrame);
-      video2?.removeEventListener("play", drawFrame);
+      cancelAnimationFrame(rafId);
+      if (canvas1) {
+        canvas1.removeEventListener("touchstart", c1TouchStart);
+        canvas1.removeEventListener("touchmove", c1TouchMove);
+        canvas1.removeEventListener("touchend", c1TouchEnd);
+        canvas1.removeEventListener("mousedown", c1MouseDown);
+        canvas1.removeEventListener("mousemove", c1MouseMove);
+        canvas1.removeEventListener("mouseup", c1MouseUp);
+      }
+      if (canvas2) {
+        canvas2.removeEventListener("touchstart", c2TouchStart);
+        canvas2.removeEventListener("touchmove", c2TouchMove);
+        canvas2.removeEventListener("touchend", c2TouchEnd);
+        canvas2.removeEventListener("mousedown", c2MouseDown);
+        canvas2.removeEventListener("mousemove", c2MouseMove);
+        canvas2.removeEventListener("mouseup", c2MouseUp);
+      }
     };
   }, [canvasRef, canvasRef2]);
 

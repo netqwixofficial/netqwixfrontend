@@ -105,11 +105,14 @@ const ActionButtons = ({
               <ExternalLink
                 size={16}
                 onClick={() => {
-                  if (selectedClips?.length) {
-                    setIsOpenConfirm(true);
-                  } else {
-                    setIsOpen(true);
-                  }
+                  // Defer opening modals so react-tippy can tear down before Popper targets unmount.
+                  setTimeout(() => {
+                    if (selectedClips?.length) {
+                      setIsOpenConfirm(true);
+                    } else {
+                      setIsOpen(true);
+                    }
+                  }, 0);
                 }}
               />
             </div>
