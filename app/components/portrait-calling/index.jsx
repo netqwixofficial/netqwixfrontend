@@ -98,7 +98,8 @@ const VideoCallUI = ({
   const isConnectingRef = useRef(false); // Prevent multiple simultaneous connection attempts
   const clipsLoadedRef = useRef(false); // Track if clips have been loaded to prevent race conditions
   const selectedClipsRef = useRef([]); // Track current clips for socket handler to access latest value
-  const hasEmittedClipsRef = useRef(false); // Track if we've emitted clips to prevent duplicate emissions
+  const lastEmittedClipIdsRef = useRef(''); // Track last emitted clip IDs to prevent duplicate emissions loop
+  const bookingClipsLoadedOnceRef = useRef(false); // Prevent startMeeting from overriding manual clip selection
   const localVideoRef = useRef(null);
   const canvasRef = useRef(null);
   const canvasRef2 = useRef(null);
@@ -879,11 +880,12 @@ const VideoCallUI = ({
   };
 
   //NOTE - emit event after selecting the clips
-  // CRITICAL FIX: Only emit when clips are actually set (not during initial empty state)
-  // This prevents emitting empty arrays that would trigger socket handlers to clear clips
+  // Deduplication prevents an infinite loop: trainee receives clips → re-emits → trainer receives → loop.
+  // Only emit when the actual clip IDs change (not just reference changes from socket echo).
   useEffect(() => {
-    // Only emit if we have clips OR if clips were explicitly cleared (not during initial load)
-    // Use clipsLoadedRef to distinguish between "never loaded" vs "explicitly cleared"
+    const currentIds = (selectedClips || []).map(c => c?._id).filter(Boolean).sort().join(',');
+    if (currentIds === lastEmittedClipIdsRef.current) return; // Same clips, skip to break echo loop
+    lastEmittedClipIdsRef.current = currentIds;
     if (clipsLoadedRef.current || selectedClips.length > 0) {
       emitVideoSelectEvent("clips", selectedClips);
     }
@@ -907,23 +909,20 @@ const VideoCallUI = ({
           : [];
 
     if (bookingTraineeClips.length > 0) {
-      // Always load clips if backend provides them, even if we already have some
-      // This handles cases where startMeeting updates with clips after initial load
-      const currentClipIds = selectedClips.map(c => c?._id).filter(Boolean).sort().join(',');
-      const newClipIds = bookingTraineeClips.map(c => c?._id).filter(Boolean).sort().join(',');
-      
-      if (currentClipIds !== newClipIds) {
-        console.log("[VideoCallUI] Loading trainee clips from booking", {
-          clipCount: bookingTraineeClips.length,
-          clipIds: bookingTraineeClips.map(c => c._id),
-          previousClipIds: selectedClips.map(c => c?._id),
-          clipsLoadedBefore: clipsLoadedRef.current,
-        });
-        // CRITICAL: Set refs BEFORE setting state to ensure socket handler has correct values
-        selectedClipsRef.current = bookingTraineeClips; // Update ref for socket handler FIRST
-        clipsLoadedRef.current = true; // Mark as loaded BEFORE state update
-        setSelectedClips(bookingTraineeClips); // Then update state (this will trigger emit)
-      }
+      // Only load booking clips once — after the trainer manually manages clips,
+      // subsequent startMeeting re-renders (e.g. Redux meetingDetails re-reference)
+      // must NOT override the trainer's selection.
+      if (bookingClipsLoadedOnceRef.current) return;
+      bookingClipsLoadedOnceRef.current = true;
+
+      console.log("[VideoCallUI] Loading trainee clips from booking (once)", {
+        clipCount: bookingTraineeClips.length,
+        clipIds: bookingTraineeClips.map(c => c._id),
+      });
+      // CRITICAL: Set refs BEFORE setting state to ensure socket handler has correct values
+      selectedClipsRef.current = bookingTraineeClips;
+      clipsLoadedRef.current = true;
+      setSelectedClips(bookingTraineeClips);
     } else {
       // Only clear clips if we explicitly have empty arrays from backend AND
       // clips were previously loaded (prevents clearing during initial load when field might be missing)
@@ -2645,10 +2644,11 @@ const VideoCallUI = ({
         <ModalHeader
           toggle={() => {
             setIsOpenConfirm(false);
-            // Clear clips and emit socket event to sync with student
             setSelectedClips([]);
-            selectedClipsRef.current = []; // Update ref
-            clipsLoadedRef.current = false; // Reset flag
+            selectedClipsRef.current = [];
+            clipsLoadedRef.current = false;
+            lastEmittedClipIdsRef.current = '';
+            bookingClipsLoadedOnceRef.current = true;
             emitVideoSelectEvent("clips", []);
           }}
           close={() => <></>}
@@ -2689,11 +2689,13 @@ const VideoCallUI = ({
             onClick={() => {
               // Clear clips and emit socket event to sync with student
               setSelectedClips([]);
-              selectedClipsRef.current = []; // Update ref
-              clipsLoadedRef.current = false; // Reset flag
-              // Explicitly emit the event to ensure student receives it immediately
+              selectedClipsRef.current = [];
+              clipsLoadedRef.current = false;
+              lastEmittedClipIdsRef.current = ''; // Allow re-emitting same clips if re-selected
+              bookingClipsLoadedOnceRef.current = true; // Prevent startMeeting from reloading booking clips
               emitVideoSelectEvent("clips", []);
               setIsOpenConfirm(false);
+              setIsOpen(true); // Open clip selector immediately for re-selection
             }}
             className="clip-exit-confirm-modal__btn-confirm"
             style={{
@@ -2866,7 +2868,12 @@ const VideoCallUI = ({
                       color="success"
                       onClick={() => {
                         if (selectClips && selectClips?.length) {
+                          // Update refs before state so emit useEffect and socket handler see correct values
+                          selectedClipsRef.current = selectClips;
+                          clipsLoadedRef.current = true;
+                          bookingClipsLoadedOnceRef.current = true; // Protect from startMeeting override
                           setSelectedClips(selectClips);
+                          setSelectClips([]); // Reset picker for next open
                           setClipSelectNote(false);
                         }
                         setIsOpen(false);
