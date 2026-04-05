@@ -37,7 +37,9 @@ export const SocketProvider = ({ children }) => {
     }
 
     // Only create new socket if we don't have one or if token changed
-    const currentToken = socketRef.current?.io?.opts?.query?.authorization;
+    const currentToken =
+      socketRef.current?.io?.opts?.auth?.authorization ??
+      socketRef.current?.io?.opts?.query?.authorization;
     if (socketRef.current && currentToken === token && socketRef.current.connected) {
       // Socket already exists and is connected with same token, no need to recreate
       return;
@@ -53,7 +55,8 @@ export const SocketProvider = ({ children }) => {
     console.log('[Socket] Token present:', !!token);
 
     const newSocket = socketio.connect(URL, {
-      query: { authorization: token, autoConnect: true },
+      // Send JWT in handshake auth — keeps wss:// URL short (query-only tokens hit proxy / length limits).
+      auth: { authorization: token },
       // Prefer WebSocket first (fewer HTTP round-trips). Polling remains fallback for strict proxies.
       transports: ["websocket", "polling"],
       // Increase reconnection attempts

@@ -182,6 +182,8 @@ const VideoCallUI = ({
   const [callState, setCallState] = useState("idle"); // idle | connecting | connected | reconnecting | failed | ended
   const qualityMonitorIntervalRef = useRef(null);
   const heartbeatIntervalRef = useRef(null);
+  /** Same socket instance: remove previous handlers before re-attaching (handleStartCall can run more than once). */
+  const socketCallLifecycleHandlersRef = useRef(null);
 
   // Authoritative lesson timer (backend-driven)
   const lessonTimerIntervalRef = useRef(null);
@@ -1414,29 +1416,46 @@ const VideoCallUI = ({
         return;
       }
 
-      socket.on('disconnect', (reason) => {
+      const prevHs = socketCallLifecycleHandlersRef.current;
+      if (prevHs) {
+        socket.off("disconnect", prevHs.onDisconnect);
+        socket.off("connect_error", prevHs.onConnectError);
+        socket.off("reconnect_error", prevHs.onReconnectError);
+        socket.off("reconnect_failed", prevHs.onReconnectFailed);
+        socket.off("connect", prevHs.onConnect);
+      }
+
+      const onDisconnect = () => {
         toast.error("You have been disconnected from the server. Attempting to reconnect...");
         setCallState((prev) => (prev === "ended" ? prev : "reconnecting"));
-      });
+      };
 
-      socket.on('connect_error', (err) => {
-        console.error('Socket connect error:', err);
-        toast.error("Socket connection error occurred. Please try again later.");
-        // Handle reconnection or other recovery mechanisms
-      });
+      // connect_error fires for every failed WebSocket attempt; Socket.IO then falls back to polling
+      // and connects — so a generic toast here is a false alarm.
+      const onConnectError = (err) => {
+        if (process.env.NODE_ENV === "development") {
+          console.error("Socket connect error:", err);
+        }
+        const msgLower = String(err?.message || "").toLowerCase();
+        if (err?.type === "TransportError" || msgLower.includes("websocket")) {
+          return;
+        }
+        if (/auth|unauthorized|jwt|token|forbidden|not authorized/i.test(msgLower)) {
+          toast.error("Unable to verify your session. Please refresh and sign in again.");
+        }
+      };
 
-      socket.on('reconnect_error', (err) => {
-        console.error('Socket reconnect error:', err);
-        toast.error("Unable to reconnect to the server. Please try again later.");
-      });
+      const onReconnectError = (err) => {
+        if (process.env.NODE_ENV === "development") {
+          console.error("Socket reconnect error:", err);
+        }
+      };
 
-      socket.on('reconnect_failed', () => {
+      const onReconnectFailed = () => {
         toast.error("Reconnection to the server failed. Please check your internet and try again.");
-      });
+      };
 
-      socket.on('connect', () => {
-        // If we were in a reconnecting state and still have an active peer,
-        // re-emit ON_CALL_JOIN so backend can re-bind this socket to the session room.
+      const onConnect = () => {
         if (callState === "reconnecting" && peerRef.current && fromUser && toUser && id) {
           socket.emit("ON_CALL_JOIN", {
             userInfo: {
@@ -1448,7 +1467,21 @@ const VideoCallUI = ({
           });
           setCallState("connecting");
         }
-      });
+      };
+
+      socketCallLifecycleHandlersRef.current = {
+        onDisconnect,
+        onConnectError,
+        onReconnectError,
+        onReconnectFailed,
+        onConnect,
+      };
+
+      socket.on("disconnect", onDisconnect);
+      socket.on("connect_error", onConnectError);
+      socket.on("reconnect_error", onReconnectError);
+      socket.on("reconnect_failed", onReconnectFailed);
+      socket.on("connect", onConnect);
 
       // Start heartbeat: emit every 10 seconds to prove we're alive
       if (heartbeatIntervalRef.current) {
