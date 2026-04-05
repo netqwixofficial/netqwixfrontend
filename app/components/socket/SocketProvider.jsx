@@ -54,9 +54,8 @@ export const SocketProvider = ({ children }) => {
 
     const newSocket = socketio.connect(URL, {
       query: { authorization: token, autoConnect: true },
-      // Try polling first if websocket fails, then fallback to websocket
-      // This helps with firewalls/proxies that block websocket
-      transports: ['polling', 'websocket'],
+      // Prefer WebSocket first (fewer HTTP round-trips). Polling remains fallback for strict proxies.
+      transports: ["websocket", "polling"],
       // Increase reconnection attempts
       reconnection: true,
       reconnectionAttempts: 10,

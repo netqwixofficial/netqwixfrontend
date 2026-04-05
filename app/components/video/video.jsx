@@ -2259,10 +2259,12 @@ const togglePlay = (num) => {
     updatedPlayingState.number = num;
 
   // Emit using the updated state directly
-  console.log('Emitting play/pause event:', {
+  if (process.env.NODE_ENV === "development") {
+    console.log("Emitting play/pause event:", {
       userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
       ...updatedPlayingState,
-  });
+    });
+  }
   socket?.emit(EVENTS?.ON_VIDEO_PLAY_PAUSE, {
       userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
       ...updatedPlayingState,

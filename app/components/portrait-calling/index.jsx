@@ -2482,14 +2482,6 @@ const VideoCallUI = ({
           !remoteStream && 
           !remoteVideoRef?.current?.srcObject;
         
-        if (shouldShowMessage) {
-          console.log("[VideoCallUI] Showing waiting message", {
-            displayMsg: displayMsg.msg,
-            bothUsersJoined,
-            hasRemoteStream: !!remoteStream,
-            hasRemoteVideoSrc: !!remoteVideoRef?.current?.srcObject,
-          });
-        }
         return shouldShowMessage;
       })() && (
         <CenterMessage
@@ -2498,18 +2490,6 @@ const VideoCallUI = ({
           showSpinner={true}
         />
       )}
-      {/* Debug: Log selectedClips state for troubleshooting */}
-      {(() => {
-        const willShowClipMode = selectedClips && Array.isArray(selectedClips) && selectedClips.length > 0;
-        console.log("[VideoCallUI] Render check", {
-          selectedClipsLength: selectedClips?.length,
-          selectedClipsIsArray: Array.isArray(selectedClips),
-          willShowClipMode,
-          clipIds: selectedClips?.map(c => c?._id),
-          renderingComponent: willShowClipMode ? 'ClipModeCall' : 'OneOnOneCall',
-        });
-        return null;
-      })()}
       {selectedClips && Array.isArray(selectedClips) && selectedClips.length > 0 ? (
         <ClipModeCall
           sessionId={id}
