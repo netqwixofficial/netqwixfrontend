@@ -10,6 +10,7 @@ import {
 export const useClipPlayback = ({
   fromUser,
   toUser,
+  sessionId,
   selectedClips,
   setSelectedClips,
   setIsPinned,
@@ -67,9 +68,10 @@ export const useClipPlayback = ({
         number,
         isPlaying1,
         isPlaying2,
+        ...(sessionId ? { sessionId } : {}),
       });
     },
-    [socket, fromUser, toUser]
+    [socket, fromUser, toUser, sessionId]
   );
 
   /**
@@ -81,9 +83,10 @@ export const useClipPlayback = ({
         userInfo: { from_user: fromUser._id, to_user: toUser._id },
         clickedTime,
         number,
+        ...(sessionId ? { sessionId } : {}),
       });
     },
-    [socket, fromUser, toUser]
+    [socket, fromUser, toUser, sessionId]
   );
 
   /**

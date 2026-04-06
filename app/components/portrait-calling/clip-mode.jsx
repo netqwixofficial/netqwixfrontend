@@ -363,6 +363,7 @@ const VideoContainer = ({
           videoId: clip?._id,
           userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
           isPlaying: true,
+          ...(sessionId ? { sessionId } : {}),
         });
         safePlayVideoElement(video).then((ok) => {
           setIsPlaying(!!ok);
@@ -386,6 +387,7 @@ const VideoContainer = ({
           videoId: clip?._id,
           userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
           isPlaying: false,
+          ...(sessionId ? { sessionId } : {}),
         });
       }
     } else {
@@ -850,6 +852,7 @@ const VideoContainer = ({
         userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
         videoId: clip._id,
         progress,
+        ...(sessionId ? { sessionId } : {}),
       });
     } else {
       console.warn("⚠️ [VideoContainer] Cannot seek - video not available", {
@@ -1757,6 +1760,7 @@ const ClipModeCall = ({
           both: true,
           userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
           isPlaying: true,
+          ...(sessionId ? { sessionId } : {}),
         });
         safePlayTwoVideoElements(video1, video2).then((ok) => {
           setIsPlayingBoth(!!ok);
@@ -1784,6 +1788,7 @@ const ClipModeCall = ({
           both: true,
           userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
           isPlaying: false,
+          ...(sessionId ? { sessionId } : {}),
         });
       }
     } else {
@@ -1859,6 +1864,7 @@ const ClipModeCall = ({
       userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
       both: true,
       progress: longerVideo.currentTime, // Sync using the longer video
+      ...(sessionId ? { sessionId } : {}),
     });
   };
 
