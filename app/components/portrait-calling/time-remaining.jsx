@@ -33,9 +33,10 @@ const TimeRemaining = ({
   const fiveMinTimeoutRef = useRef(null);
   const thirtySecTimeoutRef = useRef(null);
 
-  // Derive remaining seconds from the provided timeRemaining
+  // Derive display from timeRemaining (same core behavior as the simple component):
+  // 1) wait until both users are in the call, 2) prefer authoritative seconds, 3) slot end-time
+  //    string with a local interval, 4) optional post-join buffer message only when no time yet.
   useEffect(() => {
-    // Clear any active timeouts when dependencies change
     if (fiveMinTimeoutRef.current) {
       clearTimeout(fiveMinTimeoutRef.current);
       fiveMinTimeoutRef.current = null;
@@ -45,38 +46,59 @@ const TimeRemaining = ({
       thirtySecTimeoutRef.current = null;
     }
 
-    // Reset popups when we get a fresh time or users are not joined
     setShowFiveMinPopup(false);
     setShowThirtySecPopup(false);
     lastRemainingSecondsRef.current = null;
 
-    // If timer isn't available yet, show waiting message.
-    // If backend already provided `timeRemaining` (number seconds), we
-    // should keep showing countdown even before `bothUsersJoined` flips true.
     if (!bothUsersJoined) {
-      const hasNumericSeconds = typeof timeRemaining === "number" && !Number.isNaN(timeRemaining);
-      const hasHHmmEndTime =
-        typeof timeRemaining === "string" && timeRemaining.includes(":");
-
-      if (!hasNumericSeconds && !hasHHmmEndTime) {
-        setTimerColor("#6c757d"); // muted grey while waiting
-        setDisplayTime("Waiting for both users...");
-        return;
-      }
-    }
-
-    // Both joined but 15s buffer not elapsed: show "Session starting in X seconds..."
-    if (bufferSecondsRemaining != null) {
       setTimerColor("#6c757d");
-      setDisplayTime(
-        bufferSecondsRemaining > 0
-          ? `Session starting in ${bufferSecondsRemaining} seconds...`
-          : "Starting..."
-      );
+      setDisplayTime("Waiting for both users...");
       return;
     }
 
-    // Case 1: timeRemaining is a string "HH:MM" → treat as end time
+    // Backend / parent-driven seconds — never hide behind the client buffer row
+    if (typeof timeRemaining === "number" && !Number.isNaN(timeRemaining)) {
+      const remainingSeconds = Math.max(0, Math.floor(timeRemaining));
+
+      setDisplayTime(formatSecondsToMMSS(remainingSeconds));
+      if (remainingSeconds > FIVE_MINUTES_IN_SECONDS) setTimerColor("#28a745");
+      else if (remainingSeconds > 60) setTimerColor("#ff9800");
+      else setTimerColor("#f44336");
+
+      const previous = lastRemainingSecondsRef.current;
+      lastRemainingSecondsRef.current = remainingSeconds;
+
+      if (
+        previous != null &&
+        previous > FIVE_MINUTES_IN_SECONDS &&
+        remainingSeconds <= FIVE_MINUTES_IN_SECONDS &&
+        remainingSeconds > 0
+      ) {
+        setShowFiveMinPopup(true);
+        if (fiveMinTimeoutRef.current) clearTimeout(fiveMinTimeoutRef.current);
+        fiveMinTimeoutRef.current = setTimeout(() => {
+          setShowFiveMinPopup(false);
+          fiveMinTimeoutRef.current = null;
+        }, 5000);
+      }
+      if (
+        previous != null &&
+        previous > FIFTEEN_SECONDS_IN_SECONDS &&
+        remainingSeconds <= FIFTEEN_SECONDS_IN_SECONDS &&
+        remainingSeconds > 0
+      ) {
+        setShowThirtySecPopup(true);
+        if (thirtySecTimeoutRef.current) clearTimeout(thirtySecTimeoutRef.current);
+        thirtySecTimeoutRef.current = setTimeout(() => {
+          setShowThirtySecPopup(false);
+          thirtySecTimeoutRef.current = null;
+        }, 3000);
+      }
+
+      return;
+    }
+
+    // Case: timeRemaining is "HH:MM" → wall-clock countdown to that time today
     if (typeof timeRemaining === "string" && timeRemaining.includes(":")) {
       const [endHours, endMinutes] = timeRemaining.split(":").map(Number);
       if (
@@ -174,49 +196,16 @@ const TimeRemaining = ({
       };
     }
 
-    // Case 2: timeRemaining is already a number of seconds (parent updates every second)
-    if (typeof timeRemaining === "number") {
-      const remainingSeconds = Math.max(0, Math.floor(timeRemaining));
-
-      setDisplayTime(formatSecondsToMMSS(remainingSeconds));
-      if (remainingSeconds > FIVE_MINUTES_IN_SECONDS) setTimerColor("#28a745");
-      else if (remainingSeconds > 60) setTimerColor("#ff9800");
-      else setTimerColor("#f44336");
-
-      const previous = lastRemainingSecondsRef.current;
-      lastRemainingSecondsRef.current = remainingSeconds;
-
-      if (
-        previous != null &&
-        previous > FIVE_MINUTES_IN_SECONDS &&
-        remainingSeconds <= FIVE_MINUTES_IN_SECONDS &&
-        remainingSeconds > 0
-      ) {
-        setShowFiveMinPopup(true);
-        if (fiveMinTimeoutRef.current) clearTimeout(fiveMinTimeoutRef.current);
-        fiveMinTimeoutRef.current = setTimeout(() => {
-          setShowFiveMinPopup(false);
-          fiveMinTimeoutRef.current = null;
-        }, 5000);
-      }
-      if (
-        previous != null &&
-        previous > FIFTEEN_SECONDS_IN_SECONDS &&
-        remainingSeconds <= FIFTEEN_SECONDS_IN_SECONDS &&
-        remainingSeconds > 0
-      ) {
-        setShowThirtySecPopup(true);
-        if (thirtySecTimeoutRef.current) clearTimeout(thirtySecTimeoutRef.current);
-        thirtySecTimeoutRef.current = setTimeout(() => {
-          setShowThirtySecPopup(false);
-          thirtySecTimeoutRef.current = null;
-        }, 3000);
-      }
-
+    if (bufferSecondsRemaining != null) {
+      setTimerColor("#6c757d");
+      setDisplayTime(
+        bufferSecondsRemaining > 0
+          ? `Session starting in ${bufferSecondsRemaining} seconds...`
+          : "Starting..."
+      );
       return;
     }
 
-    // Fallback for unexpected type
     setDisplayTime("--:--");
     setTimerColor("#28a745");
   }, [timeRemaining, bothUsersJoined, bufferSecondsRemaining]);
