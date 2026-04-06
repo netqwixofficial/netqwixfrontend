@@ -75,6 +75,10 @@ import MobileDetect from 'mobile-detect';
 import { isIOS } from 'react-device-detect';
 import Script from 'next/script'
 import LazyVideo from "./LazyVideo";
+import {
+  safePlayVideoElement,
+  safePlayTwoVideoElements,
+} from "./videoPlayback";
 import { traineeClips } from "../../../containers/rightSidebar/fileSection.api";
 import { fetchPeerConfig } from "../../../api";
 import { bookingsState } from "../common/common.slice";
@@ -1124,24 +1128,37 @@ useEffect(() => {
       }
     });
 
-    socket.on(EVENTS.ON_VIDEO_PLAY_PAUSE, ({ isPlayingAll, number, isPlaying1, isPlaying2 }) => {
-      const playPauseVideo = (videoRef, isPlaying) => {
-        if (videoRef?.current) {
-          isPlaying ? videoRef.current.play() : videoRef.current.pause();
+    socket.on(
+      EVENTS.ON_VIDEO_PLAY_PAUSE,
+      async ({ isPlayingAll, number, isPlaying1, isPlaying2 }) => {
+        const playOrPause = async (videoRef, shouldPlay) => {
+          if (!videoRef?.current) return;
+          if (shouldPlay) {
+            await safePlayVideoElement(videoRef.current);
+          } else {
+            videoRef.current.pause();
+          }
+        };
+
+        if (number === "all") {
+          if (isPlayingAll) {
+            await safePlayTwoVideoElements(
+              selectedVideoRef1.current,
+              selectedVideoRef2.current
+            );
+          } else {
+            selectedVideoRef1.current?.pause();
+            selectedVideoRef2.current?.pause();
+          }
+        } else if (number === "one") {
+          await playOrPause(selectedVideoRef1, isPlaying1);
+        } else if (number === "two") {
+          await playOrPause(selectedVideoRef2, isPlaying2);
         }
-      };
-    
-      if (number === "all") {
-        playPauseVideo(selectedVideoRef1, isPlayingAll);
-        playPauseVideo(selectedVideoRef2, isPlayingAll);
-      } else if (number === "one") {
-        playPauseVideo(selectedVideoRef1, isPlaying1);
-      } else if (number === "two") {
-        playPauseVideo(selectedVideoRef2, isPlaying2);
+
+        setIsPlaying({ isPlayingAll, number, isPlaying1, isPlaying2 });
       }
-    
-      setIsPlaying({ isPlayingAll, number, isPlaying1, isPlaying2 });
-    });
+    );
 
     socket.on(EVENTS.ON_VIDEO_TIME, ({ clickedTime, number }) => {
       if (selectedVideoRef1?.current) {
@@ -2182,14 +2199,13 @@ const emitVideoTimeEvent = (clickedTime, number) => {
     }
 };
 
-const togglePlay = (num) => {
-   
-  if (num === 'one' && showThumbnailForFirstVideo) {
+const togglePlay = async (num) => {
+  if (num === "one" && showThumbnailForFirstVideo) {
       setShowThumbnailForFirstVideo(false);
   }
 
-  if (num === 'two' && showThumbnailForTwoVideo) {
-      setShowThumbnailForTwoVideo(false);
+  if (num === "two" && showThumbnailForTwoVideo) {
+    setShowThumbnailForTwoVideo(false);
   }
 
   if (num === 'all') {
@@ -2213,27 +2229,34 @@ const togglePlay = (num) => {
   const toggleAll = num === "all";
 
   if (toggleAll) {
-      updatedPlayingState.isPlayingAll = !isPlaying.isPlayingAll;
+    updatedPlayingState.isPlayingAll = !isPlaying.isPlayingAll;
 
-      if (updatedPlayingState.isPlayingAll) {
-          selectedVideoRef1.current?.play();
-          selectedVideoRef2.current?.play();
-      } else {
-          selectedVideoRef1.current?.pause();
-          selectedVideoRef2.current?.pause();
+    if (updatedPlayingState.isPlayingAll) {
+      const v1 = selectedVideoRef1.current;
+      const v2 = selectedVideoRef2.current;
+      const ok = v1 && v2 ? await safePlayTwoVideoElements(v1, v2) : false;
+      if (!ok) {
+        updatedPlayingState.isPlayingAll = false;
+        v1?.pause();
+        v2?.pause();
       }
-  } else {
-      const videoRef = num === "one" ? selectedVideoRef1 : selectedVideoRef2;
-      const isPlayingKey = num === "one" ? 'isPlaying1' : 'isPlaying2';
-      const isPlayingValue = updatedPlayingState[isPlayingKey];
-
-      if (isPlayingValue) {
-          videoRef.current?.pause();
-      } else {
-          videoRef.current?.play();
-      }
-      updatedPlayingState[isPlayingKey] = !isPlayingValue;
+    } else {
+      selectedVideoRef1.current?.pause();
+      selectedVideoRef2.current?.pause();
     }
+  } else {
+    const videoRef = num === "one" ? selectedVideoRef1 : selectedVideoRef2;
+    const isPlayingKey = num === "one" ? "isPlaying1" : "isPlaying2";
+    const isPlayingValue = updatedPlayingState[isPlayingKey];
+
+    if (isPlayingValue) {
+      videoRef.current?.pause();
+      updatedPlayingState[isPlayingKey] = false;
+    } else {
+      const ok = await safePlayVideoElement(videoRef.current);
+      updatedPlayingState[isPlayingKey] = !!ok;
+    }
+  }
     updatedPlayingState.number = num;
 
   // Emit using the updated state directly

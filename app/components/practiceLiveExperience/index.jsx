@@ -39,6 +39,10 @@ import "./index.scss";
 import Notes from "./Notes";
 import { useMediaQuery } from "../../hook/useMediaQuery";
 import CenterMessage from "../common/CenterMessage";
+import {
+  safePlayVideoElement,
+  safePlayTwoVideoElements,
+} from "../video/videoPlayback";
 
 let storedLocalDrawPaths = { sender: [], receiver: [] };
 let selectedShape = null;
@@ -1378,9 +1382,8 @@ export default function PracticeLiveExperience({
     }
   };
 
-  const togglePlay = (num) => {
-    var temp = isPlaying;
-    temp.number = num;
+  const togglePlay = async (num) => {
+    let temp = { ...isPlaying, number: num };
     if (
       selectedVideoRef1?.current?.currentTime ===
       selectedVideoRef1?.current?.duration &&
@@ -1397,24 +1400,46 @@ export default function PracticeLiveExperience({
       if (isPlaying.isPlayingAll) {
         selectedVideoRef1?.current?.pause();
         selectedVideoRef2?.current?.pause();
+        temp = {
+          ...isPlaying,
+          number: num,
+          isPlayingAll: false,
+          isPlaying1: false,
+          isPlaying2: false,
+        };
       } else {
-        selectedVideoRef1?.current?.play();
-        selectedVideoRef2?.current?.play();
+        const v1 = selectedVideoRef1?.current;
+        const v2 = selectedVideoRef2?.current;
+        const ok = v1 && v2 ? await safePlayTwoVideoElements(v1, v2) : false;
+        if (!ok) {
+          v1?.pause();
+          v2?.pause();
+        }
+        const on = !!ok;
+        temp = {
+          ...isPlaying,
+          number: num,
+          isPlayingAll: on,
+          isPlaying1: on,
+          isPlaying2: on,
+        };
       }
-      temp = {
-        ...isPlaying,
-        isPlayingAll: !isPlaying.isPlayingAll,
-        isPlaying1: !isPlaying.isPlayingAll,
-        isPlaying2: !isPlaying.isPlayingAll,
-      };
     } else if (num === "one") {
-      if (isPlaying.isPlaying1) selectedVideoRef1?.current?.pause();
-      else selectedVideoRef1?.current?.play();
-      temp = { ...isPlaying, isPlaying1: !isPlaying.isPlaying1 };
+      if (isPlaying.isPlaying1) {
+        selectedVideoRef1?.current?.pause();
+        temp = { ...isPlaying, number: num, isPlaying1: false };
+      } else {
+        const ok = await safePlayVideoElement(selectedVideoRef1?.current);
+        temp = { ...isPlaying, number: num, isPlaying1: !!ok };
+      }
     } else if (num === "two") {
-      if (isPlaying?.isPlaying2) selectedVideoRef2?.current?.pause();
-      else selectedVideoRef2.current.play();
-      temp = { ...isPlaying, isPlaying2: !isPlaying.isPlaying2 };
+      if (isPlaying?.isPlaying2) {
+        selectedVideoRef2?.current?.pause();
+        temp = { ...isPlaying, number: num, isPlaying2: false };
+      } else {
+        const ok = await safePlayVideoElement(selectedVideoRef2?.current);
+        temp = { ...isPlaying, number: num, isPlaying2: !!ok };
+      }
     }
 
     socket?.emit(EVENTS?.ON_VIDEO_PLAY_PAUSE, {

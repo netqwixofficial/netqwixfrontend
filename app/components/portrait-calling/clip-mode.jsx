@@ -23,6 +23,10 @@ import { EVENTS } from "../../../helpers/events";
 import { useEffect } from "react";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { Utils } from "../../../utils/utils";
+import {
+  safePlayVideoElement,
+  safePlayTwoVideoElements,
+} from "../video/videoPlayback";
 import _debounce from "lodash/debounce";
 import { toast } from "react-toastify";
 import { pushProfilePhotoToS3 } from "../common/common.api";
@@ -360,18 +364,15 @@ const VideoContainer = ({
           userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
           isPlaying: true,
         });
-        setIsPlaying(true);
-        const p = video.play();
-        if (p && typeof p.then === "function") {
-          p.catch((err) => {
-            console.warn("VideoContainer play() failed (e.g. policy or device)", {
+        safePlayVideoElement(video).then((ok) => {
+          setIsPlaying(!!ok);
+          if (!ok) {
+            console.warn("VideoContainer play() failed after retry", {
               clipId: clip?._id,
               index,
-              err: err?.message || err,
             });
-            setIsPlaying(false);
-          });
-        }
+          }
+        });
       } else {
         console.log("⏸️ [VideoContainer] Pausing video", {
           clipId: clip?._id,
@@ -438,15 +439,7 @@ const VideoContainer = ({
             currentTime: video.currentTime,
             index,
           });
-          const p = video.play();
-          if (p && typeof p.then === "function") {
-            p.then(() => setIsPlaying(true)).catch((err) => {
-              console.warn("VideoContainer play error from socket", { clipId: clip?._id, err: err?.message || err });
-              setIsPlaying(false);
-            });
-          } else {
-            setIsPlaying(true);
-          }
+          safePlayVideoElement(video).then((ok) => setIsPlaying(!!ok));
         }
       } else {
         if (!video.paused) {
@@ -572,15 +565,7 @@ const VideoContainer = ({
             index,
           });
           if (shouldPlay && video.paused) {
-            const p = video.play();
-            if (p && typeof p.then === "function") {
-              p.then(() => setIsPlaying(true)).catch((err) => {
-                console.warn("VideoContainer play error from queued state", { clipId: clip?._id, err: err?.message || err });
-                setIsPlaying(false);
-              });
-            } else {
-              setIsPlaying(true);
-            }
+            safePlayVideoElement(video).then((ok) => setIsPlaying(!!ok));
           } else if (!shouldPlay && !video.paused) {
             video.pause();
             setIsPlaying(false);
@@ -1601,17 +1586,12 @@ const ClipModeCall = ({
 
       if (data.isPlaying) {
         console.log("▶️ [ClipModeCall] Playing both videos from socket event");
-        const p1 = video1.play();
-        const p2 = video2.play();
-        const all = [p1, p2].every((p) => p && typeof p.then === "function")
-          ? Promise.all([p1, p2])
-          : Promise.resolve();
-        all
-          .then(() => setIsPlayingBoth(true))
-          .catch((err) => {
-            console.warn("ClipModeCall socket play() failed", { err: err?.message || err });
-            setIsPlayingBoth(false);
-          });
+        safePlayTwoVideoElements(video1, video2).then((ok) => {
+          setIsPlayingBoth(!!ok);
+          if (!ok) {
+            console.warn("ClipModeCall socket play() failed after retry");
+          }
+        });
       } else {
         console.log("⏸️ [ClipModeCall] Pausing both videos from socket event");
         video1.pause();
@@ -1778,18 +1758,19 @@ const ClipModeCall = ({
           userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
           isPlaying: true,
         });
-        setIsPlayingBoth(true);
-        const p1 = video1.play();
-        const p2 = video2.play();
-        const all =
-          [p1, p2].every((p) => p && typeof p.then === "function")
-            ? Promise.all([p1, p2])
-            : Promise.resolve();
-        all.catch((err) => {
-          console.warn("ClipModeCall play() failed on one or both videos", {
-            err: err?.message || err,
-          });
-          setIsPlayingBoth(false);
+        safePlayTwoVideoElements(video1, video2).then((ok) => {
+          setIsPlayingBoth(!!ok);
+          if (!ok) {
+            console.warn(
+              "ClipModeCall play() failed on one or both videos after retry"
+            );
+            try {
+              video1.pause();
+              video2.pause();
+            } catch (_) {
+              /* ignore */
+            }
+          }
         });
       } else {
         console.log("⏸️ [ClipModeCall] Pausing both videos", {

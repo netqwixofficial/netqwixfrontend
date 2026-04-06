@@ -1,6 +1,10 @@
 import { useState, useRef, useCallback, useEffect, useContext } from 'react';
 import { SocketContext } from '../../socket';
 import { EVENTS } from '../../../../helpers/events';
+import {
+  safePlayVideoElement,
+  safePlayTwoVideoElements,
+} from '../videoPlayback';
 
 
 export const useClipPlayback = ({
@@ -83,11 +87,14 @@ export const useClipPlayback = ({
   );
 
   /**
-   * Play/pause video helper
+   * Play/pause video helper (play uses safe path for mobile / iOS)
    */
-  const playPauseVideo = useCallback((videoRef, isPlaying) => {
-    if (videoRef?.current) {
-      isPlaying ? videoRef.current.play() : videoRef.current.pause();
+  const playPauseVideo = useCallback(async (videoRef, shouldPlay) => {
+    if (!videoRef?.current) return;
+    if (shouldPlay) {
+      await safePlayVideoElement(videoRef.current);
+    } else {
+      videoRef.current.pause();
     }
   }, []);
 
@@ -148,19 +155,26 @@ export const useClipPlayback = ({
       }
     };
 
-    const handleVideoPlayPause = ({
+    const handleVideoPlayPause = async ({
       isPlayingAll,
       number,
       isPlaying1,
       isPlaying2,
     }) => {
       if (number === 'all') {
-        playPauseVideo(selectedVideoRef1, isPlayingAll);
-        playPauseVideo(selectedVideoRef2, isPlayingAll);
+        if (isPlayingAll) {
+          await safePlayTwoVideoElements(
+            selectedVideoRef1.current,
+            selectedVideoRef2.current
+          );
+        } else {
+          selectedVideoRef1.current?.pause();
+          selectedVideoRef2.current?.pause();
+        }
       } else if (number === 'one') {
-        playPauseVideo(selectedVideoRef1, isPlaying1);
+        await playPauseVideo(selectedVideoRef1, isPlaying1);
       } else if (number === 'two') {
-        playPauseVideo(selectedVideoRef2, isPlaying2);
+        await playPauseVideo(selectedVideoRef2, isPlaying2);
       }
 
       setIsPlaying({ isPlayingAll, number, isPlaying1, isPlaying2 });
