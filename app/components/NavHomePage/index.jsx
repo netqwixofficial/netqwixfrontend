@@ -23,9 +23,8 @@ import {
   getScheduledMeetingDetailsAsync,
 } from "../common/common.slice";
 
-import { convertTimesForDataArray, CovertTimeAccordingToTimeZone, formatTimeInLocalZone, Utils } from "../../../utils/utils";
+import { convertTimesForDataArray, CovertTimeAccordingToTimeZone, formatTimeInLocalZone, Utils, isScheduledSessionLiveNow } from "../../../utils/utils";
 import { Button } from "reactstrap";
-import { DateTime } from "luxon";
 import { traineeAction } from "../trainee/trainee.slice";
 import { addRating } from "../common/common.api";
 import TrainerRenderBooking from "../bookings/TrainerRenderBooking";
@@ -277,37 +276,15 @@ const NavHomePage = () => {
     }
   }, [isMeetingLoading]);
 
-  // Filter sessions that are confirmed and within the current time range (active sessions)
-  // Matches behavior at ffb2ea8 – sessions where current time is within start–end and not yet rated
+  // Active Sessions: truly in-window now (anchored to booked_date when times are HH:mm only)
   useEffect(() => {
     if (!scheduledMeetingDetails?.length) {
       setFilteredSessions([]);
       return;
     }
-    const filtered = scheduledMeetingDetails.filter((session) => {
-      const { ratings } = session;
-      const start_time = session.session_start_time || session.start_time;
-      const end_time = session.session_end_time || session.end_time;
-      if (!start_time || !end_time) return false;
-      const startTimeUpdated = CovertTimeAccordingToTimeZone(start_time, session.time_zone);
-      const endTimeUpdated = CovertTimeAccordingToTimeZone(end_time, session.time_zone);
-      const currentTime = DateTime.utc();
-      const startTime = DateTime.fromISO(startTimeUpdated, { zone: "utc" });
-      const endTime = DateTime.fromISO(endTimeUpdated, { zone: "utc" });
-      const currentDate = currentTime.toFormat("yyyy-MM-dd");
-      const currentTimeOnly = currentTime.toFormat("HH:mm");
-      const startDate = startTime.toFormat("yyyy-MM-dd");
-      const startTimeOnly = startTime.toFormat("HH:mm");
-      const endDate = endTime.toFormat("yyyy-MM-dd");
-      const endTimeOnly = endTime.toFormat("HH:mm");
-      const isDateSame = currentDate === startDate && currentDate === endDate;
-      const isWithinTimeFrame =
-        isDateSame &&
-        currentTimeOnly >= startTimeOnly &&
-        currentTimeOnly <= endTimeOnly;
-      return isWithinTimeFrame && !ratings;
-    });
-    setFilteredSessions(filtered);
+    setFilteredSessions(
+      scheduledMeetingDetails.filter((session) => isScheduledSessionLiveNow(session))
+    );
   }, [scheduledMeetingDetails]);
 
   const addTraineeClipInBookedSession = async (selectedClips) => {

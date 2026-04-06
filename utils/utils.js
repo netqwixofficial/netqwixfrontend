@@ -1137,6 +1137,99 @@ export const convertTimesForDataArray = (dataArray) => {
   })
 };
 
+/**
+ * True when "now" is inside the session window on the correct calendar day.
+ * Fixes Active Sessions showing past bookings: HH:mm-only fields were compared to "today"
+ * without anchoring to booked_date, so old sessions reappeared whenever the clock matched.
+ */
+export const isScheduledSessionLiveNow = (session) => {
+  if (!session) return false;
+  if (session.ratings) return false;
+
+  const terminal = ["completed", "cancelled", "canceled"];
+  if (terminal.includes(session.status)) return false;
+
+  const tz =
+    session.time_zone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const now = DateTime.now().setZone(tz);
+
+  const rawStart = session.start_time;
+  const rawEnd = session.end_time;
+
+  const hasCalendarDate = (v) => {
+    if (v == null) return false;
+    const s = String(v);
+    return s.includes("T") || /^\d{4}-\d{2}-\d{2}/.test(s);
+  };
+
+  if (
+    rawStart != null &&
+    rawEnd != null &&
+    hasCalendarDate(rawStart) &&
+    hasCalendarDate(rawEnd)
+  ) {
+    const start = DateTime.fromISO(String(rawStart), { setZone: true });
+    const end = DateTime.fromISO(String(rawEnd), { setZone: true });
+    if (start.isValid && end.isValid) {
+      const s = start.setZone(tz);
+      const e = end.setZone(tz);
+      return now >= s && now <= e;
+    }
+  }
+
+  if (!session.booked_date) return false;
+
+  const parseHm = (t) => {
+    if (t == null) return null;
+    const s = String(t).trim();
+    const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    if (!m) return null;
+    return {
+      h: Number(m[1]),
+      mi: Number(m[2]),
+      sec: m[3] != null ? Number(m[3]) : 0,
+    };
+  };
+
+  const startSrc =
+    session.session_start_time ||
+    (session.start_time != null && !hasCalendarDate(session.start_time)
+      ? session.start_time
+      : null);
+  const endSrc =
+    session.session_end_time ||
+    (session.end_time != null && !hasCalendarDate(session.end_time)
+      ? session.end_time
+      : null);
+
+  const startHM = parseHm(startSrc);
+  const endHM = parseHm(endSrc);
+  if (!startHM || !endHM) return false;
+
+  const day = DateTime.fromISO(String(session.booked_date), {
+    zone: "utc",
+  })
+    .setZone(tz)
+    .startOf("day");
+  if (!day.isValid) return false;
+
+  let start = day.set({
+    hour: startHM.h,
+    minute: startHM.mi,
+    second: startHM.sec,
+  });
+  let end = day.set({
+    hour: endHM.h,
+    minute: endHM.mi,
+    second: endHM.sec,
+  });
+  if (end <= start) {
+    end = end.plus({ days: 1 });
+  }
+
+  return now >= start && now <= end;
+};
+
 export const navigateToMeeting = (_id) => {
   const queryString = new URLSearchParams({ id: _id }).toString();
   window.location.href = `/meeting?${queryString}`;
