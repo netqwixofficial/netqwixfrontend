@@ -2776,7 +2776,7 @@ const togglePlay = async (num) => {
               <i className="fa fa-exclamation-triangle" aria-hidden="true"></i>
               <span>Confirm Exit</span>
             </div>
-          </ModalHeader>
+          </ModalHeader> 
           <ModalBody style={{ textAlign: "center", padding: "1.5rem" }}>
             <p style={{ margin: "0 0 1rem 0", fontSize: "1rem", color: "#333" }}>
               Are you sure you want to exit clip analysis mode?
