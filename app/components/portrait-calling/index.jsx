@@ -190,6 +190,7 @@ const VideoCallUI = ({
   const lessonTimerIntervalRef = useRef(null);
   const [authoritativeTimer, setAuthoritativeTimer] = useState(null);
   const [lessonTimerStatus, setLessonTimerStatus] = useState("waiting");
+  const autoLessonTimerRequestedRef = useRef(false);
 
   const netquixVideos = [
     {
@@ -1965,7 +1966,17 @@ const VideoCallUI = ({
     const handleTimerStarted = (data) => {
       if (!data || String(data.sessionId) !== String(id)) return;
       setLessonTimerStatus("running");
-      socket.emit("LESSON_STATE_REQUEST", { sessionId: id });
+      // Apply payload immediately so the UI counts down without waiting on LESSON_STATE_REQUEST.
+      if (data.duration != null) {
+        startLessonTimer({
+          sessionId: id,
+          startedAt: data.startedAt,
+          duration: data.duration,
+          remainingSeconds: data.remainingSeconds,
+        });
+      } else {
+        socket.emit("LESSON_STATE_REQUEST", { sessionId: id });
+      }
     };
 
     const handleTimerPaused = (data) => {
@@ -2010,7 +2021,10 @@ const VideoCallUI = ({
     };
 
     const handleTimerError = (data) => {
-      if (data?.message) toast.error(data.message);
+      if (data?.message) {
+        toast.error(data.message);
+        autoLessonTimerRequestedRef.current = false;
+      }
     };
 
     socket.emit("LESSON_STATE_REQUEST", { sessionId: id });
@@ -2030,6 +2044,31 @@ const VideoCallUI = ({
       socket.off("LESSON_TIMER_ERROR", handleTimerError);
     };
   }, [socket, id, startLessonTimer]);
+
+  useEffect(() => {
+    autoLessonTimerRequestedRef.current = false;
+  }, [id]);
+
+  // Auto-start backend lesson timer for the trainer after both sides joined + client buffer
+  // (avoids relying on an easy-to-miss manual "Play" on the timer chip).
+  useEffect(() => {
+    if (accountType !== AccountType.TRAINER) return;
+    if (!socket?.connected || !id) return;
+    if (!bothUsersJoined || !timerBufferElapsed) return;
+    if (lessonTimerStatus !== "waiting") return;
+    if (authoritativeTimer?.remainingSeconds != null) return;
+    if (autoLessonTimerRequestedRef.current) return;
+    autoLessonTimerRequestedRef.current = true;
+    socket.emit("LESSON_TIMER_START_REQUEST", { sessionId: id });
+  }, [
+    accountType,
+    socket,
+    id,
+    bothUsersJoined,
+    timerBufferElapsed,
+    lessonTimerStatus,
+    authoritativeTimer?.remainingSeconds,
+  ]);
 
   // Periodically re-sync lesson state from backend while in call to prevent drift
   // between users if any timer event was delayed/missed on one client.

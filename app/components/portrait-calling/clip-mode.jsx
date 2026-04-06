@@ -360,22 +360,17 @@ const VideoContainer = ({
           userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
           isPlaying: true,
         });
+        setIsPlaying(true);
         const p = video.play();
         if (p && typeof p.then === "function") {
-          p
-            .then(() => {
-              setIsPlaying(true);
-            })
-            .catch((err) => {
-              console.warn("VideoContainer play() failed (e.g. policy or device)", {
-                clipId: clip?._id,
-                index,
-                err: err?.message || err,
-              });
-              setIsPlaying(false);
+          p.catch((err) => {
+            console.warn("VideoContainer play() failed (e.g. policy or device)", {
+              clipId: clip?._id,
+              index,
+              err: err?.message || err,
             });
-        } else {
-          setIsPlaying(true);
+            setIsPlaying(false);
+          });
         }
       } else {
         console.log("⏸️ [VideoContainer] Pausing video", {
@@ -420,7 +415,13 @@ const VideoContainer = ({
         index,
       });
 
-      if (data?.videoId !== clip?._id) return;
+      // Dual-clip lock mode uses parent-level sync with `both: true` only.
+      if (data?.both) return;
+
+      const incomingId =
+        data?.videoId != null ? String(data.videoId) : "";
+      const clipId = clip?._id != null ? String(clip._id) : "";
+      if (!incomingId || incomingId !== clipId) return;
 
       // If video element is not ready yet on the trainee side, store desired state
       if (!video) {
@@ -476,7 +477,9 @@ const VideoContainer = ({
         index,
       });
 
-      if (data?.videoId === clip?._id && accountType === AccountType.TRAINEE) {
+      const timeClipId = clip?._id != null ? String(clip._id) : "";
+      const timeIncomingId = data?.videoId != null ? String(data.videoId) : "";
+      if (timeIncomingId && timeIncomingId === timeClipId && accountType === AccountType.TRAINEE) {
         // If video not ready (need at least HAVE_CURRENT_DATA for reliable seek on some devices), queue and apply when ready
         const minReady = typeof HTMLMediaElement !== "undefined" ? HTMLMediaElement.HAVE_CURRENT_DATA : 2;
         if (!video || video.readyState < minReady) {
@@ -1775,22 +1778,19 @@ const ClipModeCall = ({
           userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
           isPlaying: true,
         });
+        setIsPlayingBoth(true);
         const p1 = video1.play();
         const p2 = video2.play();
         const all =
           [p1, p2].every((p) => p && typeof p.then === "function")
             ? Promise.all([p1, p2])
             : Promise.resolve();
-        all
-          .then(() => {
-            setIsPlayingBoth(true);
-          })
-          .catch((err) => {
-            console.warn("ClipModeCall play() failed on one or both videos", {
-              err: err?.message || err,
-            });
-            setIsPlayingBoth(false);
+        all.catch((err) => {
+          console.warn("ClipModeCall play() failed on one or both videos", {
+            err: err?.message || err,
           });
+          setIsPlayingBoth(false);
+        });
       } else {
         console.log("⏸️ [ClipModeCall] Pausing both videos", {
           video1Time: video1.currentTime,
