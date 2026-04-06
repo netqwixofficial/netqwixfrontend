@@ -261,6 +261,7 @@ export const HandleVideoCall = ({
     a: 1,
   });
   const { startMeeting } = useAppSelector(bookingsState);
+  const clipSessionId = id || startMeeting?.id;
 
   // Initialize hooks
   // Note: Some hooks need to be initialized after certain state is set up
@@ -2129,6 +2130,7 @@ const emitVideoTimeEvent = (clickedTime, number) => {
     userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
     clickedTime,
     number,
+    ...(clipSessionId ? { sessionId: clipSessionId } : {}),
   });
 };
 
@@ -2269,6 +2271,7 @@ const togglePlay = async (num) => {
   socket?.emit(EVENTS?.ON_VIDEO_PLAY_PAUSE, {
       userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
       ...updatedPlayingState,
+      ...(clipSessionId ? { sessionId: clipSessionId } : {}),
   });
 
   // Update the state locally after emitting
@@ -2357,6 +2360,7 @@ const togglePlay = async (num) => {
             userInfo: { from_user: fromUser?._id, to_user: toUser?._id },
             clickedTime,
             number,
+            ...(clipSessionId ? { sessionId: clipSessionId } : {}),
         });
   }
 
