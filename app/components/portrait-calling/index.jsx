@@ -2742,7 +2742,8 @@ const VideoCallUI = ({
               bookingClipsLoadedOnceRef.current = true; // Prevent startMeeting from reloading booking clips
               emitVideoSelectEvent("clips", []);
               setIsOpenConfirm(false);
-              setIsOpen(true); // Open clip selector immediately for re-selection
+              // Don't immediately re-open clip selector — trainer returns to video streaming view.
+              // They can enter clip mode again by clicking the clip button.
             }}
             className="clip-exit-confirm-modal__btn-confirm"
             style={{
