@@ -3,7 +3,6 @@ import React, {
   useCallback,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
   useLayoutEffect
@@ -232,6 +231,8 @@ export const HandleVideoCall = ({
   const [micStream, setMicStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [localStream, setLocalStream] = useState(null);
+  const [isPlaying, setIsPlaying] = useState({ isPlayingAll: false, number: "", isPlaying1: false, isPlaying2: false });
+  const [videoTime, setVideoTime] = useState({ currentTime1: "00:00", currentTime2: "00:00", remainingTime1: "00:00", remainingTime2: "00:00" });
 
   // Authoritative lesson timer state (backend-driven)
   const [lessonTimerStatus, setLessonTimerStatus] = useState("waiting"); // "waiting" | "running" | "paused" | "ended"
@@ -262,6 +263,11 @@ export const HandleVideoCall = ({
   // We'll integrate them as we refactor the component
 
   // ---------- Authoritative lesson timer helpers ----------
+
+  // Use a ref to hold the latest cleanup function so startLessonCountdown
+  // doesn't need cleanupFunction in its dependency array (which would change
+  // on every render and cause infinite re-runs of the timer useEffect).
+  const cleanupFunctionRef = useRef(null);
 
   const clearLessonTimerInterval = () => {
     if (lessonTimerIntervalRef.current) {
@@ -352,14 +358,17 @@ export const HandleVideoCall = ({
         clearLessonTimerInterval();
         // Automatically end the session when timer reaches zero
         setLessonTimerStatus("ended");
-        // Use existing cleanup logic to end the call/session
-        if (!isCallEnded) {
-          setIsCallEnded(true);
-          cleanupFunction();
-        }
+        // Use ref so we don't depend on cleanupFunction directly (avoids
+        // infinite re-render loop from unstable function reference).
+        setIsCallEnded((alreadyEnded) => {
+          if (!alreadyEnded) {
+            cleanupFunctionRef.current?.();
+          }
+          return true;
+        });
       }
     }, 1000);
-  }, [cleanupFunction, hasShownFiveMinuteWarning, hasShownOneMinuteWarning, isCallEnded]);
+  }, [hasShownFiveMinuteWarning, hasShownOneMinuteWarning]);
 
   const requestCoachTimerStart = useCallback(() => {
     if (!socket || !id) return;
@@ -1251,7 +1260,7 @@ useEffect(() => {
   }, [socket, fromUser, toUser]);
 
   // NOTE -  end user video stream
-  useMemo(() => {
+  useEffect(() => {
     if (
       remoteVideoRef.current &&
       remoteStream &&
@@ -1259,7 +1268,7 @@ useEffect(() => {
     ) {
       remoteVideoRef.current.srcObject = remoteStream;
       accountType === AccountType.TRAINEE ? setIsModelOpen(true) : null;
-    
+
     }
 
     return () => {
@@ -1706,6 +1715,10 @@ useEffect(() => {
     clearCanvas();
   };
 
+  // Keep ref up-to-date so the timer interval can call cleanup without
+  // holding a stale closure reference.
+  cleanupFunctionRef.current = cleanupFunction;
+
   const sendEmitUndoEvent = useCallback(_debounce(sendDrawEvent, 500), []);
 
   const undoDrawing = async (
@@ -2086,36 +2099,6 @@ useEffect(() => {
     emitVideoSelectEvent("clips", selectedClips, pinnedUser);
   }, [selectedClips?.length]);
 
-
-  socket.on(EVENTS.ON_VIDEO_PLAY_PAUSE, ({ isPlayingAll, number, isPlaying1, isPlaying2 }) => {
-
-    const playPauseVideo = (videoRef, isPlaying) => {
-      if (videoRef?.current) {
-        isPlaying ? videoRef.current.play() : videoRef.current.pause();
-      }
-    };
-  
-    if (number === "all") {
-      playPauseVideo(selectedVideoRef1, isPlayingAll);
-      playPauseVideo(selectedVideoRef2, isPlayingAll);
-    } else if (number === "one") {
-      playPauseVideo(selectedVideoRef1, isPlaying1);
-    } else if (number === "two") {
-      playPauseVideo(selectedVideoRef2, isPlaying2);
-    }
-  
-    setIsPlaying({ isPlayingAll, number, isPlaying1, isPlaying2 });
-  });
-  
-
-
-  //NOTE -  Video Time Update listen
-  socket.on(EVENTS.ON_VIDEO_TIME, ({ clickedTime, number }) => {
-    if (selectedVideoRef1?.current) {
-      if (number === "one") selectedVideoRef1.current.currentTime = clickedTime;
-      else selectedVideoRef2.current.currentTime = clickedTime;
-    }
-  });
 
   //NOTE -  Video Time Update emit
 const emitVideoTimeEvent = (clickedTime, number) => {
