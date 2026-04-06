@@ -1803,7 +1803,7 @@ const VideoCallUI = ({
         msg: "Failed to connect. Please try again." 
       });
     }
-  }, [accountType, setIsModelOpen, localStream]);
+  }, [accountType, setIsModelOpen]);
   
   // Start lesson countdown based on backend timer info (authoritative).
   // Prefer remainingSeconds from the server so we are not sensitive to client
@@ -2116,6 +2116,10 @@ const VideoCallUI = ({
         }
 
         // Don't connect to ourselves - check both peerId and from_user
+        if (!peerRef.current) {
+          console.error('[VideoCall] Peer ref not available in handleCallJoin');
+          return;
+        }
         const myPeerId = peerRef.current.id;
         const myUserId = fromUser?._id;
         
@@ -2228,10 +2232,6 @@ const VideoCallUI = ({
       }
       // Reset connection state on cleanup
       isConnectingRef.current = false;
-      if (callEngineRef.current) {
-        callEngineRef.current.cleanup();
-        callEngineRef.current = null;
-      }
     };
   }, [socket, toUser, toUser?._id, id, connectToPeer, showPartnerJoinedPrompt]);
 

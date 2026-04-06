@@ -1268,12 +1268,7 @@ useEffect(() => {
     ) {
       remoteVideoRef.current.srcObject = remoteStream;
       accountType === AccountType.TRAINEE ? setIsModelOpen(true) : null;
-
     }
-
-    return () => {
-      cutCall();
-    };
   }, [remoteStream]);
 
   // NOTE - if trainer is joined before trainee and trainer's video has been pause then emit the even to trainee

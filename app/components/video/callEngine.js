@@ -151,7 +151,7 @@ export class CallEngine {
    * Initialize Peer, wire basic handlers, and emit ON_CALL_JOIN on "open".
    * Returns the Peer instance.
    */
-  initPeerAndSignal({ localStream }) {
+  initPeerAndSignal({ localStream: _localStream } = {}) {
     const peer = this.createPeer();
     this.wirePeerErrors();
 
@@ -165,18 +165,6 @@ export class CallEngine {
             peerId,
           },
         });
-      }
-    });
-
-    peer.on("call", (call) => {
-      this.isConnecting = false;
-      this.clearConnectionTimeout();
-
-      this.activeCall = call;
-      if (localStream) {
-        call.answer(localStream);
-      } else {
-        call.answer();
       }
     });
 
