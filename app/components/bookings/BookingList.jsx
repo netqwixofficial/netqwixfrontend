@@ -314,13 +314,28 @@ const BookingList = ({ activeCenterContainerTab, activeTabs, bookings: bookingsP
       time_zone, // Assuming 'time_zone' is coming from API
     } = bookingInfo;
 
-    // Show times in viewer's timezone so trainer and trainee each see times in their own zone
+    // Show times in viewer's timezone so trainer and trainee each see times in their own zone.
+    // For older records without start_time/end_time Date objects, fall back to constructing
+    // a proper DateTime from booked_date + session_start/end_time in the session's time_zone.
+    const computeFallbackTime = (hhmm) => {
+      if (!hhmm || !booked_date) return Utils.formatTime(hhmm || "");
+      try {
+        const dateStr = typeof booked_date === "string"
+          ? booked_date.split("T")[0]
+          : new Date(booked_date).toISOString().split("T")[0];
+        const isoStr = `${dateStr}T${hhmm}:00`;
+        const dt = DateTime.fromISO(isoStr, { zone: time_zone || "UTC" });
+        return dt.setZone(userTimeZone).toFormat("h:mm a").toUpperCase();
+      } catch {
+        return Utils.formatTime(hhmm);
+      }
+    };
     const localStartTime = start_time
       ? formatTimeInLocalZone(start_time, userTimeZone)
-      : "—";
+      : computeFallbackTime(session_start_time);
     const localEndTime = end_time
       ? formatTimeInLocalZone(end_time, userTimeZone)
-      : "—";
+      : computeFallbackTime(session_end_time);
 
     const isMobileScreen = useMediaQuery("(max-width:600px)");
     return (
@@ -407,7 +422,7 @@ const BookingList = ({ activeCenterContainerTab, activeTabs, bookings: bookingsP
                 >
                   <div className="">Time :</div>
                   <dt className="ml-1">
-                    {start_time && end_time
+                    {(start_time || session_start_time) && (end_time || session_end_time)
                       ? `${localStartTime} - ${localEndTime}`
                       : "Instant"}
                   </dt>
