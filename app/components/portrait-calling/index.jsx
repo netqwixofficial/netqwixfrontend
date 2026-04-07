@@ -1002,40 +1002,18 @@ const VideoCallUI = ({
     }
   }, [remoteStream, isTraineeJoined, bothUsersJoined, displayMsg?.show, displayMsg?.msg]);
 
-  // Track when both users joined (for buffer before fallback countdown; authoritative timer uses backend)
+  // Track when both users joined and immediately mark buffer as elapsed (no delay).
   useEffect(() => {
     if (bothUsersJoined) {
       if (bothUsersJoinedAtRef.current == null) bothUsersJoinedAtRef.current = Date.now();
+      setTimerBufferElapsed(true);
+      setBufferCountdown(null);
     } else {
       bothUsersJoinedAtRef.current = null;
       setTimerBufferElapsed(false);
       setBufferCountdown(null);
     }
   }, [bothUsersJoined]);
-
-  // Short client buffer before slot-based fallback countdown (authoritative timer bypasses this).
-  const TIMER_BUFFER_SECONDS = 15;
-  useEffect(() => {
-    if (!bothUsersJoined) return;
-    const t = setTimeout(() => setTimerBufferElapsed(true), TIMER_BUFFER_SECONDS * 1000);
-    return () => clearTimeout(t);
-  }, [bothUsersJoined]);
-
-  // Buffer countdown (15, 14, … 0) for "Session starting in X seconds..."
-  useEffect(() => {
-    if (!bothUsersJoined || timerBufferElapsed) {
-      setBufferCountdown(null);
-      return;
-    }
-    const update = () => {
-      if (bothUsersJoinedAtRef.current == null) return;
-      const elapsed = Math.floor((Date.now() - bothUsersJoinedAtRef.current) / 1000);
-      setBufferCountdown(Math.max(0, TIMER_BUFFER_SECONDS - elapsed));
-    };
-    update();
-    const id = setInterval(update, 1000);
-    return () => clearInterval(id);
-  }, [bothUsersJoined, timerBufferElapsed]);
 
    
 
@@ -2417,12 +2395,9 @@ const VideoCallUI = ({
       return h * 60 + m;
     };
 
-    const timerStartAtMs =
-      (bothUsersJoinedAtRef.current ?? Date.now()) +
-      TIMER_BUFFER_SECONDS * 1000;
+    const timerStartAtMs = bothUsersJoinedAtRef.current ?? Date.now();
 
     // Derive the lesson duration from the selected session start/end.
-    // Then start the countdown at (bothUsersJoined + buffer).
     let durationSeconds = null;
 
     const startMinutes = parseHHMMToMinutes(session_start_time);
