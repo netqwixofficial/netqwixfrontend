@@ -198,11 +198,7 @@ const TimeRemaining = ({
 
     if (bufferSecondsRemaining != null) {
       setTimerColor("#6c757d");
-      setDisplayTime(
-        bufferSecondsRemaining > 0
-          ? `Session starting in ${bufferSecondsRemaining} seconds...`
-          : "Starting..."
-      );
+      setDisplayTime("Waiting for both users...");
       return;
     }
 

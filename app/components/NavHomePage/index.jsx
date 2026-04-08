@@ -267,7 +267,31 @@ const NavHomePage = () => {
       },
     ],
   };
-   
+
+  const formatHHMMToAMPM = (value) => {
+    if (!value) return "--:--";
+    const raw = String(value).trim();
+    const match = raw.match(/^(\d{1,2}):(\d{2})/);
+    if (!match) return raw;
+    let hours = Number(match[1]);
+    const minutes = match[2];
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    return `${hours}:${minutes} ${ampm}`;
+  };
+
+  const getSessionRequestedTimeRange = (session) => {
+    const hasIsoStart = !!session?.start_time && String(session.start_time).includes("T");
+    const hasIsoEnd = !!session?.end_time && String(session.end_time).includes("T");
+    const startLabel = hasIsoStart
+      ? formatTimeInLocalZone(session.start_time, session.time_zone)
+      : formatHHMMToAMPM(session?.session_start_time || session?.start_time);
+    const endLabel = hasIsoEnd
+      ? formatTimeInLocalZone(session.end_time, session.time_zone)
+      : formatHHMMToAMPM(session?.session_end_time || session?.end_time);
+    return `${startLabel} - ${endLabel}`;
+  };
+
 
   // Mark that we've completed at least one load of scheduled meetings (so we hide active-session skeleton when there are none)
   useEffect(() => {
@@ -756,11 +780,7 @@ const NavHomePage = () => {
                           }`}
                       >
                         <div className="">Session Requested Time :</div>
-                        <dt className="ml-1">{`${formatTimeInLocalZone(
-                          session.session_start_time || session.start_time
-                        )} - ${formatTimeInLocalZone(
-                          session.session_end_time || session.end_time
-                        )}`}</dt>
+                        <dt className="ml-1">{getSessionRequestedTimeRange(session)}</dt>
                       </div>
                     </div>
 

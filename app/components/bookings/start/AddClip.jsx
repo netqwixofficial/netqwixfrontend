@@ -9,7 +9,16 @@ import { useMediaQuery } from 'usehooks-ts';
 import { Tooltip } from 'react-tippy';
 import { MY_CLIPS_LABEL_LIMIT } from '../../../../utils/constant';
 
-const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedClips, shareFunc }) => {
+const AddClip = ({
+  isOpen,
+  onClose,
+  trainer,
+  selectedClips,
+  clips,
+  setSelectedClips,
+  shareFunc,
+  redirectToUpcomingOnShare = false,
+}) => {
   const [selectedClipsCopy, setSelectedClipsCopy] = useState([]);
   const [isOpenPlayVideo, setIsOpenPlayVideo] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState("");
@@ -194,12 +203,15 @@ const AddClip = ({ isOpen, onClose, trainer, selectedClips, clips, setSelectedCl
     return isMaxSelected && !isSelected;
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
     setSelectedClips(selectedClipsCopy);
     if (shareFunc) {
-      shareFunc(selectedClipsCopy);
+      await shareFunc(selectedClipsCopy);
     }
     onClose();
+    if (redirectToUpcomingOnShare && typeof window !== "undefined") {
+      window.location.href = "/dashboard/upcoming-sessions";
+    }
   };
 
   const handleClose = () => {

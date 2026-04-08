@@ -252,6 +252,7 @@ export const HandleVideoCall = ({
     useState(false);
   const [hasShownOneMinuteWarning, setHasShownOneMinuteWarning] =
     useState(false);
+  const autoStartRequestedRef = useRef(false);
 
   const errorHandling = (err) => toast.error(err);
   const [sketchPickerColor, setSketchPickerColor] = useState({
@@ -389,6 +390,29 @@ export const HandleVideoCall = ({
     if (!socket || !id) return;
     socket.emit("LESSON_TIMER_RESUME_REQUEST", { sessionId: id });
   }, [socket, id]);
+
+  useEffect(() => {
+    if (lessonTimerStatus === "running" || lessonTimerStatus === "ended") {
+      autoStartRequestedRef.current = false;
+      return;
+    }
+    if (
+      accountType === AccountType.TRAINER &&
+      lessonTimerStatus === "waiting" &&
+      trainerConnected &&
+      traineeConnected &&
+      !autoStartRequestedRef.current
+    ) {
+      autoStartRequestedRef.current = true;
+      requestCoachTimerStart();
+    }
+  }, [
+    accountType,
+    lessonTimerStatus,
+    trainerConnected,
+    traineeConnected,
+    requestCoachTimerStart,
+  ]);
 
   // Keep a small banner in sync with timer + presence
   useEffect(() => {
@@ -2103,14 +2127,34 @@ useEffect(() => {
         type,
         videos,
         mainScreen,
+        ...(clipSessionId ? { sessionId: clipSessionId } : {}),
       });
     }
   };
 
+  const exitClipMode = () => {
+    setIsOpen(false);
+    setInitialPinnedUser();
+    setVideoController(false);
+    setIsPlaying({
+      isPlayingAll: false,
+      number: "",
+      isPlaying1: false,
+      isPlaying2: false,
+    });
+    setSelectedClips([]);
+    emitVideoSelectEvent("clips", [], null);
+    setIsOpenConfirm(false);
+  };
+
   //NOTE - emit event after selecting the clips
+  const selectedClipIdsKey = (selectedClips || [])
+    .map((clip) => clip?._id)
+    .filter(Boolean)
+    .join(",");
   useEffect(() => {
     emitVideoSelectEvent("clips", selectedClips, pinnedUser);
-  }, [selectedClips?.length]);
+  }, [selectedClipIdsKey, pinnedUser]);
 
 
   //NOTE -  Video Time Update emit
@@ -2761,17 +2805,14 @@ const togglePlay = async (num) => {
         <Modal
           isOpen={isOpenConfirm}
           toggle={() => {
-            setIsOpenConfirm(false);
+              exitClipMode();
           }}
           centered
           className="clip-exit-confirm-modal"
         >
           <ModalHeader
             toggle={() => {
-              setIsOpenConfirm(false);
-              // Clear clips and emit socket event to sync with student
-              setSelectedClips([]);
-              emitVideoSelectEvent("clips", [], pinnedUser);
+              exitClipMode();
             }}
             close={() => <></>}
             style={{ textAlign: "center" }}
@@ -2809,11 +2850,7 @@ const togglePlay = async (num) => {
             <Button
               color="primary"
               onClick={() => {
-                setInitialPinnedUser();
-                // Clear clips and emit socket event to sync with student
-                setSelectedClips([]);
-                emitVideoSelectEvent("clips", [], pinnedUser);
-                setIsOpenConfirm(false);
+                exitClipMode();
               }}
               style={{
                 backgroundColor: '#007bff',
@@ -3441,7 +3478,6 @@ useEffect(() => {
               ) : null}
 
               {/* Timer  */}
-              {isTraineeJoined &&
               <div
                 id="sessionEndTime"
                 style={{
@@ -3464,15 +3500,12 @@ useEffect(() => {
                 >
                   <h3 style={{ fontSize: 'calc(14px + 2*(100vw - 320px) / 1600)' }}>Time remaining</h3>
                   <h2 style={{ fontSize: 'calc(14px + 2*(100vw - 320px) / 1600)' }}>
-                    {lessonTimeDisplay || "--:--"}
+                    {lessonTimerStatus === "waiting"
+                      ? "Waiting for the other participant..."
+                      : lessonTimeDisplay || "--:--"}
                   </h2>
                   {accountType === AccountType.TRAINER && (
                     <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
-                      {lessonTimerStatus === "waiting" && (
-                        <Button size="sm" color="success" onClick={requestCoachTimerStart}>
-                          Start Timer
-                        </Button>
-                      )}
                       {lessonTimerStatus === "running" && (
                         <Button size="sm" color="warning" onClick={requestCoachTimerPause}>
                           Pause Timer
@@ -3491,7 +3524,7 @@ useEffect(() => {
                     </p>
                   )}
                 </div>
-              </div>}
+              </div>
 
               {/* Lesson time warnings */}
               <Modal
